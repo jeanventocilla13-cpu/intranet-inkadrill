@@ -83,16 +83,27 @@ def cargar_datos_excel():
     try:
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
         service = build('drive', 'v3', credentials=creds)
-        respuesta = service.files().export_media(fileId=EXCEL_DATOS_ID, mimeType='text/csv').execute()
-        df = pd.read_csv(io.StringIO(respuesta.decode('utf-8')))
-        return df, service
+      # Descargamos el archivo como un verdadero Excel (.xlsx)
+        respuesta = service.files().export_media(fileId=EXCEL_DATOS_ID, mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').execute()
+        
+        # Abrimos el Excel en la memoria de Python
+        archivo_excel = io.BytesIO(respuesta)
+        
+        # Extraemos la Hoja 1 (Datos de Coordenadas)
+        df_hoja1 = pd.read_excel(archivo_excel, sheet_name=0)
+        
+        # Extraemos la Hoja 2 (Datos Geomecánicos) y le damos formato
+        df_hoja2 = pd.read_excel(archivo_excel, sheet_name='Hoja 2', header=None)
+        df_hoja2.columns = ['Parámetro', 'Valor / Rango', 'Clasificación']
+        
+        return df_hoja1, df_hoja2, service
+        
     except Exception as e:
-        # ¡Ahora Streamlit nos mostrará el error exacto en pantalla!
-        st.error(f"Error técnico exacto: {e}") 
-        return None, None
-    
-# Cargamos la base de datos maestra
-datos_reales, drive_service = cargar_datos_excel()
+        st.error(f"Error técnico exacto: {e}")
+        return None, None, None
+
+# Cargamos las bases de datos maestras (Ambas hojas a la vez)
+datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 
 # --- 5. BUSCADOR INTELIGENTE CON IA (Leyendo 2 Documentos) ---
 col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
@@ -177,5 +188,13 @@ if datos_reales is not None:
                 st.plotly_chart(fig_dispersion, use_container_width=True)
             else:
                 st.warning("El Excel no tiene las columnas 'Coordenada E' y 'Coordenada N'.")
+                
+            # --- Fila 3: Datos Geomecánicos ---
+    st.markdown("---") # Esto dibuja una línea horizontal elegante para separar
+    
+    with st.container(border=True):
+        st.subheader("⛏️ Parámetros Geomecánicos del Macizo Rocoso")
+        # Mostramos la tabla de la Hoja 2
+        st.dataframe(datos_geomecanicos, hide_index=True, use_container_width=True)
 else:
     st.error("No se pudo cargar la base de datos de Google Sheets. Verifica el ID.")
