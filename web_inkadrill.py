@@ -32,7 +32,7 @@ if not st.session_state["acceso_concedido"]:
 # --- 1. CONFIGURACIÓN ---
 #st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
 
-genai.configure(api_key="AIzaSyD33Jj7JqU3oGD-XR1L1_Y85upvVGxH0O8") 
+genai.configure(api_key="AIzaSyB9XHVPd7looa84EHGnAi5iCx_ZrTrzb_A") 
 modelo = genai.GenerativeModel('gemini-2.5-flash')
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
