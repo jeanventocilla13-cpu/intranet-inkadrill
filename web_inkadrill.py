@@ -124,7 +124,7 @@ with col_busq2:
                     PREGUNTA DEL USUARIO: {pregunta_usuario}
                     """
                     respuesta_ia = modelo.generate_content(instruccion)
-                    st.success("✅ Respuesta generada a partir de los 2 documentos:")
+                    st.success("Respuesta generada según los datos de la empresa:")
                     st.info(respuesta_ia.text)
                 except Exception as e:
                     st.error(f"Error al leer los documentos de texto: {e}")
