@@ -10,7 +10,7 @@ from googleapiclient.discovery import build
 # --- 2. CONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL Y SECRETOS ---
 # Leemos la clave de Gemini desde la nube
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"]) 
-modelo = genai.GenerativeModel('gemini-2.5-flash')
+modelo = genai.GenerativeModel('gemini-1.5-flash')
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
 # IDs de Drive
@@ -22,7 +22,6 @@ EXCEL_DATOS_ID = '18qcBENgyhsEh340d-AINcKfh4sArAWz-OBchn5HCFZY'
 if "GOOGLE_TOKEN" in st.secrets:
     with open('token.json', 'w') as f:
         f.write(st.secrets["GOOGLE_TOKEN"])
-
 # --- 2. CSS PARA EL DISEÑO CORPORATIVO ---
 estilo_dashboard = """
 <style>
