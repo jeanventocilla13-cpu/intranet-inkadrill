@@ -6,7 +6,28 @@ import io  # <- Nueva librería para procesar el Excel en memoria
 import google.generativeai as genai
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+# --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
+if "acceso_concedido" not in st.session_state:
+    st.session_state["acceso_concedido"] = False
 
+if not st.session_state["acceso_concedido"]:
+    st.image("https://cdn-icons-png.flaticon.com/512/2950/2950711.png", width=100)
+    st.title("🔒 Intranet InkaDrill")
+    st.info("Acceso restringido. Por favor, identifícate.")
+    
+    clave_ingresada = st.text_input("Contraseña de acceso:", type="password")
+    
+    if st.button("Entrar"):
+        if clave_ingresada == st.secrets["CLAVE_WEB"]:
+            st.session_state["acceso_concedido"] = True
+            st.rerun() # Recarga la página para mostrar el contenido
+        else:
+            st.error("Contraseña incorrecta. Intenta nuevamente.")
+            
+    st.stop() # 🛑 Esta línea es mágica: oculta todo el resto de la web si no hay acceso
+
+# --- 2. CONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL Y SECRETOS ---
+# (A partir de aquí hacia abajo va TODO tu código original intacto)
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
 
