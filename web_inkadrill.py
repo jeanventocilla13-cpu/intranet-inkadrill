@@ -7,18 +7,21 @@ import google.generativeai as genai
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-# --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
-
-genai.configure(api_key="AIzaSyD33Jj7JqU3oGD-XR1L1_Y85upvVGxH0O8") 
+# --- 2. CONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL Y SECRETOS ---
+# Leemos la clave de Gemini desde la nube
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"]) 
 modelo = genai.GenerativeModel('gemini-2.5-flash')
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
-# Reemplaza con tus 3 IDs reales de Drive
-# Reemplaza con tus 3 IDs reales de Drive
+# IDs de Drive
 DOC_WORD_1_ID = '1zaJVdGMqmKAf-GTQx6oY8fkCTOX_Lvaj3uwB1RDwOso'
-DOC_WORD_2_ID = '1INIfPGcq7gS5uYgw_Qd_R3Emz2D8TEz34teJ3ysECGs'
+DOC_WORD_2_ID = '1lNIfPGcq7gS5uYgw_Qd_R3Emz2D8TEz34teJ3ysECGs'
 EXCEL_DATOS_ID = '18qcBENgyhsEh340d-AINcKfh4sArAWz-OBchn5HCFZY'
+
+# Truco maestro: Crear el token de Drive temporalmente en la nube usando el secreto
+if "GOOGLE_TOKEN" in st.secrets:
+    with open('token.json', 'w') as f:
+        f.write(st.secrets["GOOGLE_TOKEN"])
 
 # --- 2. CSS PARA EL DISEÑO CORPORATIVO ---
 estilo_dashboard = """
