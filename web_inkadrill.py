@@ -17,12 +17,12 @@ if not st.session_state["acceso_concedido"]:
     /* Ocultar menú y barra superior */
     header {visibility: hidden;}
     
-    /* Fondo verde para TODA la página (se verá en el lado derecho) */
+    /* Fondo verde para TODA la página */
     .stApp { 
         background-color: #0F3F23 !important; 
     }
     
-    /* La imagen del túnel pegada en el lado izquierdo (55% de la pantalla) */
+    /* La imagen del túnel pegada en el lado izquierdo */
     .bg-imagen-izq {
         position: fixed;
         top: 0;
@@ -38,14 +38,13 @@ if not st.session_state["acceso_concedido"]:
     /* Ajustes para centrar el contenido verticalmente */
     .block-container { z-index: 1; position: relative; padding-top: 12vh !important; }
     
-    /* Tarjeta Blanca (Forzada) */
-    div[data-testid="stVerticalBlockBorderWrapper"],
-    div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    /* === LA TARJETA BLANCA INFALIBLE (Formulario) === */
+    [data-testid="stForm"] {
         background-color: #ffffff !important;
-        background: #ffffff !important;
-        border-radius: 12px !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
-        padding: 15px !important;
+        border-radius: 15px !important;
+        border: none !important;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.6) !important;
+        padding: 25px !important;
     }
     
     /* Textos corporativos */
@@ -53,21 +52,19 @@ if not st.session_state["acceso_concedido"]:
     .texto-footer { color: white; text-align: center; font-size: 12px; margin-top: 25px; opacity: 0.8;}
     
     /* Botón Naranja InkaDrill */
-    div.stButton > button:first-child {
-        background-color: #e67e22; color: white; width: 100%; border-radius: 6px; border: none; font-weight: bold; padding: 0.5rem;
+    [data-testid="stFormSubmitButton"] > button {
+        background-color: #e67e22 !important; color: white !important; width: 100% !important; border-radius: 6px !important; border: none !important; font-weight: bold !important; padding: 0.5rem !important;
     }
-    div.stButton > button:first-child:hover { background-color: #d35400; color: white; }
+    [data-testid="stFormSubmitButton"] > button:hover { background-color: #d35400 !important; color: white !important; }
     </style>
     
     <div class="bg-imagen-izq"></div>
     """, unsafe_allow_html=True)
 
-    # 2. Estructura de Columnas (Izquierda para la foto, Derecha para el login)
+    # 2. Estructura de Columnas
     col_foto, col_login = st.columns([1.2, 1])
 
-    # Trabajamos SOLO en la columna de la derecha
     with col_login:
-        
         # Logo y Título
         st.markdown("""
             <div style='text-align: center; margin-bottom: 10px;'>
@@ -77,8 +74,8 @@ if not st.session_state["acceso_concedido"]:
             <div class='titulo-principal'>SISTEMA BLOQUEADO</div>
         """, unsafe_allow_html=True)
 
-        # La Tarjeta Blanca del Formulario
-        with st.container(border=True):
+        # 3. El Formulario (nuestra tarjeta blanca invencible)
+        with st.form("login_form", clear_on_submit=False):
             st.markdown("""
                 <div style='text-align: center; padding-top: 5px;'>
                     <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='75' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
@@ -91,7 +88,10 @@ if not st.session_state["acceso_concedido"]:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            if st.button("DESBLOQUEAR SESIÓN"):
+            # Al usar un st.form, el botón debe ser un form_submit_button
+            submit = st.form_submit_button("DESBLOQUEAR SESIÓN")
+            
+            if submit:
                 if clave_ingresada == st.secrets["CLAVE_WEB"]:
                     st.session_state["acceso_concedido"] = True
                     st.rerun()
@@ -276,3 +276,4 @@ if datos_reales is not None:
         st.dataframe(datos_geomecanicos, hide_index=True, use_container_width=True)
 else:
     st.error("No se pudo cargar la base de datos de Google Sheets. Verifica el ID.")
+
