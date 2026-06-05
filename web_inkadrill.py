@@ -36,7 +36,7 @@ if not st.session_state["acceso_concedido"]:
     }
     
     /* Ajustes para centrar el contenido verticalmente */
-    .block-container { z-index: 1; position: relative; padding-top: 12vh !important; }
+    .block-container { z-index: 2; position: relative; padding-top: 12vh !important; }
     
     /* === LA TARJETA BLANCA INFALIBLE (Formulario) === */
     [data-testid="stForm"] {
