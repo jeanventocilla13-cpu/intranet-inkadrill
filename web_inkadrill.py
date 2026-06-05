@@ -64,7 +64,7 @@ if not st.session_state["acceso_concedido"]:
                 <div style='text-align: center; padding-top: 10px;'>
                     <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
                     <h4 style='color: white; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
-                    <p style='color: gray; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
+                    <p style='color: black; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
                 </div>
             """, unsafe_allow_html=True)
             
