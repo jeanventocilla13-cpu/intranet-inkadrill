@@ -189,23 +189,23 @@ st.markdown("---")
 # --- 4. FUNCIÓN PARA DESCARGAR DATOS DE DRIVE ---
 @st.cache_data(ttl=300)
 def cargar_datos_excel():
-try:
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    service = build('drive', 'v3', credentials=creds)
-  # Descargamos el archivo como un verdadero Excel (.xlsx)
-    respuesta = service.files().export_media(fileId=EXCEL_DATOS_ID, mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').execute()
-    
-    # Abrimos el Excel en la memoria de Python
-    archivo_excel = io.BytesIO(respuesta)
-    
-    # Extraemos la Hoja 1 (Datos de Coordenadas)
-    df_hoja1 = pd.read_excel(archivo_excel, sheet_name=0)
-    
-    # Extraemos la Hoja 2 (Datos Geomecánicos) y le damos formato
-    df_hoja2 = pd.read_excel(archivo_excel, sheet_name='Hoja 2', header=None)
-    df_hoja2.columns = ['Parámetro', 'Valor / Rango', 'Clasificación']
-    
-    return df_hoja1, df_hoja2, service
+    try:
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        service = build('drive', 'v3', credentials=creds)
+      # Descargamos el archivo como un verdadero Excel (.xlsx)
+        respuesta = service.files().export_media(fileId=EXCEL_DATOS_ID, mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').execute()
+        
+        # Abrimos el Excel en la memoria de Python
+        archivo_excel = io.BytesIO(respuesta)
+        
+        # Extraemos la Hoja 1 (Datos de Coordenadas)
+        df_hoja1 = pd.read_excel(archivo_excel, sheet_name=0)
+        
+        # Extraemos la Hoja 2 (Datos Geomecánicos) y le damos formato
+        df_hoja2 = pd.read_excel(archivo_excel, sheet_name='Hoja 2', header=None)
+        df_hoja2.columns = ['Parámetro', 'Valor / Rango', 'Clasificación']
+        
+        return df_hoja1, df_hoja2, service
     
 except Exception as e:
     st.error(f"Error técnico exacto: {e}")
