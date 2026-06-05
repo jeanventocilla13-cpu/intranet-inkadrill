@@ -266,57 +266,88 @@ def cargar_datos_excel():
 datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 
 if st.session_state["pestaña_actual"] == "Inicio":
-    st.markdown("<br><br>", unsafe_allow_html=True)      
-    st.markdown("""
-    <div style="background-color: #E8E8E8; padding: 40px; border-radius: 15px; border: 1px solid #ccc; display: flex; gap: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
-        <div style="flex: 1.5; color: #333; font-size: 16px; line-height: 1.6;">
-            <h2 style="color: #111; font-weight: 800; margin-top: 0;">HISTORIA Y FUNDACIÓN DE INKADRILL</h2>
-            <p>En 1992, un pequeño pero decidido equipo de ingenieros de minas y geólogos topógrafos, liderado por el <strong>Ing. Carlos Vargas</strong> y la <strong>Dra. Elena Qua Quispe</strong>, identificó una brecha crítica en la <strong>precisión</strong> y <strong>eficiencia</strong> de los datos de campo en el sector minero peruano.</p>
-            <p>Movidos por una visión de integrar tecnologías emergentes de topografía con la práctica de campo tradicional, fundaron <strong>InkaDrill</strong>.</p>
-            <p>...Desde nuestros modestos inicios, trabajando con teodolitos y libreta de campo, <strong>InkaDrill</strong> ha crecido hasta convertirse en un líder en soluciones de precisión topográfica para la industria <strong>minera, siempre fiel a los valores</strong> de rigor científico y compromiso social de nuestros fundadores.</p>
-        </div>
-        <div style="flex: 1; text-align: center;">
-            <img src="https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/inkadrill_founders.png" style="width: 100%; border-radius: 10px; border: 1px solid #bbb;">
-            <p style="font-size: 12px; color: #666; margin-top: 10px; line-height: 1.3;">El grupo fundador, reuniéndose por primera vez. De izquierda a derecha: Ing. J. Morales, Dra. E. Quispe, Ing. C. Vargas, Lic. A. García, Ing. R. Soto.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-# --- 5. BUSCADOR INTELIGENTE CON IA (Leyendo 2 Documentos) ---
-    col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
-    
-    with col_busq2:
-        with st.form(key='formulario_ia'):
-            pregunta_usuario = st.text_input("Buscar en la intranet...", placeholder="Consulta operativa a la IA...", label_visibility="collapsed")
-            boton_buscar = st.form_submit_button("Consultar Documentos 🧠")
+        
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        # ==========================================================
+        # EL BUSCADOR DE IA AHORA VA PRIMERO (Al inicio de la página)
+        # ==========================================================
+        # --- 5. BUSCADOR INTELIGENTE CON IA ---
+        col_busq1, col_busq2, col_busq3 = st.columns([1, 4, 1])
+        
+        with col_busq2:
+            # Envolvemos el formulario en un container para estilizar el fondo verde
+            st.markdown('<div class="franja-verde-buscador">', unsafe_allow_html=True)
             
-        if boton_buscar and pregunta_usuario:
-            with st.spinner("Analizando múltiples documentos operativos..."):
-                if drive_service:
-                    try:
-                        # Descargamos ambos documentos
-                        doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
-                        doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
-                        
-                        # Unimos la información para la IA
-                        instruccion = f"""
-                        Eres el asistente inteligente minero de InkaDrill.
-                        Responde a la consulta basándote ÚNICAMENTE en estos dos documentos:
-                        
-                        --- DOCUMENTO 1 ---
-                        {doc1}
-                        
-                        --- DOCUMENTO 2 ---
-                        {doc2}
-                        
-                        PREGUNTA DEL USUARIO: {pregunta_usuario}
-                        """
-                        respuesta_ia = modelo.generate_content(instruccion)
-                        st.success("Respuesta generada según los datos de la empresa:")
-                        st.info(respuesta_ia.text)
-                    except Exception as e:
-                        st.error(f"Error al leer los documentos de texto: {e}")
-                else:
-                    st.error("No se pudo conectar a Google Drive.")
+            # Formulario de IA con estilo corporativo
+            with st.form(key='formulario_ia_premium', clear_on_submit=False):
+                col_in1, col_in2 = st.columns([4, 1])
+                
+                with col_in1:
+                    pregunta_usuario = st.text_input(
+                        label="Buscar en la intranet",
+                        placeholder="🔍 Buscar en la intranet: topografía, datos mineros, informes, perforaciones...",
+                        label_visibility="collapsed"
+                    )
+                with col_in2:
+                    boton_buscar = st.form_submit_button("Buscar", use_container_width=True)
+                    
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            if boton_buscar and pregunta_usuario:
+                with st.spinner("Analizando documentos operativos..."):
+                    if drive_service:
+                        try:
+                            # Descargamos ambos documentos
+                            doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
+                            doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
+                            
+                            # Preparamos las instrucciones para Gemini
+                            instruccion = f"""
+                            Eres un ingeniero de minas experto. Responde a la pregunta del usuario basándote UNICAMENTE
+                            en la información de los siguientes dos documentos operativos de la empresa.
+                            Sé preciso, profesional y directo.
+
+                            DOCUMENTO 1 (Procedimientos y Seguridad):
+                            {doc1}
+
+                            DOCUMENTO 2 (Contexto Geomecánico):
+                            {doc2}
+
+                            PREGUNTA DEL USUARIO: {pregunta_usuario}
+                            """
+                            
+                            # Generamos la respuesta
+                            respuesta_ia = modelo.generate_content(instruccion)
+                            st.success("Respuesta generada según los datos de la empresa:")
+                            st.info(respuesta_ia.text)
+                            
+                        except Exception as e:
+                            st.error(f"Error al leer los documentos de texto: {e}")
+                    else:
+                        st.error("No se pudo conectar a Google Drive.")
+        
+        # Un espacio elegante entre bloques
+        st.markdown("<br><br><hr>", unsafe_allow_html=True)
+        
+        # ==========================================================
+        # LA HISTORIA DE INKADRILL AHORA VA DESPUÉS (Abajo del buscador)
+        # ==========================================================
+        # --- SECCIÓN DE HISTORIA INKADRILL (Tarjetón gris) ---
+        st.markdown("""
+        <div style="background-color: #E8E8E8; padding: 40px; border-radius: 15px; border: 1px solid #ccc; display: flex; gap: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+            <div style="flex: 1.8; color: #333; font-size: 16px; line-height: 1.6;">
+                <h2 style="color: #111; font-weight: 800; margin-top: 0;">HISTORIA Y FUNDACIÓN DE INKADRILL</h2>
+                <p>En 1992, un pequeño pero decidido equipo de ingenieros de minas y geólogos topógrafos, liderado por el <strong>Ing. Carlos Vargas</strong> y la <strong>Dra. Elena Qua Quispe</strong>, identificó una brecha crítica en la <strong>precisión</strong> y <strong>eficiencia</strong> de los datos de campo en el sector minero peruano.</p>
+                <p>Movidos por una visión de integrar tecnologías emergentes de topografía con la práctica de campo tradicional, fundaron <strong>InkaDrill</strong>.</p>
+                <p>...Desde nuestros modestos inicios, trabajando con teodolitos y libreta de campo, <strong>InkaDrill</strong> ha crecido hasta convertirse en un líder en soluciones de precisión topográfica para la industria <strong>minera, siempre fiel a los valores</strong> de rigor científico y compromiso social de nuestros fundadores.</p>
+            </div>
+            <div style="flex: 1; text-align: center;">
+                <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=600&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ" style="width: 100%; border-radius: 10px; border: 1px solid #bbb; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="font-size: 12px; color: #666; margin-top: 10px; line-height: 1.3;">El grupo fundador, reuniéndose por primera vez. De izquierda a derecha: Ing. J. Morales, Dra. E. Quispe, Ing. C. Vargas, Lic. A. García, Ing. R. Soto.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 elif st.session_state["pestaña_actual"] == "Topografía":
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h2 style='color: #2c3e50; font-family: sans-serif; font-weight: 800; font-size: 22px;'>PANEL DE DATOS EN TIEMPO REAL (Desde Google Sheets)</h2>", unsafe_allow_html=True)
