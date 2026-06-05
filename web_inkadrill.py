@@ -267,8 +267,6 @@ datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 
 if st.session_state["pestaña_actual"] == "Inicio":
         
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        
         # ==========================================================
         # EL BUSCADOR DE IA AHORA VA PRIMERO (Al inicio de la página)
         # ==========================================================
@@ -328,7 +326,8 @@ if st.session_state["pestaña_actual"] == "Inicio":
                         st.error("No se pudo conectar a Google Drive.")
         
         # Un espacio elegante entre bloques
-        st.markdown("<br><br><hr>", unsafe_allow_html=True)
+       # Un separador ajustado sin espacios gigantes
+        st.markdown("<hr style='margin: 15px 0px; border-color: #ddd;'>", unsafe_allow_html=True)
         
         # ==========================================================
         # LA HISTORIA DE INKADRILL AHORA VA DESPUÉS (Abajo del buscador)
