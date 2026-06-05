@@ -218,41 +218,41 @@ datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 if st.session_state["pestaña_actual"] == "Inicio":
 
 # --- 5. BUSCADOR INTELIGENTE CON IA (Leyendo 2 Documentos) ---
-col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
-
-with col_busq2:
-    with st.form(key='formulario_ia'):
-        pregunta_usuario = st.text_input("Buscar en la intranet...", placeholder="Consulta operativa a la IA...", label_visibility="collapsed")
-        boton_buscar = st.form_submit_button("Consultar Documentos 🧠")
-        
-    if boton_buscar and pregunta_usuario:
-        with st.spinner("Analizando múltiples documentos operativos..."):
-            if drive_service:
-                try:
-                    # Descargamos ambos documentos
-                    doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
-                    doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
-                    
-                    # Unimos la información para la IA
-                    instruccion = f"""
-                    Eres el asistente inteligente minero de InkaDrill.
-                    Responde a la consulta basándote ÚNICAMENTE en estos dos documentos:
-                    
-                    --- DOCUMENTO 1 ---
-                    {doc1}
-                    
-                    --- DOCUMENTO 2 ---
-                    {doc2}
-                    
-                    PREGUNTA DEL USUARIO: {pregunta_usuario}
-                    """
-                    respuesta_ia = modelo.generate_content(instruccion)
-                    st.success("Respuesta generada según los datos de la empresa:")
-                    st.info(respuesta_ia.text)
-                except Exception as e:
-                    st.error(f"Error al leer los documentos de texto: {e}")
-            else:
-                st.error("No se pudo conectar a Google Drive.")
+    col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
+    
+    with col_busq2:
+        with st.form(key='formulario_ia'):
+            pregunta_usuario = st.text_input("Buscar en la intranet...", placeholder="Consulta operativa a la IA...", label_visibility="collapsed")
+            boton_buscar = st.form_submit_button("Consultar Documentos 🧠")
+            
+        if boton_buscar and pregunta_usuario:
+            with st.spinner("Analizando múltiples documentos operativos..."):
+                if drive_service:
+                    try:
+                        # Descargamos ambos documentos
+                        doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
+                        doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
+                        
+                        # Unimos la información para la IA
+                        instruccion = f"""
+                        Eres el asistente inteligente minero de InkaDrill.
+                        Responde a la consulta basándote ÚNICAMENTE en estos dos documentos:
+                        
+                        --- DOCUMENTO 1 ---
+                        {doc1}
+                        
+                        --- DOCUMENTO 2 ---
+                        {doc2}
+                        
+                        PREGUNTA DEL USUARIO: {pregunta_usuario}
+                        """
+                        respuesta_ia = modelo.generate_content(instruccion)
+                        st.success("Respuesta generada según los datos de la empresa:")
+                        st.info(respuesta_ia.text)
+                    except Exception as e:
+                        st.error(f"Error al leer los documentos de texto: {e}")
+                else:
+                    st.error("No se pudo conectar a Google Drive.")
 elif st.session_state["pestaña_actual"] == "Topografía":
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h2 style='color: #2c3e50; font-family: sans-serif; font-weight: 800; font-size: 22px;'>PANEL DE DATOS EN TIEMPO REAL (Desde Google Sheets)</h2>", unsafe_allow_html=True)
