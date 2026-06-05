@@ -22,7 +22,7 @@ if not st.session_state["acceso_concedido"]:
         background-color: #0F3F23 !important; 
     }
     
-    /* La imagen del túnel pegada en el lado izquierdo */
+    /* La imagen del túnel pegada a la izquierda */
     .bg-imagen-izq {
         position: fixed;
         top: 0;
@@ -32,24 +32,37 @@ if not st.session_state["acceso_concedido"]:
         background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
         background-size: cover;
         background-position: center;
-        z-index: 0;
+        z-index: -1; /* CLAVE 1: Enviar la foto al fondo absoluto */
     }
     
-    /* Ajustes para centrar el contenido verticalmente */
-    .block-container { z-index: 2; position: relative; padding-top: 12vh !important; }
+    /* === REGLA ESPECIAL PARA CELULARES === */
+    @media (max-width: 768px) {
+        .bg-imagen-izq {
+            width: 100vw; /* En celular, la foto ocupa TODA la pantalla */
+            opacity: 0.3; /* Se oscurece como marca de agua para no molestar */
+        }
+        .block-container {
+            padding-top: 5vh !important; /* Menos espacio arriba en celulares */
+        }
+    }
     
-    /* === LA TARJETA BLANCA INFALIBLE (Formulario) === */
+    /* Ajustes para centrar el contenido verticalmente en PC */
+    .block-container { z-index: 10 !important; position: relative; padding-top: 12vh !important; }
+    
+    /* === LA TARJETA BLANCA (Siempre al frente) === */
     [data-testid="stForm"] {
         background-color: #ffffff !important;
         border-radius: 15px !important;
         border: none !important;
         box-shadow: 0 15px 35px rgba(0,0,0,0.6) !important;
         padding: 25px !important;
+        position: relative;
+        z-index: 999 !important; /* CLAVE 2: Traer la tarjeta al frente absoluto */
     }
     
-    /* Textos corporativos */
-    .titulo-principal { color: white; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 1px; margin-bottom: 25px;}
-    .texto-footer { color: white; text-align: center; font-size: 12px; margin-top: 25px; opacity: 0.8;}
+    /* Textos corporativos (Asegurando que estén sobre el fondo) */
+    .titulo-principal { color: white; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 1px; margin-bottom: 25px; position: relative; z-index: 999;}
+    .texto-footer { color: white; text-align: center; font-size: 12px; margin-top: 25px; opacity: 0.8; position: relative; z-index: 999;}
     
     /* Botón Naranja InkaDrill */
     [data-testid="stFormSubmitButton"] > button {
