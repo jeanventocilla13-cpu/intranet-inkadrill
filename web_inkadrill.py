@@ -192,7 +192,8 @@ def cargar_datos_excel():
     try:
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
         service = build('drive', 'v3', credentials=creds)
-      # Descargamos el archivo como un verdadero Excel (.xlsx)
+        
+        # Descargamos el archivo como un verdadero Excel (.xlsx)
         respuesta = service.files().export_media(fileId=EXCEL_DATOS_ID, mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').execute()
         
         # Abrimos el Excel en la memoria de Python
@@ -206,10 +207,10 @@ def cargar_datos_excel():
         df_hoja2.columns = ['Parámetro', 'Valor / Rango', 'Clasificación']
         
         return df_hoja1, df_hoja2, service
-    
-except Exception as e:
-    st.error(f"Error técnico exacto: {e}")
-    return None, None, None
+        
+    except Exception as e:
+        st.error(f"Error técnico exacto: {e}")
+        return None, None, None
 
 # Cargamos las bases de datos maestras (Ambas hojas a la vez)
 datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
