@@ -163,61 +163,61 @@ st.markdown(estilo_dashboard, unsafe_allow_html=True)
 
 # --- 3. BARRA SUPERIOR ESTILO INKADRILL PREMIUM ---
     
-    # 1. Inyectamos los colores corporativos a los botones
-    st.markdown("""
-    <style>
-        /* Botones Inactivos (Texto gris) */
-        button[data-testid="baseButton-secondary"] {
-            background-color: transparent !important; 
-            border: none !important; 
-            color: #555555 !important; 
-            font-weight: 500 !important;
-        }
-        button[data-testid="baseButton-secondary"]:hover { 
-            color: #0F3F23 !important; 
-            background-color: #f0f2f6 !important; 
-        }
-        
-        /* Botón Activo (Verde oscuro con línea amarilla abajo) */
-        button[data-testid="baseButton-primary"] {
-            background-color: #0F3F23 !important; 
-            color: white !important; 
-            border: none !important; 
-            border-bottom: 4px solid #f1c40f !important; 
-            border-radius: 0px !important; 
-            font-weight: bold !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+# 1. Inyectamos los colores corporativos a los botones
+st.markdown("""
+<style>
+    /* Botones Inactivos (Texto gris) */
+    button[data-testid="baseButton-secondary"] {
+        background-color: transparent !important; 
+        border: none !important; 
+        color: #555555 !important; 
+        font-weight: 500 !important;
+    }
+    button[data-testid="baseButton-secondary"]:hover { 
+        color: #0F3F23 !important; 
+        background-color: #f0f2f6 !important; 
+    }
+    
+    /* Botón Activo (Verde oscuro con línea amarilla abajo) */
+    button[data-testid="baseButton-primary"] {
+        background-color: #0F3F23 !important; 
+        color: white !important; 
+        border: none !important; 
+        border-bottom: 4px solid #f1c40f !important; 
+        border-radius: 0px !important; 
+        font-weight: bold !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    # 2. Creamos las columnas
-    col_logo, col_nav1, col_nav2, col_nav3, col_espacio, col_perfil = st.columns([2.5, 1.2, 1.3, 1.2, 2, 2.5])
+# 2. Creamos las columnas
+col_logo, col_nav1, col_nav2, col_nav3, col_espacio, col_perfil = st.columns([2.5, 1.2, 1.3, 1.2, 2, 2.5])
 
-    with col_logo:
-        st.markdown("<div style='display: flex; align-items: center;'><img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='40' style='margin-right: 10px;'><div style='line-height: 1.1;'><strong style='color:#0F3F23; font-size:18px; letter-spacing: 1px;'>INKADRILL</strong><br><span style='color:gray; font-size:11px; letter-spacing: 1px;'>INTRANET</span></div></div>", unsafe_allow_html=True)
+with col_logo:
+    st.markdown("<div style='display: flex; align-items: center;'><img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='40' style='margin-right: 10px;'><div style='line-height: 1.1;'><strong style='color:#0F3F23; font-size:18px; letter-spacing: 1px;'>INKADRILL</strong><br><span style='color:gray; font-size:11px; letter-spacing: 1px;'>INTRANET</span></div></div>", unsafe_allow_html=True)
 
-    with col_nav1:
-        btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Inicio" else "secondary"
-        if st.button("🏠 Inicio", type=btn_tipo, use_container_width=True, key="btn_inicio_premium"):
-            st.session_state["pestaña_actual"] = "Inicio"
-            st.rerun()
+with col_nav1:
+    btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Inicio" else "secondary"
+    if st.button("🏠 Inicio", type=btn_tipo, use_container_width=True, key="btn_inicio_premium"):
+        st.session_state["pestaña_actual"] = "Inicio"
+        st.rerun()
 
-    with col_nav2:
-        btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Topografía" else "secondary"
-        if st.button("📍 Topografía", type=btn_tipo, use_container_width=True, key="btn_topo_premium"):
-            st.session_state["pestaña_actual"] = "Topografía"
-            st.rerun()
+with col_nav2:
+    btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Topografía" else "secondary"
+    if st.button("📍 Topografía", type=btn_tipo, use_container_width=True, key="btn_topo_premium"):
+        st.session_state["pestaña_actual"] = "Topografía"
+        st.rerun()
 
-    with col_nav3:
-        btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Datos" else "secondary"
-        if st.button("🗄️ Datos", type=btn_tipo, use_container_width=True, key="btn_datos_premium"):
-            st.session_state["pestaña_actual"] = "Datos"
-            st.rerun()
+with col_nav3:
+    btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Datos" else "secondary"
+    if st.button("🗄️ Datos", type=btn_tipo, use_container_width=True, key="btn_datos_premium"):
+        st.session_state["pestaña_actual"] = "Datos"
+        st.rerun()
 
-    with col_perfil:
-        st.markdown("<div style='display: flex; align-items: center; justify-content: flex-end;'><div style='text-align: right; line-height: 1.2; margin-right: 12px;'><strong style='color:#333; font-size:14px;'>Perfil</strong><br><span style='color:gray; font-size:13px;'>Jean Ventocilla</span></div><img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='42' style='border-radius: 50%; border: 2px solid #ddd;'></div>", unsafe_allow_html=True)
-        
-    st.markdown("---")
+with col_perfil:
+    st.markdown("<div style='display: flex; align-items: center; justify-content: flex-end;'><div style='text-align: right; line-height: 1.2; margin-right: 12px;'><strong style='color:#333; font-size:14px;'>Perfil</strong><br><span style='color:gray; font-size:13px;'>Jean Ventocilla</span></div><img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='42' style='border-radius: 50%; border: 2px solid #ddd;'></div>", unsafe_allow_html=True)
+    
+st.markdown("---")
 
 # --- 4. FUNCIÓN PARA DESCARGAR DATOS DE DRIVE ---
 @st.cache_data(ttl=300)
