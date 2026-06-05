@@ -8,6 +8,8 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
+if "acceso_concedido" not in st.session_state:
+    st.session_state["acceso_concedido"] = False
 if not st.session_state["acceso_concedido"]:
     # 1. Inyectar CSS avanzado para el diseño corporativo
     st.markdown("""
