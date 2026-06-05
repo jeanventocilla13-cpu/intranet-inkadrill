@@ -318,9 +318,9 @@ if st.session_state["pestaña_actual"] == "Inicio":
                 else:
                     st.error("No se pudo conectar a Google Drive.")
 elif st.session_state["pestaña_actual"] == "Topografía":
-st.markdown("<hr>", unsafe_allow_html=True)
-st.markdown("<h2 style='color: #2c3e50; font-family: sans-serif; font-weight: 800; font-size: 22px;'>PANEL DE DATOS EN TIEMPO REAL (Desde Google Sheets)</h2>", unsafe_allow_html=True)
-
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #2c3e50; font-family: sans-serif; font-weight: 800; font-size: 22px;'>PANEL DE DATOS EN TIEMPO REAL (Desde Google Sheets)</h2>", unsafe_allow_html=True)
+    
 
 # --- 6. GRÁFICOS Y TABLAS ALIMENTADOS POR EL EXCEL ---
     if datos_reales is not None:
