@@ -47,7 +47,7 @@ if not st.session_state["acceso_concedido"]:
             <img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='60' style='filter: brightness(0) invert(1);'>
             <h3 style='color: white; margin-top: 10px;'>INKADRILL <span style='font-weight: 300; font-size: 18px;'>INTRANET</span></h3>
         </div>
-        <div class='titulo-principal'>SISTEMA BLOQUEADO</div>
+        <div class='titulo-principal'>SISTEMA PRIVADO</div>
     """, unsafe_allow_html=True)
 
     # 3. La "Tarjeta Blanca" central usando columnas
@@ -60,7 +60,7 @@ if not st.session_state["acceso_concedido"]:
             st.markdown("""
                 <div style='text-align: center; padding-top: 10px;'>
                     <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
-                    <h4 style='color: #333; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
+                    <h4 style='color: #FFFFFFF; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
                     <p style='color: gray; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
                 </div>
             """, unsafe_allow_html=True)
