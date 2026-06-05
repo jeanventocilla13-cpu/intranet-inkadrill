@@ -8,22 +8,78 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
-if "acceso_concedido" not in st.session_state:
-    st.session_state["acceso_concedido"] = False
-
 if not st.session_state["acceso_concedido"]:
-    st.image("https://cdn-icons-png.flaticon.com/512/2950/2950711.png", width=100)
-    st.title("🔒 Intranet InkaDrill")
-    st.info("Acceso restringido. Por favor, identifícate.")
+    # 1. Inyectar CSS avanzado para el diseño corporativo
+    st.markdown("""
+    <style>
+    /* Fondo verde oscuro para toda la página web con textura topográfica suave */
+    .stApp {
+        background-color: #0F3F23 !important;
+        background-image: url("https://www.transparenttextures.com/patterns/topography.png");
+    }
     
-    clave_ingresada = st.text_input("Contraseña de acceso:", type="password")
+    /* Ocultar elementos de Streamlit para pantalla limpia */
+    header {visibility: hidden;}
     
-    if st.button("Entrar"):
-        if clave_ingresada == st.secrets["CLAVE_WEB"]:
-            st.session_state["acceso_concedido"] = True
-            st.rerun() # Recarga la página para mostrar el contenido
-        else:
-            st.error("Contraseña incorrecta. Intenta nuevamente.")
+    /* Textos principales */
+    .titulo-principal { color: white; text-align: center; font-size: 38px; font-weight: 800; letter-spacing: 1px; margin-bottom: 20px;}
+    .texto-footer { color: white; text-align: center; font-size: 13px; margin-top: 30px; opacity: 0.8;}
+    
+    /* Diseño del Botón Naranja */
+    div.stButton > button:first-child {
+        background-color: #e67e22;
+        color: white;
+        width: 100%;
+        border-radius: 6px;
+        border: none;
+        font-weight: bold;
+        padding: 0.5rem;
+    }
+    div.stButton > button:first-child:hover { background-color: #d35400; color: white; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # 2. Logo y Título
+    st.markdown("""
+        <div style='text-align: center; margin-top: 2rem;'>
+            <img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='60' style='filter: brightness(0) invert(1);'>
+            <h3 style='color: white; margin-top: 10px;'>INKADRILL <span style='font-weight: 300; font-size: 18px;'>INTRANET</span></h3>
+        </div>
+        <div class='titulo-principal'>SISTEMA BLOQUEADO</div>
+    """, unsafe_allow_html=True)
+
+    # 3. La "Tarjeta Blanca" central usando columnas
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+    
+    with col2:
+        # Creamos un contenedor que parecerá una tarjeta flotante
+        with st.container(border=True):
+            # Foto de perfil genérica y nombre
+            st.markdown("""
+                <div style='text-align: center; padding-top: 10px;'>
+                    <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+                    <h4 style='color: #333; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
+                    <p style='color: gray; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Input de contraseña modificado
+            clave_ingresada = st.text_input("Clave", type="password", placeholder="🔒 Contraseña corporativa...", label_visibility="collapsed")
+            
+            st.markdown("<br>", unsafe_allow_html=True) # Pequeño espacio
+            
+            # Botón de validación
+            if st.button("DESBLOQUEAR SESIÓN"):
+                if clave_ingresada == st.secrets["CLAVE_WEB"]:
+                    st.session_state["acceso_concedido"] = True
+                    st.rerun()
+                else:
+                    st.error("Contraseña incorrecta.")
+
+    # 4. Textos del pie de página
+    st.markdown("<div class='texto-footer'>La sesión se ha bloqueado automáticamente por inactividad.<br><br><span style='text-decoration: underline; cursor: pointer;'>Cerrar Sesión</span> &nbsp;·&nbsp; <span style='text-decoration: underline; cursor: pointer;'>Cambiar de Usuario</span></div>", unsafe_allow_html=True)
+    
+    st.stop() # Esta línea oculta el resto de la web si no hay acceso
             
     st.stop() # 🛑 Esta línea es mágica: oculta todo el resto de la web si no hay acceso
 
