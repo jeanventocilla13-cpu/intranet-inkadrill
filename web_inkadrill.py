@@ -165,30 +165,47 @@ st.markdown(estilo_dashboard, unsafe_allow_html=True)
     
 # 1. Inyectamos los colores corporativos a los botones
 st.markdown("""
-<style>
-    /* Botones Inactivos (Texto gris) */
-    button[data-testid="baseButton-secondary"] {
-        background-color: transparent !important; 
-        border: none !important; 
-        color: #555555 !important; 
-        font-weight: 500 !important;
-    }
-    button[data-testid="baseButton-secondary"]:hover { 
-        color: #0F3F23 !important; 
-        background-color: #f0f2f6 !important; 
-    }
-    
-    /* Botón Activo (Verde oscuro con línea amarilla abajo) */
-    button[data-testid="baseButton-primary"] {
-        background-color: #0F3F23 !important; 
-        color: white !important; 
-        border: none !important; 
-        border-bottom: 4px solid #f1c40f !important; 
-        border-radius: 0px !important; 
-        font-weight: bold !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+    <style>
+        /* 1. Fondo general de la app */
+        .stApp { background-color: #E8ECEF !important; }
+        
+        /* 2. Transformar botones en PESTAÑAS CUADRADAS EXACTAS */
+        div.stButton > button {
+            height: 65px !important;
+            border-radius: 0px !important; /* Esquinas totalmente cuadradas */
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            background-color: transparent !important;
+            color: #555 !important;
+        }
+
+        /* 3. El Botón ACTIVO (El verde corporativo) */
+        div.stButton > button[kind="primary"] {
+            background-color: #0F3F23 !important; /* Verde oscuro InkaDrill */
+            color: white !important;
+            border-bottom: 6px solid #f1c40f !important; /* Línea dorada gruesa */
+        }
+        
+        div.stButton > button[kind="secondary"]:hover {
+            color: #0F3F23 !important;
+            background-color: #e0e0e0 !important;
+        }
+        
+        /* 4. La Franja Verde del Buscador (Tu IA) */
+        div[data-testid="stForm"] {
+            background-color: #0F3F23 !important;
+            padding: 30px !important;
+            border-radius: 8px !important;
+            border: none !important;
+        }
+        /* Limpiar input y botón del buscador */
+        div[data-testid="stForm"] input { border-radius: 5px !important; font-size: 16px !important; }
+        div[data-testid="stForm"] button { background-color: #1b5e20 !important; color: white !important; border: 1px solid white !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # 2. Creamos las columnas
 col_logo, col_nav1, col_nav2, col_nav3, col_espacio, col_perfil = st.columns([2.5, 1.2, 1.3, 1.2, 2, 2.5])
@@ -249,43 +266,58 @@ def cargar_datos_excel():
 datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 
 if st.session_state["pestaña_actual"] == "Inicio":
-
-# --- 5. BUSCADOR INTELIGENTE CON IA (Leyendo 2 Documentos) ---
-    col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
-    
-    with col_busq2:
-        with st.form(key='formulario_ia'):
-            pregunta_usuario = st.text_input("Buscar en la intranet...", placeholder="Consulta operativa a la IA...", label_visibility="collapsed")
-            boton_buscar = st.form_submit_button("Consultar Documentos 🧠")
+    st.markdown("<br><br>", unsafe_allow_html=True)
             
-        if boton_buscar and pregunta_usuario:
-            with st.spinner("Analizando múltiples documentos operativos..."):
-                if drive_service:
-                    try:
-                        # Descargamos ambos documentos
-                        doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
-                        doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
-                        
-                        # Unimos la información para la IA
-                        instruccion = f"""
-                        Eres el asistente inteligente minero de InkaDrill.
-                        Responde a la consulta basándote ÚNICAMENTE en estos dos documentos:
-                        
-                        --- DOCUMENTO 1 ---
-                        {doc1}
-                        
-                        --- DOCUMENTO 2 ---
-                        {doc2}
-                        
-                        PREGUNTA DEL USUARIO: {pregunta_usuario}
-                        """
-                        respuesta_ia = modelo.generate_content(instruccion)
-                        st.success("Respuesta generada según los datos de la empresa:")
-                        st.info(respuesta_ia.text)
-                    except Exception as e:
-                        st.error(f"Error al leer los documentos de texto: {e}")
-                else:
-                    st.error("No se pudo conectar a Google Drive.")
+            st.markdown("""
+            <div style="background-color: #E8E8E8; padding: 40px; border-radius: 15px; border: 1px solid #ccc; display: flex; gap: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+                <div style="flex: 1.5; color: #333; font-size: 16px; line-height: 1.6;">
+                    <h2 style="color: #111; font-weight: 800; margin-top: 0;">HISTORIA Y FUNDACIÓN DE INKADRILL</h2>
+                    <p>En 1992, un pequeño pero decidido equipo de ingenieros de minas y geólogos topógrafos, liderado por el <strong>Ing. Carlos Vargas</strong> y la <strong>Dra. Elena Qua Quispe</strong>, identificó una brecha crítica en la <strong>precisión</strong> y <strong>eficiencia</strong> de los datos de campo en el sector minero peruano.</p>
+                    <p>Movidos por una visión de integrar tecnologías emergentes de topografía con la práctica de campo tradicional, fundaron <strong>InkaDrill</strong>.</p>
+                    <p>...Desde nuestros modestos inicios, trabajando con teodolitos y libreta de campo, <strong>InkaDrill</strong> ha crecido hasta convertirse en un líder en soluciones de precisión topográfica para la industria <strong>minera, siempre fiel a los valores</strong> de rigor científico y compromiso social de nuestros fundadores.</p>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <img src="https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/inkadrill_founders.png" style="width: 100%; border-radius: 10px; border: 1px solid #bbb;">
+                    <p style="font-size: 12px; color: #666; margin-top: 10px; line-height: 1.3;">El grupo fundador, reuniéndose por primera vez. De izquierda a derecha: Ing. J. Morales, Dra. E. Quispe, Ing. C. Vargas, Lic. A. García, Ing. R. Soto.</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+# --- 5. BUSCADOR INTELIGENTE CON IA (Leyendo 2 Documentos) ---
+            col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
+            
+            with col_busq2:
+                with st.form(key='formulario_ia'):
+                    pregunta_usuario = st.text_input("Buscar en la intranet...", placeholder="Consulta operativa a la IA...", label_visibility="collapsed")
+                    boton_buscar = st.form_submit_button("Consultar Documentos 🧠")
+                    
+                if boton_buscar and pregunta_usuario:
+                    with st.spinner("Analizando múltiples documentos operativos..."):
+                        if drive_service:
+                            try:
+                                # Descargamos ambos documentos
+                                doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
+                                doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
+                                
+                                # Unimos la información para la IA
+                                instruccion = f"""
+                                Eres el asistente inteligente minero de InkaDrill.
+                                Responde a la consulta basándote ÚNICAMENTE en estos dos documentos:
+                                
+                                --- DOCUMENTO 1 ---
+                                {doc1}
+                                
+                                --- DOCUMENTO 2 ---
+                                {doc2}
+                                
+                                PREGUNTA DEL USUARIO: {pregunta_usuario}
+                                """
+                                respuesta_ia = modelo.generate_content(instruccion)
+                                st.success("Respuesta generada según los datos de la empresa:")
+                                st.info(respuesta_ia.text)
+                            except Exception as e:
+                                st.error(f"Error al leer los documentos de texto: {e}")
+                        else:
+                            st.error("No se pudo conectar a Google Drive.")
 elif st.session_state["pestaña_actual"] == "Topografía":
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h2 style='color: #2c3e50; font-family: sans-serif; font-weight: 800; font-size: 22px;'>PANEL DE DATOS EN TIEMPO REAL (Desde Google Sheets)</h2>", unsafe_allow_html=True)
