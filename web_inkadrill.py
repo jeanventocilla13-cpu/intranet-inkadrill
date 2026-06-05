@@ -23,6 +23,18 @@ if not st.session_state["acceso_concedido"]:
     background-repeat: no-repeat;
 }
     
+    /* Forzar fondo blanco para la tarjeta central de Streamlit */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: white !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
+    }
+    
+    header {visibility: hidden;}
+    /* ... el resto de tus estilos ... */
+    </style>
+
+    
     /* Ocultar elementos de Streamlit para pantalla limpia */
     header {visibility: hidden;}
     
@@ -66,7 +78,7 @@ if not st.session_state["acceso_concedido"]:
             # 1. Foto de perfil y nombre (HTML centrado)
             st.markdown("""
                 <div style='text-align: center; padding-top: 10px;'>
-                    <img src='...' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+                    <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
                     <h4 style='color: #333; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
                     <p style='color: gray; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
                 </div>
