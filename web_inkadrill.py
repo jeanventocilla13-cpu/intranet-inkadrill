@@ -24,10 +24,13 @@ if not st.session_state["acceso_concedido"]:
         }
 
         /* Forzar fondo blanco para la tarjeta central de Streamlit */
-        [data-testid="stVerticalBlockBorderWrapper"] {
-            background-color: white !important;
-            border-radius: 12px !important;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
+        div[data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stVerticalBlock"] > div[style*="border"] {
+        background-color: #ffffff !important;
+        background: #ffffff !important;
+        border-radius: 15px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        padding: 10px !important;
         }
 
         /* Ocultar elementos de Streamlit para pantalla limpia */
