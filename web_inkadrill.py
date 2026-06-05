@@ -13,48 +13,43 @@ if "acceso_concedido" not in st.session_state:
 if not st.session_state["acceso_concedido"]:
     # 1. Inyectar CSS avanzado para el diseño corporativo
     st.markdown("""
-    <style>
-    /* Fondo verde oscuro para toda la página web con textura topográfica suave */
-   .stApp {
-    background-color: #0F3F23 !important;
-    background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-    
-    /* Forzar fondo blanco para la tarjeta central de Streamlit */
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: white !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
-    }
-    
-    header {visibility: hidden;}
-    /* ... el resto de tus estilos ... */
-    </style>
+        <style>
+        /* Fondo con la imagen del túnel */
+        .stApp {
+            background-color: #0F3F23 !important;
+            background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
 
-    
-    /* Ocultar elementos de Streamlit para pantalla limpia */
-    header {visibility: hidden;}
-    
-    /* Textos principales */
-    .titulo-principal { color: white; text-align: center; font-size: 38px; font-weight: 800; letter-spacing: 1px; margin-bottom: 20px;}
-    .texto-footer { color: white; text-align: center; font-size: 13px; margin-top: 30px; opacity: 0.8;}
-    
-    /* Diseño del Botón Naranja */
-    div.stButton > button:first-child {
-        background-color: #e67e22;
-        color: white;
-        width: 100%;
-        border-radius: 6px;
-        border: none;
-        font-weight: bold;
-        padding: 0.5rem;
-    }
-    div.stButton > button:first-child:hover { background-color: #d35400; color: white; }
-    </style>
-    """, unsafe_allow_html=True)
+        /* Forzar fondo blanco para la tarjeta central de Streamlit */
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: white !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
+        }
+
+        /* Ocultar elementos de Streamlit para pantalla limpia */
+        header {visibility: hidden;}
+
+        /* Textos principales */
+        .titulo-principal { color: white; text-align: center; font-size: 38px; font-weight: 800; letter-spacing: 1px; margin-bottom: 20px;}
+        .texto-footer { color: white; text-align: center; font-size: 13px; margin-top: 30px; opacity: 0.8;}
+
+        /* Diseño del Botón Naranja */
+        div.stButton > button:first-child {
+            background-color: #e67e22;
+            color: white;
+            width: 100%;
+            border-radius: 6px;
+            border: none;
+            font-weight: bold;
+            padding: 0.5rem;
+        }
+        div.stButton > button:first-child:hover { background-color: #d35400; color: white; }
+        </style>
+        """, unsafe_allow_html=True)
 
     # 2. Logo y Título
     st.markdown("""
