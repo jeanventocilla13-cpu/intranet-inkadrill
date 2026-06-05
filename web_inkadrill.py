@@ -183,15 +183,7 @@ st.markdown("""
 col_logo, col_nav1, col_nav2, col_nav3, col_espacio, col_perfil = st.columns([2.5, 1.2, 1.3, 1.2, 2, 2.5])
 
 with col_logo:
-    st.markdown("""
-        <div style='display: flex; align-items: center;'>
-            <img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='40' style='margin-right: 10px;'>
-            <div style='line-height: 1.1;'>
-                <strong style='color:#0F3F23; font-size:18px; letter-spacing: 1px;'>INKADRILL</strong><br>
-                <span style='color:gray; font-size:11px; letter-spacing: 1px;'>INTRANET</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='display: flex; align-items: center;'><img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='40' style='margin-right: 10px;'><div style='line-height: 1.1;'><strong style='color:#0F3F23; font-size:18px; letter-spacing: 1px;'>INKADRILL</strong><br><span style='color:gray; font-size:11px; letter-spacing: 1px;'>INTRANET</span></div></div>", unsafe_allow_html=True)
 
 with col_nav1:
     btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Inicio" else "secondary"
@@ -212,18 +204,9 @@ with col_nav3:
         st.rerun()
 
 with col_perfil:
-    st.markdown("""
-        <div style='display: flex; align-items: center; justify-content: flex-end;'>
-            <div style='text-align: right; line-height: 1.2; margin-right: 12px;'>
-                <strong style='color:#333; font-size:14px;'>Perfil</strong><br>
-                <span style='color:gray; font-size:13px;'>Jean Ventocilla</span>
-            </div>
-            <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='42' style='border-radius: 50%; border: 2px solid #ddd;'>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='display: flex; align-items: center; justify-content: flex-end;'><div style='text-align: right; line-height: 1.2; margin-right: 12px;'><strong style='color:#333; font-size:14px;'>Perfil</strong><br><span style='color:gray; font-size:13px;'>Jean Ventocilla</span></div><img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='42' style='border-radius: 50%; border: 2px solid #ddd;'></div>", unsafe_allow_html=True)
     
 st.markdown("---")
-""", unsafe_allow_html=True)
 
 # 2. Creamos las columnas con los anchos basados en tu imagen
 col_logo, col_nav1, col_nav2, col_nav3, col_espacio, col_perfil = st.columns([2.5, 1.2, 1.3, 1.2, 2, 2.5])
