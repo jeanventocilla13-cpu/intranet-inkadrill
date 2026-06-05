@@ -11,81 +11,86 @@ st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="
 if "acceso_concedido" not in st.session_state:
     st.session_state["acceso_concedido"] = False
 if not st.session_state["acceso_concedido"]:
-    # 1. Inyectar CSS avanzado para el diseño corporativo
+    # 1. Inyectar CSS y el fondo dividido
     st.markdown("""
-        <style>
-        /* Fondo con la imagen del túnel */
-        .stApp {
-            background-color: #0F3F23 !important;
-            background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        /* El truco definitivo: Apuntar directamente a la columna central */
-    [data-testid="column"]:nth-of-type(2) > div {
-        background-color: #ffffff !important;
-        border-radius: 15px !important;
-        padding: 10px !important;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.6) !important;
+    <style>
+    /* Ocultar menú y barra superior */
+    header {visibility: hidden;}
+    
+    /* Fondo verde para TODA la página (se verá en el lado derecho) */
+    .stApp { 
+        background-color: #0F3F23 !important; 
     }
-
-        /* Ocultar elementos de Streamlit para pantalla limpia */
-        header {visibility: hidden;}
-
-        /* Textos principales */
-        .titulo-principal { color: white; text-align: center; font-size: 38px; font-weight: 800; letter-spacing: 1px; margin-bottom: 20px;}
-        .texto-footer { color: white; text-align: center; font-size: 13px; margin-top: 30px; opacity: 0.8;}
-
-        /* Diseño del Botón Naranja */
-        div.stButton > button:first-child {
-            background-color: #e67e22;
-            color: white;
-            width: 100%;
-            border-radius: 6px;
-            border: none;
-            font-weight: bold;
-            padding: 0.5rem;
-        }
-        div.stButton > button:first-child:hover { background-color: #d35400; color: white; }
-        </style>
-        """, unsafe_allow_html=True)
-
-    # 2. Logo y Título
-    st.markdown("""
-        <div style='text-align: center; margin-top: 2rem;'>
-            <img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='60' style='filter: brightness(0) invert(1);'>
-            <h3 style='color: white; margin-top: 10px;'>INKADRILL <span style='font-weight: 300; font-size: 18px;'>INTRANET</span></h3>
-        </div>
-        <div class='titulo-principal'>SISTEMA PRIVADO</div>
+    
+    /* La imagen del túnel pegada en el lado izquierdo (55% de la pantalla) */
+    .bg-imagen-izq {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 55vw; 
+        height: 100vh;
+        background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
+        background-size: cover;
+        background-position: center;
+        z-index: 0;
+    }
+    
+    /* Ajustes para centrar el contenido verticalmente */
+    .block-container { z-index: 1; position: relative; padding-top: 12vh !important; }
+    
+    /* Tarjeta Blanca (Forzada) */
+    div[data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stVerticalBlock"] > div[style*="border"] {
+        background-color: #ffffff !important;
+        background: #ffffff !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        padding: 15px !important;
+    }
+    
+    /* Textos corporativos */
+    .titulo-principal { color: white; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 1px; margin-bottom: 25px;}
+    .texto-footer { color: white; text-align: center; font-size: 12px; margin-top: 25px; opacity: 0.8;}
+    
+    /* Botón Naranja InkaDrill */
+    div.stButton > button:first-child {
+        background-color: #e67e22; color: white; width: 100%; border-radius: 6px; border: none; font-weight: bold; padding: 0.5rem;
+    }
+    div.stButton > button:first-child:hover { background-color: #d35400; color: white; }
+    </style>
+    
+    <div class="bg-imagen-izq"></div>
     """, unsafe_allow_html=True)
 
-    # 3. La "Tarjeta Blanca" central usando columnas
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    
-    with col2:
-        # ESTA LÍNEA ES CLAVE: Crea la tarjeta blanca con el borde y sombra
-        with st.container(border=True):
-            
-            # TODO LO QUE SIGUE DEBE ESTAR INDENTADO (con 4 espacios extra)
-            # PARA QUEDAR DENTRO DE LA TARJETA BLANCA
+    # 2. Estructura de Columnas (Izquierda para la foto, Derecha para el login)
+    col_foto, col_login = st.columns([1.2, 1])
 
-            # 1. Foto de perfil y nombre (HTML centrado)
+    # Trabajamos SOLO en la columna de la derecha
+    with col_login:
+        
+        # Logo y Título
+        st.markdown("""
+            <div style='text-align: center; margin-bottom: 10px;'>
+                <img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='55' style='filter: brightness(0) invert(1);'>
+                <h3 style='color: white; margin-top: 5px;'>INKADRILL <span style='font-weight: 300; font-size: 16px;'>INTRANET</span></h3>
+            </div>
+            <div class='titulo-principal'>SISTEMA BLOQUEADO</div>
+        """, unsafe_allow_html=True)
+
+        # La Tarjeta Blanca del Formulario
+        with st.container(border=True):
             st.markdown("""
-                <div style='text-align: center; padding-top: 10px;'>
-                    <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+                <div style='text-align: center; padding-top: 5px;'>
+                    <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='75' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
                     <h4 style='color: #333; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
-                    <p style='color: gray; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
+                    <p style='color: gray; font-size: 12px; margin-top: -5px;'>Usuario Actual</p>
                 </div>
             """, unsafe_allow_html=True)
             
-            # 2. Input de contraseña corporativa
             clave_ingresada = st.text_input("Clave", type="password", placeholder="🔒 Contraseña corporativa...", label_visibility="collapsed")
             
-            st.markdown("<br>", unsafe_allow_html=True) # Pequeño espacio
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            # 3. Botón de validación
             if st.button("DESBLOQUEAR SESIÓN"):
                 if clave_ingresada == st.secrets["CLAVE_WEB"]:
                     st.session_state["acceso_concedido"] = True
@@ -93,10 +98,10 @@ if not st.session_state["acceso_concedido"]:
                 else:
                     st.error("Contraseña incorrecta.")
 
-    # 4. Textos del pie de página
-    st.markdown("<div class='texto-footer'>La sesión se ha bloqueado automáticamente por inactividad.<br><br><span style='text-decoration: underline; cursor: pointer;'>Cerrar Sesión</span> &nbsp;·&nbsp; <span style='text-decoration: underline; cursor: pointer;'>Cambiar de Usuario</span></div>", unsafe_allow_html=True)
+        # Textos de pie de página
+        st.markdown("<div class='texto-footer'>La sesión se ha bloqueado automáticamente por inactividad.<br><br><span style='text-decoration: underline; cursor: pointer;'>Cerrar Sesión</span> &nbsp;·&nbsp; <span style='text-decoration: underline; cursor: pointer;'>Cambiar de Usuario</span></div>", unsafe_allow_html=True)
     
-    st.stop() # Esta línea oculta el resto de la web si no hay acceso
+    st.stop()
             
     st.stop() # 🛑 Esta línea es mágica: oculta todo el resto de la web si no hay acceso
 
