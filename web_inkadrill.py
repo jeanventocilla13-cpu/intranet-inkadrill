@@ -333,103 +333,103 @@ if st.session_state["pestaña_actual"] == "Inicio":
         # LA HISTORIA DE INKADRILL AHORA VA DESPUÉS (Abajo del buscador)
         # ==========================================================
         # --- SECCIÓN DE HISTORIA INKADRILL (Tarjetón gris) ---
-               st.markdown("""
-                <style>
-                    .historia-container { 
-                        background-color: #E8E8E8; 
-                        padding: 50px; 
-                        border-radius: 15px; 
-                        border: 1px solid #ccc; 
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
-                    }
-                    .historia-title { 
-                        color: #0F3F23; 
-                        font-weight: 800; 
-                        font-size: 22px; 
-                        margin-top: 0; 
-                        margin-bottom: 15px; 
-                        text-transform: uppercase;
-                        border-left: 4px solid #f1c40f;
-                        padding-left: 10px;
-                    }
-                    .historia-text { 
-                        color: #333; 
-                        font-size: 16px; 
-                        line-height: 1.6;
-                    }
-                    .historia-img { 
-                        width: 100%; 
-                        border-radius: 10px; 
-                        border: 1px solid #bbb; 
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-                        object-fit: cover; 
-                        height: 280px;
-                    }
-                    .row-spacing { margin-bottom: 20px; }
-                    .divisor { border-color: #d0d0d0; margin: 40px 0; border-width: 1px; }
-                </style>
-                
-                <div class="historia-container">
-                    <!-- Parte 1: El Origen -->
-                    <div style="display: flex; gap: 40px; align-items: center;" class="row-spacing">
-                        <div style="flex: 1.5;" class="historia-text">
-                            <h2 class="historia-title">El Origen: De la Teoría a la Transformación Digital</h2>
-                            <p>La historia de <strong>InkaDrill Corporation</strong> no nació en un laboratorio de Silicon Valley, sino en el corazón de la ingeniería peruana, gestándose entre las aulas de Ate durante las intensas jornadas de análisis para el proyecto <em>Túneles y movimiento de tierra</em>.</p>
-                            <p>El problema fundacional se hizo evidente al contrastar la teoría académica con la cruda realidad operativa de las minas subterráneas, como las que se observan en operaciones del nivel de Minera Condestable. En el ciclo de minado tradicional, después de cada voladura, existía un punto ciego y crítico: la <strong>evaluación geomecánica</strong>.</p>
-                            <p>La frustración era palpable. Quienes conocen de cerca la gestión logística y la operación de maquinaria pesada de gran tonelaje saben que los equipos no pueden detenerse. Tener un frente paralizado, con flotas enteras esperando durante horas mientras se realizaba un mapeo estructural manual con brújula y wincha, no solo representaba una pérdida masiva de OPEX por sobreexcavación (overbreak), sino que exponía innecesariamente vidas humanas bajo roca inestable. La industria necesitaba urgencia, pero la consultoría tradicional respondía con lentitud.</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <img src="https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=600&q=80" class="historia-img">
-                        </div>
+            st.markdown("""
+            <style>
+                .historia-container { 
+                    background-color: #E8E8E8; 
+                    padding: 50px; 
+                    border-radius: 15px; 
+                    border: 1px solid #ccc; 
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
+                }
+                .historia-title { 
+                    color: #0F3F23; 
+                    font-weight: 800; 
+                    font-size: 22px; 
+                    margin-top: 0; 
+                    margin-bottom: 15px; 
+                    text-transform: uppercase;
+                    border-left: 4px solid #f1c40f;
+                    padding-left: 10px;
+                }
+                .historia-text { 
+                    color: #333; 
+                    font-size: 16px; 
+                    line-height: 1.6;
+                }
+                .historia-img { 
+                    width: 100%; 
+                    border-radius: 10px; 
+                    border: 1px solid #bbb; 
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+                    object-fit: cover; 
+                    height: 280px;
+                }
+                .row-spacing { margin-bottom: 20px; }
+                .divisor { border-color: #d0d0d0; margin: 40px 0; border-width: 1px; }
+            </style>
+            
+            <div class="historia-container">
+                <!-- Parte 1: El Origen -->
+                <div style="display: flex; gap: 40px; align-items: center;" class="row-spacing">
+                    <div style="flex: 1.5;" class="historia-text">
+                        <h2 class="historia-title">El Origen: De la Teoría a la Transformación Digital</h2>
+                        <p>La historia de <strong>InkaDrill Corporation</strong> no nació en un laboratorio de Silicon Valley, sino en el corazón de la ingeniería peruana, gestándose entre las aulas de Ate durante las intensas jornadas de análisis para el proyecto <em>Túneles y movimiento de tierra</em>.</p>
+                        <p>El problema fundacional se hizo evidente al contrastar la teoría académica con la cruda realidad operativa de las minas subterráneas, como las que se observan en operaciones del nivel de Minera Condestable. En el ciclo de minado tradicional, después de cada voladura, existía un punto ciego y crítico: la <strong>evaluación geomecánica</strong>.</p>
+                        <p>La frustración era palpable. Quienes conocen de cerca la gestión logística y la operación de maquinaria pesada de gran tonelaje saben que los equipos no pueden detenerse. Tener un frente paralizado, con flotas enteras esperando durante horas mientras se realizaba un mapeo estructural manual con brújula y wincha, no solo representaba una pérdida masiva de OPEX por sobreexcavación (overbreak), sino que exponía innecesariamente vidas humanas bajo roca inestable. La industria necesitaba urgencia, pero la consultoría tradicional respondía con lentitud.</p>
                     </div>
-                    
-                    <hr class="divisor">
-        
-                    <!-- Parte 2: La Convergencia (Imagen a la Izquierda) -->
-                    <div style="display: flex; gap: 40px; align-items: center; flex-direction: row-reverse;" class="row-spacing">
-                        <div style="flex: 1.5;" class="historia-text">
-                            <h2 class="historia-title">La Convergencia de Dos Mundos</h2>
-                            <p>La solución no provino de hacer lo mismo más rápido, sino de cambiar las reglas del juego. La chispa que originó InkaDrill surgió de la intersección entre la geomecánica pura y la pasión por la automatización digital.</p>
-                            <p>Si era posible estructurar lógicas de programación en lenguajes como <strong>Python</strong> y desarrollar scripts para crear asistentes virtuales basados en inteligencia artificial, esa misma arquitectura digital podía aplicarse para resolver el dolor más grande de la minería subterránea.</p>
-                            <p>La idea evolucionó rápidamente: en lugar de depender exclusivamente del ojo humano y herramientas analógicas, se utilizaría tecnología láser LiDAR para capturar el entorno y algoritmos de procesamiento para interpretar los datos.</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <img src="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&w=600&q=80" class="historia-img">
-                        </div>
-                    </div>
-        
-                    <hr class="divisor">
-        
-                    <!-- Parte 3: El Nacimiento SST-3D -->
-                    <div style="display: flex; gap: 40px; align-items: center;" class="row-spacing">
-                        <div style="flex: 1.5;" class="historia-text">
-                            <h2 class="historia-title">El Nacimiento del Sistema SST-3D</h2>
-                            <p>El concepto maduró y tomó forma corporativa. Así nació <strong>InkaDrill Corporation S.A.C.</strong>, bajo la premisa de convertirse en un contratista Tier 2 especializado en predictibilidad estructural.</p>
-                            <p>El equipo fundador desarrolló el servicio <strong>SST-3D (Smart Support Technology 3D)</strong>, diseñado para ingresar al frente inmediatamente después de la ventilación y el desatado de rocas. En solo tres minutos, el escáner capturaría una nube de puntos milimétrica, mientras el software procesaría el espaciado y la volumetría para integrarse con la evaluación táctil del ingeniero.</p>
-                            <p>El resultado: el cálculo instantáneo del RQD, RMR y GSI, y la emisión de una cartilla de sostenimiento digital directamente a la tablet del operador del Jumbo.</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <!-- Imagen de mapeo láser 3D abstracto -->
-                            <img src="https://images.unsplash.com/photo-1620325867502-221ddb5b48bc?auto=format&fit=crop&w=600&q=80" class="historia-img">
-                        </div>
-                    </div>
-        
-                    <hr class="divisor">
-        
-                    <!-- Parte 4: Nuestra Misión (Imagen a la Izquierda) -->
-                    <div style="display: flex; gap: 40px; align-items: center; flex-direction: row-reverse; margin-bottom: 0;">
-                        <div style="flex: 1.5;" class="historia-text">
-                            <h2 class="historia-title">Nuestra Misión Hoy</h2>
-                            <p>Hoy, InkaDrill Corporation representa la evolución del ingeniero de minas peruano: profesionales con botas en el barro, pero con la mente en la nube.</p>
-                            <p>Bajo el lema <em>"Ingeniería inteligente para túneles seguros"</em>, la empresa no solo busca optimizar el consumo de shotcrete o maximizar las horas-máquina, sino transformar la geomecánica en una herramienta predictiva en tiempo real.</p>
-                            <p>InkaDrill nació para garantizar que cada avance subterráneo sea seguro, eficiente y esté respaldado por la precisión irrefutable de la tecnología digital.</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=600&q=80" class="historia-img">
-                        </div>
+                    <div style="flex: 1;">
+                        <img src="https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=600&q=80" class="historia-img">
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                
+                <hr class="divisor">
+    
+                <!-- Parte 2: La Convergencia (Imagen a la Izquierda) -->
+                <div style="display: flex; gap: 40px; align-items: center; flex-direction: row-reverse;" class="row-spacing">
+                    <div style="flex: 1.5;" class="historia-text">
+                        <h2 class="historia-title">La Convergencia de Dos Mundos</h2>
+                        <p>La solución no provino de hacer lo mismo más rápido, sino de cambiar las reglas del juego. La chispa que originó InkaDrill surgió de la intersección entre la geomecánica pura y la pasión por la automatización digital.</p>
+                        <p>Si era posible estructurar lógicas de programación en lenguajes como <strong>Python</strong> y desarrollar scripts para crear asistentes virtuales basados en inteligencia artificial, esa misma arquitectura digital podía aplicarse para resolver el dolor más grande de la minería subterránea.</p>
+                        <p>La idea evolucionó rápidamente: en lugar de depender exclusivamente del ojo humano y herramientas analógicas, se utilizaría tecnología láser LiDAR para capturar el entorno y algoritmos de procesamiento para interpretar los datos.</p>
+                    </div>
+                    <div style="flex: 1;">
+                        <img src="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&w=600&q=80" class="historia-img">
+                    </div>
+                </div>
+    
+                <hr class="divisor">
+    
+                <!-- Parte 3: El Nacimiento SST-3D -->
+                <div style="display: flex; gap: 40px; align-items: center;" class="row-spacing">
+                    <div style="flex: 1.5;" class="historia-text">
+                        <h2 class="historia-title">El Nacimiento del Sistema SST-3D</h2>
+                        <p>El concepto maduró y tomó forma corporativa. Así nació <strong>InkaDrill Corporation S.A.C.</strong>, bajo la premisa de convertirse en un contratista Tier 2 especializado en predictibilidad estructural.</p>
+                        <p>El equipo fundador desarrolló el servicio <strong>SST-3D (Smart Support Technology 3D)</strong>, diseñado para ingresar al frente inmediatamente después de la ventilación y el desatado de rocas. En solo tres minutos, el escáner capturaría una nube de puntos milimétrica, mientras el software procesaría el espaciado y la volumetría para integrarse con la evaluación táctil del ingeniero.</p>
+                        <p>El resultado: el cálculo instantáneo del RQD, RMR y GSI, y la emisión de una cartilla de sostenimiento digital directamente a la tablet del operador del Jumbo.</p>
+                    </div>
+                    <div style="flex: 1;">
+                        <!-- Imagen de mapeo láser 3D abstracto -->
+                        <img src="https://images.unsplash.com/photo-1620325867502-221ddb5b48bc?auto=format&fit=crop&w=600&q=80" class="historia-img">
+                    </div>
+                </div>
+    
+                <hr class="divisor">
+    
+                <!-- Parte 4: Nuestra Misión (Imagen a la Izquierda) -->
+                <div style="display: flex; gap: 40px; align-items: center; flex-direction: row-reverse; margin-bottom: 0;">
+                    <div style="flex: 1.5;" class="historia-text">
+                        <h2 class="historia-title">Nuestra Misión Hoy</h2>
+                        <p>Hoy, InkaDrill Corporation representa la evolución del ingeniero de minas peruano: profesionales con botas en el barro, pero con la mente en la nube.</p>
+                        <p>Bajo el lema <em>"Ingeniería inteligente para túneles seguros"</em>, la empresa no solo busca optimizar el consumo de shotcrete o maximizar las horas-máquina, sino transformar la geomecánica en una herramienta predictiva en tiempo real.</p>
+                        <p>InkaDrill nació para garantizar que cada avance subterráneo sea seguro, eficiente y esté respaldado por la precisión irrefutable de la tecnología digital.</p>
+                    </div>
+                    <div style="flex: 1;">
+                        <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=600&q=80" class="historia-img">
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 elif st.session_state["pestaña_actual"] == "Topografía":
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h2 style='color: #2c3e50; font-family: sans-serif; font-weight: 800; font-size: 22px;'>PANEL DE DATOS EN TIEMPO REAL (Desde Google Sheets)</h2>", unsafe_allow_html=True)
