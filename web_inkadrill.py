@@ -15,10 +15,13 @@ if not st.session_state["acceso_concedido"]:
     st.markdown("""
     <style>
     /* Fondo verde oscuro para toda la página web con textura topográfica suave */
-    .stApp {
-        background-color: #0F3F23 !important;
-        background-image: url("https://www.transparenttextures.com/patterns/topography.png");
-    }
+   .stApp {
+    background-color: #0F3F23 !important;
+    background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
     
     /* Ocultar elementos de Streamlit para pantalla limpia */
     header {visibility: hidden;}
