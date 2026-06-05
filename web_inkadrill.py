@@ -57,23 +57,27 @@ if not st.session_state["acceso_concedido"]:
     col1, col2, col3 = st.columns([1, 1.2, 1])
     
     with col2:
-        # Creamos un contenedor que parecerá una tarjeta flotante
+        # ESTA LÍNEA ES CLAVE: Crea la tarjeta blanca con el borde y sombra
         with st.container(border=True):
-            # Foto de perfil genérica y nombre
+            
+            # TODO LO QUE SIGUE DEBE ESTAR INDENTADO (con 4 espacios extra)
+            # PARA QUEDAR DENTRO DE LA TARJETA BLANCA
+
+            # 1. Foto de perfil y nombre (HTML centrado)
             st.markdown("""
                 <div style='text-align: center; padding-top: 10px;'>
-                    <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
-                    <h4 style='color: white; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
-                    <p style='color: black; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
+                    <img src='...' width='80' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+                    <h4 style='color: #333; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
+                    <p style='color: gray; font-size: 13px; margin-top: -5px;'>Usuario Actual</p>
                 </div>
             """, unsafe_allow_html=True)
             
-            # Input de contraseña modificado
+            # 2. Input de contraseña corporativa
             clave_ingresada = st.text_input("Clave", type="password", placeholder="🔒 Contraseña corporativa...", label_visibility="collapsed")
             
             st.markdown("<br>", unsafe_allow_html=True) # Pequeño espacio
             
-            # Botón de validación
+            # 3. Botón de validación
             if st.button("DESBLOQUEAR SESIÓN"):
                 if clave_ingresada == st.secrets["CLAVE_WEB"]:
                     st.session_state["acceso_concedido"] = True
