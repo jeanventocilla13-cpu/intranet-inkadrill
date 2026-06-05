@@ -23,15 +23,13 @@ if not st.session_state["acceso_concedido"]:
             background-repeat: no-repeat;
         }
 
-        /* Forzar fondo blanco para la tarjeta central de Streamlit */
-        div[data-testid="stVerticalBlockBorderWrapper"],
-    div[data-testid="stVerticalBlock"] > div[style*="border"] {
+        /* El truco definitivo: Apuntar directamente a la columna central */
+    [data-testid="column"]:nth-of-type(2) > div {
         background-color: #ffffff !important;
-        background: #ffffff !important;
         border-radius: 15px !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
         padding: 10px !important;
-        }
+        box-shadow: 0 15px 35px rgba(0,0,0,0.6) !important;
+    }
 
         /* Ocultar elementos de Streamlit para pantalla limpia */
         header {visibility: hidden;}
