@@ -266,22 +266,21 @@ def cargar_datos_excel():
 datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 
 if st.session_state["pestaña_actual"] == "Inicio":
-    st.markdown("<br><br>", unsafe_allow_html=True)
-            
-            st.markdown("""
-            <div style="background-color: #E8E8E8; padding: 40px; border-radius: 15px; border: 1px solid #ccc; display: flex; gap: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
-                <div style="flex: 1.5; color: #333; font-size: 16px; line-height: 1.6;">
-                    <h2 style="color: #111; font-weight: 800; margin-top: 0;">HISTORIA Y FUNDACIÓN DE INKADRILL</h2>
-                    <p>En 1992, un pequeño pero decidido equipo de ingenieros de minas y geólogos topógrafos, liderado por el <strong>Ing. Carlos Vargas</strong> y la <strong>Dra. Elena Qua Quispe</strong>, identificó una brecha crítica en la <strong>precisión</strong> y <strong>eficiencia</strong> de los datos de campo en el sector minero peruano.</p>
-                    <p>Movidos por una visión de integrar tecnologías emergentes de topografía con la práctica de campo tradicional, fundaron <strong>InkaDrill</strong>.</p>
-                    <p>...Desde nuestros modestos inicios, trabajando con teodolitos y libreta de campo, <strong>InkaDrill</strong> ha crecido hasta convertirse en un líder en soluciones de precisión topográfica para la industria <strong>minera, siempre fiel a los valores</strong> de rigor científico y compromiso social de nuestros fundadores.</p>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <img src="https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/inkadrill_founders.png" style="width: 100%; border-radius: 10px; border: 1px solid #bbb;">
-                    <p style="font-size: 12px; color: #666; margin-top: 10px; line-height: 1.3;">El grupo fundador, reuniéndose por primera vez. De izquierda a derecha: Ing. J. Morales, Dra. E. Quispe, Ing. C. Vargas, Lic. A. García, Ing. R. Soto.</p>
-                </div>
+    st.markdown("<br><br>", unsafe_allow_html=True)      
+        st.markdown("""
+        <div style="background-color: #E8E8E8; padding: 40px; border-radius: 15px; border: 1px solid #ccc; display: flex; gap: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+            <div style="flex: 1.5; color: #333; font-size: 16px; line-height: 1.6;">
+                <h2 style="color: #111; font-weight: 800; margin-top: 0;">HISTORIA Y FUNDACIÓN DE INKADRILL</h2>
+                <p>En 1992, un pequeño pero decidido equipo de ingenieros de minas y geólogos topógrafos, liderado por el <strong>Ing. Carlos Vargas</strong> y la <strong>Dra. Elena Qua Quispe</strong>, identificó una brecha crítica en la <strong>precisión</strong> y <strong>eficiencia</strong> de los datos de campo en el sector minero peruano.</p>
+                <p>Movidos por una visión de integrar tecnologías emergentes de topografía con la práctica de campo tradicional, fundaron <strong>InkaDrill</strong>.</p>
+                <p>...Desde nuestros modestos inicios, trabajando con teodolitos y libreta de campo, <strong>InkaDrill</strong> ha crecido hasta convertirse en un líder en soluciones de precisión topográfica para la industria <strong>minera, siempre fiel a los valores</strong> de rigor científico y compromiso social de nuestros fundadores.</p>
             </div>
-            """, unsafe_allow_html=True)
+            <div style="flex: 1; text-align: center;">
+                <img src="https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/inkadrill_founders.png" style="width: 100%; border-radius: 10px; border: 1px solid #bbb;">
+                <p style="font-size: 12px; color: #666; margin-top: 10px; line-height: 1.3;">El grupo fundador, reuniéndose por primera vez. De izquierda a derecha: Ing. J. Morales, Dra. E. Quispe, Ing. C. Vargas, Lic. A. García, Ing. R. Soto.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 # --- 5. BUSCADOR INTELIGENTE CON IA (Leyendo 2 Documentos) ---
             col_busq1, col_busq2, col_busq3 = st.columns([1, 3, 1])
             
