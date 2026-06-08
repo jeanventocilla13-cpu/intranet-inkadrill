@@ -19,75 +19,82 @@ if not st.session_state["acceso_concedido"]:
     # 1.1 Inyectamos el CSS exclusivo para el Login (Fondo fotográfico y Vidrio)
     st.markdown("""
     <style>
-        /* 1. EL FONDO FOTOGRÁFICO (Traducción para Streamlit) */
-        [data-testid="stAppViewContainer"] {
-            background-image: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png");
-            background-size: cover;
-            background-position: center;
+        /* 1. EL FONDO FOTOGRÁFICO Y CAPAS TRANSPARENTES */
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-attachment: fixed !important;
         }
         
-        /* Ocultar la barra blanca superior por defecto de Streamlit */
-        [data-testid="stHeader"] { background-color: transparent !important; }
-        [data-testid="collapsedControl"] { display: none; }
+        /* Hacemos transparentes las capas blancas que bloquean el fondo */
+        [data-testid="stAppViewBlockContainer"], 
+        [data-testid="stAppViewContainer"], 
+        [data-testid="stHeader"] {
+            background-color: transparent !important;
+        }
         
-        /* 2. EL PANEL DE VIDRIO ESTILO PODEROSA */
+        /* Ocultar barra lateral */
+        [data-testid="collapsedControl"] { display: none !important; }
+        
+        /* 2. EL PANEL DE VIDRIO (Más transparente para que el desenfoque se note) */
         [data-testid="stForm"] {
-            background: rgba(40, 40, 40, 0.85) !important; /* Gris oscuro al 85% */
-            backdrop-filter: blur(10px) !important; /* El desenfoque mágico */
-            -webkit-backdrop-filter: blur(10px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 12px !important;
+            background-color: rgba(30, 30, 30, 0.4) !important; /* 0.4 es la clave para la transparencia */
+            backdrop-filter: blur(15px) !important;
+            -webkit-backdrop-filter: blur(15px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 15px !important;
             padding: 40px !important;
-            box-shadow: 0 15px 25px rgba(0,0,0,0.5) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6) !important;
             max-width: 400px !important;
             margin: 10vh auto auto auto !important;
         }
 
-        /* 3. ETIQUETAS AMARILLAS */
-        [data-testid="stForm"] label p { 
-            color: #F1C40F !important; 
-            font-size: 12px !important; 
-            font-weight: 700 !important; 
-        }
-
-        /* 4. CAJAS DE TEXTO OSCURAS (Inputs) */
-        [data-testid="stTextInput"] div[data-baseweb="input"] {
-            background-color: #222222 !important; /* Fondo casi negro */
-            border: 1px solid #555 !important; /* Borde gris */
+        /* 3. CAJAS DE TEXTO OSCURAS (Inputs) */
+        div[data-baseweb="input"] > div {
+            background-color: #222 !important; /* Gris oscuro */
+            border: 1px solid #555 !important;
             border-radius: 5px !important;
         }
-        [data-testid="stTextInput"] input {
-            color: white !important; /* Texto que escribes en blanco */
+        
+        /* El texto que el usuario escribe */
+        input[type="text"], input[type="password"] {
+            color: white !important;
+            background-color: transparent !important;
         }
-        /* Efecto al hacer clic en la caja de texto */
-        [data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
-            border: 1px solid #F1C40F !important;
+        
+        /* Borde amarillo al hacer clic */
+        div[data-baseweb="input"]:focus-within > div {
+            border-color: #F1C40F !important;
         }
 
-        /* 5. EL BOTÓN VERDE CENTRADO */
-        [data-testid="stFormSubmitButton"] button {
-            background-color: #3b7b63 !important; /* Verde Poderosa */
+        /* 4. EL BOTÓN VERDE CENTRADO Y ANCHO COMPLETO */
+        [data-testid="stFormSubmitButton"] {
+            width: 100% !important;
+            margin-top: 15px !important;
+        }
+        [data-testid="stFormSubmitButton"] > button {
+            background-color: #3b7b63 !important;
             color: white !important;
             border: none !important;
+            width: 100% !important;
+            padding: 10px !important;
             font-weight: bold !important;
             border-radius: 5px !important;
-            margin-top: 15px !important;
-            padding: 10px !important;
         }
-        [data-testid="stFormSubmitButton"] button:hover {
+        [data-testid="stFormSubmitButton"] > button:hover {
             background-color: #2c5c4a !important;
             color: #F1C40F !important;
         }
         
-        /* Centrar el botón (Streamlit lo pone a la izquierda por defecto) */
-        [data-testid="stFormSubmitButton"] {
-            display: flex;
-            justify-content: center;
-            width: 100%;
+        /* Color de las etiquetas amarillas */
+        [data-testid="stForm"] label p {
+            color: #F1C40F !important;
+            font-weight: 700 !important;
         }
     </style>
     """, unsafe_allow_html=True)
-
+    
     # 1.2 Creamos el formulario visual interactivo
     with st.form("login_form"):
         st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
