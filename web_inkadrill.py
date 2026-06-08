@@ -9,116 +9,70 @@ from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
 if "acceso_concedido" not in st.session_state:
-    st.session_state["acceso_concedido"] = False
-        
-    # --- Agregar esto justo debajo ---
+        st.session_state["acceso_concedido"] = False
+
     if "pestaña_actual" not in st.session_state:
         st.session_state["pestaña_actual"] = "Inicio"
-        
-if not st.session_state["acceso_concedido"]:
-    # 1. Inyectar CSS y el fondo dividido
-    st.markdown("""
-    <style>
-    /* Ocultar menú y barra superior */
-    header {visibility: hidden;}
-    
-    /* Fondo verde para TODA la página */
-    .stApp { 
-        background-color: #0F3F23 !important; 
-    }
-    
-    /* La imagen del túnel pegada a la izquierda */
-    .bg-imagen-izq {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 55vw; 
-        height: 100vh;
-        background-image: url("https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/fondo_tunel.jpg");
-        background-size: cover;
-        background-position: center;
-        z-index: -1; /* CLAVE 1: Enviar la foto al fondo absoluto */
-    }
-    
-    /* === REGLA ESPECIAL PARA CELULARES === */
-    @media (max-width: 768px) {
-        .bg-imagen-izq {
-            width: 100vw; /* En celular, la foto ocupa TODA la pantalla */
-            opacity: 0.3; /* Se oscurece como marca de agua para no molestar */
-        }
-        .block-container {
-            padding-top: 5vh !important; /* Menos espacio arriba en celulares */
-        }
-    }
-    
-    /* Ajustes para centrar el contenido verticalmente en PC */
-    .block-container { z-index: 10 !important; position: relative; padding-top: 12vh !important; }
-    
-    /* === LA TARJETA BLANCA (Siempre al frente) === */
-    [data-testid="stForm"] {
-        background-color: #ffffff !important;
-        border-radius: 15px !important;
-        border: none !important;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.6) !important;
-        padding: 25px !important;
-        position: relative;
-        z-index: 999 !important; /* CLAVE 2: Traer la tarjeta al frente absoluto */
-    }
-    
-    /* Textos corporativos (Asegurando que estén sobre el fondo) */
-    .titulo-principal { color: white; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 1px; margin-bottom: 25px; position: relative; z-index: 999;}
-    .texto-footer { color: white; text-align: center; font-size: 12px; margin-top: 25px; opacity: 0.8; position: relative; z-index: 999;}
-    
-    /* Botón Naranja InkaDrill */
-    [data-testid="stFormSubmitButton"] > button {
-        background-color: #e67e22 !important; color: white !important; width: 100% !important; border-radius: 6px !important; border: none !important; font-weight: bold !important; padding: 0.5rem !important;
-    }
-    [data-testid="stFormSubmitButton"] > button:hover { background-color: #d35400 !important; color: white !important; }
-    </style>
-    
-    <div class="bg-imagen-izq"></div>
-    """, unsafe_allow_html=True)
 
-    # 2. Estructura de Columnas
-    col_foto, col_login = st.columns([1.2, 1])
-
-    with col_login:
-        # Logo y Título
+    # --- 1. SISTEMA DE SEGURIDAD Y LOGIN (ESTILO PODEROSA) ---
+    if not st.session_state["acceso_concedido"]:
+        # 1.1 Inyectamos el CSS exclusivo para el Login (Fondo fotográfico y Vidrio)
         st.markdown("""
-            <div style='text-align: center; margin-bottom: 10px;'>
-                <img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='55' style='filter: brightness(0) invert(1);'>
-                <h3 style='color: white; margin-top: 5px;'>INKADRILL <span style='font-weight: 300; font-size: 16px;'>INTRANET</span></h3>
-            </div>
-            <div class='titulo-principal'>SISTEMA BLOQUEADO</div>
+        <style>
+            /* Fondo de pantalla completa para el login */
+            .stApp {
+                background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80");
+                background-size: cover;
+                background-position: center;
+            }
+            
+            /* Ocultar barra lateral y header mientras no se inicie sesión */
+            [data-testid="collapsedControl"] { display: none; }
+            header { display: none !important; }
+            
+            /* Estilo 'Glassmorphism' (Vidrio Esmerilado) aplicado al formulario */
+            [data-testid="stForm"] {
+                background: rgba(30, 30, 30, 0.75) !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                border-radius: 15px !important;
+                padding: 40px 30px !important;
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6) !important;
+                max-width: 380px !important;
+                margin: 15vh auto auto auto !important; /* Centrado vertical */
+            }
+            
+            /* Estilizar los textos y campos dentro del formulario para imitar a Poderosa */
+            [data-testid="stForm"] label { color: #F1C40F !important; font-size: 11px !important; font-weight: bold; letter-spacing: 1px; }
+            [data-testid="stForm"] input { background-color: transparent !important; color: white !important; border: none !important; border-bottom: 1px solid #777 !important; border-radius: 0 !important; box-shadow: none !important; padding-left: 0 !important; }
+            [data-testid="stForm"] input:focus { border-bottom: 2px solid #F1C40F !important; outline: none !important; }
+            
+            /* Botón de Iniciar Sesión Verde */
+            [data-testid="stForm"] button { background-color: #3b7b63 !important; color: white !important; border: none !important; font-weight: bold !important; width: 100% !important; border-radius: 5px !important; margin-top: 25px !important; padding: 8px !important; }
+            [data-testid="stForm"] button:hover { background-color: #2c5c4a !important; color: #F1C40F !important; }
+        </style>
         """, unsafe_allow_html=True)
 
-        # 3. El Formulario (nuestra tarjeta blanca invencible)
-        with st.form("login_form", clear_on_submit=False):
-            st.markdown("""
-                <div style='text-align: center; padding-top: 5px;'>
-                    <img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='75' style='border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
-                    <h4 style='color: #333; margin-bottom: 0px; padding-bottom: 0px;'>Usuario InkaDrill</h4>
-                    <p style='color: gray; font-size: 12px; margin-top: -5px;'>Usuario Actual</p>
-                </div>
-            """, unsafe_allow_html=True)
+        # 1.2 Creamos el formulario visual interactivo
+        with st.form("login_form"):
+            st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
             
-            clave_ingresada = st.text_input("Clave", type="password", placeholder="🔒 Contraseña corporativa...", label_visibility="collapsed")
+            usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
+            contrasena = st.text_input("CONTRASEÑA", type="password")
             
-            st.markdown("<br>", unsafe_allow_html=True)
+            submit_btn = st.form_submit_button("INICIAR SESIÓN")
             
-            # Al usar un st.form, el botón debe ser un form_submit_button
-            submit = st.form_submit_button("DESBLOQUEAR SESIÓN")
+            st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
             
-            if submit:
-                if clave_ingresada == st.secrets["CLAVE_WEB"]:
+            # 1.3 Lógica de validación
+            if submit_btn:
+                if usuario == "CMPMINA" and contrasena == "1234":
                     st.session_state["acceso_concedido"] = True
-                    st.rerun()
+                    st.rerun() # Esto recarga la página y abre la intranet
                 else:
-                    st.error("Contraseña incorrecta.")
-
-        # Textos de pie de página
-        st.markdown("<div class='texto-footer'>La sesión se ha bloqueado automáticamente por inactividad.<br><br><span style='text-decoration: underline; cursor: pointer;'>Cerrar Sesión</span> &nbsp;·&nbsp; <span style='text-decoration: underline; cursor: pointer;'>Cambiar de Usuario</span></div>", unsafe_allow_html=True)
-    
+                    st.error("Credenciales incorrectas. Acceso denegado.")
     st.stop()
         
 
