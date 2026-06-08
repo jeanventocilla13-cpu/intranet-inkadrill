@@ -9,70 +9,72 @@ from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
 if "acceso_concedido" not in st.session_state:
-        st.session_state["acceso_concedido"] = False
+    st.session_state["acceso_concedido"] = False
 
 if "pestaña_actual" not in st.session_state:
-st.session_state["pestaña_actual"] = "Inicio"
+    st.session_state["pestaña_actual"] = "Inicio"
 
 # --- 1. SISTEMA DE SEGURIDAD Y LOGIN (ESTILO PODEROSA) ---
 if not st.session_state["acceso_concedido"]:
-# 1.1 Inyectamos el CSS exclusivo para el Login (Fondo fotográfico y Vidrio)
-st.markdown("""
-<style>
-    /* Fondo de pantalla completa para el login */
-    .stApp {
-        background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80");
-        background-size: cover;
-        background-position: center;
-    }
-    
-    /* Ocultar barra lateral y header mientras no se inicie sesión */
-    [data-testid="collapsedControl"] { display: none; }
-    header { display: none !important; }
-    
-    /* Estilo 'Glassmorphism' (Vidrio Esmerilado) aplicado al formulario */
-    [data-testid="stForm"] {
-        background: rgba(30, 30, 30, 0.75) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 15px !important;
-        padding: 40px 30px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6) !important;
-        max-width: 380px !important;
-        margin: 15vh auto auto auto !important; /* Centrado vertical */
-    }
-    
-    /* Estilizar los textos y campos dentro del formulario para imitar a Poderosa */
-    [data-testid="stForm"] label { color: #F1C40F !important; font-size: 11px !important; font-weight: bold; letter-spacing: 1px; }
-    [data-testid="stForm"] input { background-color: transparent !important; color: white !important; border: none !important; border-bottom: 1px solid #777 !important; border-radius: 0 !important; box-shadow: none !important; padding-left: 0 !important; }
-    [data-testid="stForm"] input:focus { border-bottom: 2px solid #F1C40F !important; outline: none !important; }
-    
-    /* Botón de Iniciar Sesión Verde */
-    [data-testid="stForm"] button { background-color: #3b7b63 !important; color: white !important; border: none !important; font-weight: bold !important; width: 100% !important; border-radius: 5px !important; margin-top: 25px !important; padding: 8px !important; }
-    [data-testid="stForm"] button:hover { background-color: #2c5c4a !important; color: #F1C40F !important; }
-</style>
-""", unsafe_allow_html=True)
+    # 1.1 Inyectamos el CSS exclusivo para el Login (Fondo fotográfico y Vidrio)
+    st.markdown("""
+    <style>
+        /* Fondo de pantalla completa para el login */
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80");
+            background-size: cover;
+            background-position: center;
+        }
+        
+        /* Ocultar barra lateral y header mientras no se inicie sesión */
+        [data-testid="collapsedControl"] { display: none; }
+        header { display: none !important; }
+        
+        /* Estilo 'Glassmorphism' (Vidrio Esmerilado) aplicado al formulario */
+        [data-testid="stForm"] {
+            background: rgba(30, 30, 30, 0.75) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 15px !important;
+            padding: 40px 30px !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6) !important;
+            max-width: 380px !important;
+            margin: 15vh auto auto auto !important; /* Centrado vertical */
+        }
+        
+        /* Estilizar los textos y campos dentro del formulario para imitar a Poderosa */
+        [data-testid="stForm"] label { color: #F1C40F !important; font-size: 11px !important; font-weight: bold; letter-spacing: 1px; }
+        [data-testid="stForm"] input { background-color: transparent !important; color: white !important; border: none !important; border-bottom: 1px solid #777 !important; border-radius: 0 !important; box-shadow: none !important; padding-left: 0 !important; }
+        [data-testid="stForm"] input:focus { border-bottom: 2px solid #F1C40F !important; outline: none !important; }
+        
+        /* Botón de Iniciar Sesión Verde */
+        [data-testid="stForm"] button { background-color: #3b7b63 !important; color: white !important; border: none !important; font-weight: bold !important; width: 100% !important; border-radius: 5px !important; margin-top: 25px !important; padding: 8px !important; }
+        [data-testid="stForm"] button:hover { background-color: #2c5c4a !important; color: #F1C40F !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# 1.2 Creamos el formulario visual interactivo
-with st.form("login_form"):
-    st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
+    # 1.2 Creamos el formulario visual interactivo
+    with st.form("login_form"):
+        st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
+        
+        usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
+        contrasena = st.text_input("CONTRASEÑA", type="password")
+        
+        submit_btn = st.form_submit_button("INICIAR SESIÓN")
+        
+        st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
+        
+        # 1.3 Lógica de validación
+        if submit_btn:
+            if usuario == "CMPMINA" and contrasena == "1234":
+                st.session_state["acceso_concedido"] = True
+                st.rerun() # Esto recarga la página y abre la intranet
+            else:
+                st.error("Credenciales incorrectas. Acceso denegado.")
     
-    usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
-    contrasena = st.text_input("CONTRASEÑA", type="password")
-    
-    submit_btn = st.form_submit_button("INICIAR SESIÓN")
-    
-    st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
-    
-    # 1.3 Lógica de validación
-    if submit_btn:
-        if usuario == "CMPMINA" and contrasena == "1234":
-            st.session_state["acceso_concedido"] = True
-            st.rerun() # Esto recarga la página y abre la intranet
-        else:
-            st.error("Credenciales incorrectas. Acceso denegado.")
+    # 1.4 DETENER LA EJECUCIÓN (Si no hay sesión, no dibuja la intranet)
     st.stop()
         
 
