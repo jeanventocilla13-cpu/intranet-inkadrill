@@ -21,7 +21,7 @@ if not st.session_state["acceso_concedido"]:
     <style>
         /* 1. EL FONDO FOTOGRÁFICO (Traducción para Streamlit) */
         [data-testid="stAppViewContainer"] {
-            background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80");
+            background-image: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png");
             background-size: cover;
             background-position: center;
         }
