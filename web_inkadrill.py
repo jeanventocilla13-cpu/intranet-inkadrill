@@ -16,7 +16,7 @@ if not st.session_state["acceso_concedido"]:
     <style>
         /* FORZAR LA IMAGEN DE FONDO EN LA CAPA MÁS PROFUNDA */
         .stApp {
-            background: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed !important;
+            background: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") no-repeat center center fixed !important;
             background-size: cover !important;
         }
         
