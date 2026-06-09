@@ -18,73 +18,70 @@ if "pestaña_actual" not in st.session_state:
 
 # --- 1. SISTEMA DE SEGURIDAD Y LOGIN (ESTILO PODEROSA) ---
 if not st.session_state["acceso_concedido"]:
-
-if "pestaña_actual" not in st.session_state:
-    st.session_state["pestaña_actual"] = "Inicio"
     
-    # 1.1 CSS Antibalas para destruir las capas blancas de Streamlit
-    st.markdown("""
-    <style>
-        /* FORZAR LA IMAGEN DE FONDO EN LA CAPA MÁS PROFUNDA */
-        .stApp {
-            background: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") no-repeat center center fixed !important;
-            background-size: cover !important;
-        }
-        
-        /* VOLVER INVISIBLES TODAS LAS CAPAS BLANCAS SUPERPUESTAS */
-        [data-testid="stAppViewContainer"], 
-        [data-testid="stHeader"] {
-            background-color: rgba(0,0,0,0) !important;
-        }
-        
-        [data-testid="collapsedControl"] { display: none !important; }
-        
-        /* EL PANEL DE VIDRIO (Ahora sí se verá el desenfoque) */
-        [data-testid="stForm"] {
-            background-color: rgba(40, 40, 40, 0.6) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 15px !important;
-            padding: 40px !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
-            max-width: 400px !important;
-            margin: 10vh auto auto auto !important;
-        }
+# 1.1 CSS Antibalas para destruir las capas blancas de Streamlit
+st.markdown("""
+<style>
+    /* FORZAR LA IMAGEN DE FONDO EN LA CAPA MÁS PROFUNDA */
+    .stApp {
+        background: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed !important;
+        background-size: cover !important;
+    }
+    
+    /* VOLVER INVISIBLES TODAS LAS CAPAS BLANCAS SUPERPUESTAS */
+    [data-testid="stAppViewContainer"], 
+    [data-testid="stHeader"] {
+        background-color: rgba(0,0,0,0) !important;
+    }
+    
+    [data-testid="collapsedControl"] { display: none !important; }
+    
+    /* EL PANEL DE VIDRIO (Ahora sí se verá el desenfoque) */
+    [data-testid="stForm"] {
+        background-color: rgba(40, 40, 40, 0.6) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 15px !important;
+        padding: 40px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
+        max-width: 400px !important;
+        margin: 10vh auto auto auto !important;
+    }
 
-        /* ETIQUETAS AMARILLAS */
-        [data-testid="stForm"] label p { color: #F1C40F !important; font-weight: bold !important; font-size: 12px !important; }
+    /* ETIQUETAS AMARILLAS */
+    [data-testid="stForm"] label p { color: #F1C40F !important; font-weight: bold !important; font-size: 12px !important; }
 
-        /* ARREGLO DE LAS CAJAS DE TEXTO Y EL "OJITO" BLANCO */
-        div[data-baseweb="input"] {
-            background-color: #222222 !important;
-            border: 1px solid #555 !important;
-            border-radius: 5px !important;
-        }
-        div[data-baseweb="input"] input {
-            color: white !important;
-            background-color: transparent !important;
-            -webkit-text-fill-color: white !important;
-        }
-        /* Pintar el ícono del ojito de gris oscuro */
-        div[data-baseweb="input"] svg { fill: #888 !important; }
-        div[data-baseweb="input"]:focus-within { border-color: #F1C40F !important; }
+    /* ARREGLO DE LAS CAJAS DE TEXTO Y EL "OJITO" BLANCO */
+    div[data-baseweb="input"] {
+        background-color: #222222 !important;
+        border: 1px solid #555 !important;
+        border-radius: 5px !important;
+    }
+    div[data-baseweb="input"] input {
+        color: white !important;
+        background-color: transparent !important;
+        -webkit-text-fill-color: white !important;
+    }
+    /* Pintar el ícono del ojito de gris oscuro */
+    div[data-baseweb="input"] svg { fill: #888 !important; }
+    div[data-baseweb="input"]:focus-within { border-color: #F1C40F !important; }
 
-        /* ESTILO DEL BOTÓN VERDE */
-        [data-testid="stFormSubmitButton"] button {
-            background-color: #3b7b63 !important;
-            color: white !important;
-            border: none !important;
-            font-weight: bold !important;
-            border-radius: 5px !important;
-            padding: 10px !important;
-        }
-        [data-testid="stFormSubmitButton"] button:hover {
-            background-color: #2c5c4a !important;
-            color: #F1C40F !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+    /* ESTILO DEL BOTÓN VERDE */
+    [data-testid="stFormSubmitButton"] button {
+        background-color: #3b7b63 !important;
+        color: white !important;
+        border: none !important;
+        font-weight: bold !important;
+        border-radius: 5px !important;
+        padding: 10px !important;
+    }
+    [data-testid="stFormSubmitButton"] button:hover {
+        background-color: #2c5c4a !important;
+        color: #F1C40F !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
     # 1.2 Creamos el formulario visual interactivo
     with st.form("login_form"):
@@ -94,7 +91,7 @@ if "pestaña_actual" not in st.session_state:
         usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
         contrasena = st.text_input("CONTRASEÑA", type="password")
         
-        # ¡AQUÍ ESTÁ LA MAGIA NATIVA DE PYTHON PARA EL ANCHO DEL BOTÓN!
+        # EL BOTÓN CON ANCHO COMPLETO NATIVO
         submit_btn = st.form_submit_button("INICIAR SESIÓN", use_container_width=True)
         
         st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
