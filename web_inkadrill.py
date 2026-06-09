@@ -61,7 +61,7 @@ if not st.session_state["acceso_concedido"]:
         div[data-baseweb="input"] input {
             color: white !important;
             background-color: transparent !important;
-            -webkit-text-fill-color: white !important;
+            -webkit-text-fill-color: black !important;
         }
         /* Pintar el ícono del ojito de gris oscuro */
         div[data-baseweb="input"] svg { fill: #888 !important; }
