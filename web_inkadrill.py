@@ -8,116 +8,96 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
-if "acceso_concedido" not in st.session_state:
-    st.session_state["acceso_concedido"] = False
-
-if "pestaña_actual" not in st.session_state:
-    st.session_state["pestaña_actual"] = "Inicio"
-
 # --- 1. SISTEMA DE SEGURIDAD Y LOGIN (ESTILO PODEROSA) ---
 if not st.session_state["acceso_concedido"]:
-    # 1.1 Inyectamos el CSS exclusivo para el Login (Fondo fotográfico y Vidrio)
+    
+    # 1.1 CSS Antibalas para destruir las capas blancas de Streamlit
     st.markdown("""
     <style>
-        /* 1. EL FONDO FOTOGRÁFICO Y CAPAS TRANSPARENTES */
+        /* FORZAR LA IMAGEN DE FONDO EN LA CAPA MÁS PROFUNDA */
         .stApp {
-            background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") !important;
+            background: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed !important;
             background-size: cover !important;
-            background-position: center !important;
-            background-attachment: fixed !important;
         }
         
-        /* Hacemos transparentes las capas blancas que bloquean el fondo */
-        [data-testid="stAppViewBlockContainer"], 
+        /* VOLVER INVISIBLES TODAS LAS CAPAS BLANCAS SUPERPUESTAS */
         [data-testid="stAppViewContainer"], 
         [data-testid="stHeader"] {
-            background-color: transparent !important;
+            background-color: rgba(0,0,0,0) !important;
         }
         
-        /* Ocultar barra lateral */
         [data-testid="collapsedControl"] { display: none !important; }
         
-        /* 2. EL PANEL DE VIDRIO (Más transparente para que el desenfoque se note) */
+        /* EL PANEL DE VIDRIO (Ahora sí se verá el desenfoque) */
         [data-testid="stForm"] {
-            background-color: rgba(30, 30, 30, 0.4) !important; /* 0.4 es la clave para la transparencia */
-            backdrop-filter: blur(15px) !important;
-            -webkit-backdrop-filter: blur(15px) !important;
+            background-color: rgba(40, 40, 40, 0.6) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             border-radius: 15px !important;
             padding: 40px !important;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
             max-width: 400px !important;
             margin: 10vh auto auto auto !important;
         }
 
-        /* 3. CAJAS DE TEXTO OSCURAS (Inputs) */
-        div[data-baseweb="input"] > div {
-            background-color: #222 !important; /* Gris oscuro */
+        /* ETIQUETAS AMARILLAS */
+        [data-testid="stForm"] label p { color: #F1C40F !important; font-weight: bold !important; font-size: 12px !important; }
+
+        /* ARREGLO DE LAS CAJAS DE TEXTO Y EL "OJITO" BLANCO */
+        div[data-baseweb="input"] {
+            background-color: #222222 !important;
             border: 1px solid #555 !important;
             border-radius: 5px !important;
         }
-        
-        /* El texto que el usuario escribe */
-        input[type="text"], input[type="password"] {
+        div[data-baseweb="input"] input {
             color: white !important;
             background-color: transparent !important;
+            -webkit-text-fill-color: white !important;
         }
-        
-        /* Borde amarillo al hacer clic */
-        div[data-baseweb="input"]:focus-within > div {
-            border-color: #F1C40F !important;
-        }
+        /* Pintar el ícono del ojito de gris oscuro */
+        div[data-baseweb="input"] svg { fill: #888 !important; }
+        div[data-baseweb="input"]:focus-within { border-color: #F1C40F !important; }
 
-        /* 4. EL BOTÓN VERDE CENTRADO Y ANCHO COMPLETO */
-        [data-testid="stFormSubmitButton"] {
-            width: 100% !important;
-            margin-top: 15px !important;
-        }
-        [data-testid="stFormSubmitButton"] > button {
+        /* ESTILO DEL BOTÓN VERDE */
+        [data-testid="stFormSubmitButton"] button {
             background-color: #3b7b63 !important;
             color: white !important;
             border: none !important;
-            width: 100% !important;
-            padding: 10px !important;
             font-weight: bold !important;
             border-radius: 5px !important;
+            padding: 10px !important;
         }
-        [data-testid="stFormSubmitButton"] > button:hover {
+        [data-testid="stFormSubmitButton"] button:hover {
             background-color: #2c5c4a !important;
             color: #F1C40F !important;
         }
-        
-        /* Color de las etiquetas amarillas */
-        [data-testid="stForm"] label p {
-            color: #F1C40F !important;
-            font-weight: 700 !important;
-        }
     </style>
     """, unsafe_allow_html=True)
-    
-    # 1.2 Creamos el formulario visual interactivo
-    with st.form("login_form"):
-        st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
+
+        # 1.2 Creamos el formulario visual interactivo
+        with st.form("login_form"):
+            st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
+            
+            usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
+            contrasena = st.text_input("CONTRASEÑA", type="password")
+            
+            # ¡AQUÍ ESTÁ LA MAGIA NATIVA DE PYTHON PARA EL ANCHO DEL BOTÓN!
+            submit_btn = st.form_submit_button("INICIAR SESIÓN", use_container_width=True)
+            
+            st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
+            
+            # 1.3 Lógica de validación
+            if submit_btn:
+                if usuario == "CMPMINA" and contrasena == "1234":
+                    st.session_state["acceso_concedido"] = True
+                    st.rerun() 
+                else:
+                    st.error("Credenciales incorrectas. Acceso denegado.")
         
-        usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
-        contrasena = st.text_input("CONTRASEÑA", type="password")
-        
-        submit_btn = st.form_submit_button("INICIAR SESIÓN")
-        
-        st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
-        
-        # 1.3 Lógica de validación
-        if submit_btn:
-            if usuario == "CMPMINA" and contrasena == "1234":
-                st.session_state["acceso_concedido"] = True
-                st.rerun() # Esto recarga la página y abre la intranet
-            else:
-                st.error("Credenciales incorrectas. Acceso denegado.")
-    
-    # 1.4 DETENER LA EJECUCIÓN (Si no hay sesión, no dibuja la intranet)
-    st.stop()
-        
+        # 1.4 DETENER LA EJECUCIÓN
+        st.stop()
 
 # --- 2. CONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL Y SECRETOS ---
 # (A partir de aquí hacia abajo va TODO tu código original intacto)
