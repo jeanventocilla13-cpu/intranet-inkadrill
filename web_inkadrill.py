@@ -75,29 +75,29 @@ if not st.session_state["acceso_concedido"]:
     </style>
     """, unsafe_allow_html=True)
 
-        # 1.2 Creamos el formulario visual interactivo
-        with st.form("login_form"):
-            st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
-            
-            usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
-            contrasena = st.text_input("CONTRASEÑA", type="password")
-            
-            # ¡AQUÍ ESTÁ LA MAGIA NATIVA DE PYTHON PARA EL ANCHO DEL BOTÓN!
-            submit_btn = st.form_submit_button("INICIAR SESIÓN", use_container_width=True)
-            
-            st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
-            
-            # 1.3 Lógica de validación
-            if submit_btn:
-                if usuario == "CMPMINA" and contrasena == "1234":
-                    st.session_state["acceso_concedido"] = True
-                    st.rerun() 
-                else:
-                    st.error("Credenciales incorrectas. Acceso denegado.")
+    # 1.2 Creamos el formulario visual interactivo
+    with st.form("login_form"):
+        st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
         
-        # 1.4 DETENER LA EJECUCIÓN
-        st.stop()
+        usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
+        contrasena = st.text_input("CONTRASEÑA", type="password")
+        
+        # ¡AQUÍ ESTÁ LA MAGIA NATIVA DE PYTHON PARA EL ANCHO DEL BOTÓN!
+        submit_btn = st.form_submit_button("INICIAR SESIÓN", use_container_width=True)
+        
+        st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
+        
+        # 1.3 Lógica de validación
+        if submit_btn:
+            if usuario == "CMPMINA" and contrasena == "1234":
+                st.session_state["acceso_concedido"] = True
+                st.rerun() 
+            else:
+                st.error("Credenciales incorrectas. Acceso denegado.")
+    
+    # 1.4 DETENER LA EJECUCIÓN
+    st.stop()
 
 # --- 2. CONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL Y SECRETOS ---
 # (A partir de aquí hacia abajo va TODO tu código original intacto)
