@@ -150,81 +150,75 @@ estilo_dashboard = """
 """
 st.markdown(estilo_dashboard, unsafe_allow_html=True)
 
-# --- 3. BARRA SUPERIOR ESTILO INKADRILL PREMIUM ---
-    
-# 1. Inyectamos los colores corporativos a los botones
-st.markdown("""
-    <style>
-        /* 1. Fondo general de la app */
-        .stApp { background-color: #E8ECEF !important; }
+# --- 3. BARRA SUPERIOR ESTILO PODEROSA ---
         
-        /* 2. Transformar botones en PESTAÑAS CUADRADAS EXACTAS */
-        div.stButton > button {
-            height: 65px !important;
-            border-radius: 0px !important; /* Esquinas totalmente cuadradas */
-            font-size: 16px !important;
-            font-weight: 600 !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            background-color: transparent !important;
-            color: #555 !important;
-        }
+        # 1. CSS para el Logo, la Fila Dorada y limpiar los botones de Streamlit
+        st.markdown("""
+        <style>
+            /* Fondo corporativo para toda la app (Blanco/Gris muy claro) */
+            .stApp { background-color: #F8F9FA !important; }
+            
+            /* Contenedor Superior (Logo y Enlaces Pequeños) */
+            .nav-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                padding-bottom: 15px;
+                margin-bottom: 15px;
+                border-bottom: 1px solid #eaeaea;
+            }
+            .nav-logo-text {
+                font-family: 'Arial', sans-serif; font-size: 38px; font-weight: 900;
+                color: #A6802C; letter-spacing: -1.5px; margin-bottom: -5px;
+            }
+            .logo-circulo {
+                display: inline-block; width: 14px; height: 14px; background-color: #333;
+                border: 4px solid #A6802C; border-radius: 50%; margin: 0 2px; transform: translateY(-8px);
+            }
+            .nav-top-links { display: flex; gap: 20px; }
+            .nav-top-link { color: #d4a017; font-size: 11px; font-weight: 800; cursor: pointer; }
+            .perfil-usuario { color: #777; font-size: 11px; font-weight: bold; margin-left: 15px; }
 
-        /* 3. El Botón ACTIVO (El verde corporativo) */
-        div.stButton > button[kind="primary"] {
-            background-color: #0F3F23 !important; /* Verde oscuro InkaDrill */
-            color: white !important;
-            border-bottom: 6px solid #f1c40f !important; /* Línea dorada gruesa */
-        }
+            /* Transformar los botones verdes de Streamlit en texto limpio estilo Poderosa */
+            div.stButton > button {
+                background-color: transparent !important;
+                border: none !important;
+                color: #555 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                box-shadow: none !important;
+                padding: 0px !important;
+                height: auto !important;
+            }
+            div.stButton > button:hover {
+                color: #d4a017 !important;
+            }
+        </style>
         
-        div.stButton > button[kind="secondary"]:hover {
-            color: #0F3F23 !important;
-            background-color: #e0e0e0 !important;
-        }
+        <div class="nav-header">
+            <div class="nav-logo-text">INKADR<span class="logo-circulo"></span>LL</div>
+            <div class="nav-top-links">
+                <span class="nav-top-link">Publicaciones</span>
+                <span class="nav-top-link">Intranet</span>
+                <span class="nav-top-link">Portal SST</span>
+                <span class="perfil-usuario">👤 Jean Ventocilla</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 2. Fila Inferior Interactiva (Tus botones reales de Streamlit camuflados)
+        col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1.2, 1.5, 1.5, 4])
         
-        /* 4. La Franja Verde del Buscador (Tu IA) */
-        div[data-testid="stForm"] {
-            background-color: #0F3F23 !important;
-            padding: 30px !important;
-            border-radius: 8px !important;
-            border: none !important;
-        }
-        /* Limpiar input y botón del buscador */
-        div[data-testid="stForm"] input { border-radius: 5px !important; font-size: 16px !important; }
-        div[data-testid="stForm"] button { background-color: #1b5e20 !important; color: white !important; border: 1px solid white !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 2. Creamos las columnas
-col_logo, col_nav1, col_nav2, col_nav3, col_espacio, col_perfil = st.columns([2.5, 1.2, 1.3, 1.2, 2, 2.5])
-
-with col_logo:
-    st.markdown("<div style='display: flex; align-items: center;'><img src='https://cdn-icons-png.flaticon.com/512/2950/2950711.png' width='40' style='margin-right: 10px;'><div style='line-height: 1.1;'><strong style='color:#0F3F23; font-size:18px; letter-spacing: 1px;'>INKADRILL</strong><br><span style='color:gray; font-size:11px; letter-spacing: 1px;'>INTRANET</span></div></div>", unsafe_allow_html=True)
-
-with col_nav1:
-    btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Inicio" else "secondary"
-    if st.button("🏠 Inicio", type=btn_tipo, use_container_width=True, key="btn_inicio_premium"):
-        st.session_state["pestaña_actual"] = "Inicio"
-        st.rerun()
-
-with col_nav2:
-    btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Topografía" else "secondary"
-    if st.button("📍 Topografía", type=btn_tipo, use_container_width=True, key="btn_topo_premium"):
-        st.session_state["pestaña_actual"] = "Topografía"
-        st.rerun()
-
-with col_nav3:
-    btn_tipo = "primary" if st.session_state["pestaña_actual"] == "Datos" else "secondary"
-    if st.button("🗄️ Datos", type=btn_tipo, use_container_width=True, key="btn_datos_premium"):
-        st.session_state["pestaña_actual"] = "Datos"
-        st.rerun()
-
-with col_perfil:
-    st.markdown("<div style='display: flex; align-items: center; justify-content: flex-end;'><div style='text-align: right; line-height: 1.2; margin-right: 12px;'><strong style='color:#333; font-size:14px;'>Perfil</strong><br><span style='color:gray; font-size:13px;'>Jean Ventocilla</span></div><img src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png' width='42' style='border-radius: 50%; border: 2px solid #ddd;'></div>", unsafe_allow_html=True)
-    
-st.markdown("---")
-
+        with col_nav1:
+            if st.button("INICIO"): st.session_state["pestaña_actual"] = "Inicio"
+        with col_nav2:
+            if st.button("TOPOGRAFÍA"): st.session_state["pestaña_actual"] = "Topografía"
+        with col_nav3:
+            if st.button("DATOS OPERATIVOS"): st.session_state["pestaña_actual"] = "Datos"
+            
+        # Espacio extra para separar el menú de la portada de abajo
+        st.markdown("<br>", unsafe_allow_html=True)
 # --- 4. FUNCIÓN PARA DESCARGAR DATOS DE DRIVE ---
 @st.cache_data(ttl=300)
 def cargar_datos_excel():
