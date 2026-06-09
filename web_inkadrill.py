@@ -152,73 +152,73 @@ st.markdown(estilo_dashboard, unsafe_allow_html=True)
 
 # --- 3. BARRA SUPERIOR ESTILO PODEROSA ---
         
-        # 1. CSS para el Logo, la Fila Dorada y limpiar los botones de Streamlit
-        st.markdown("""
-        <style>
-            /* Fondo corporativo para toda la app (Blanco/Gris muy claro) */
-            .stApp { background-color: #F8F9FA !important; }
-            
-            /* Contenedor Superior (Logo y Enlaces Pequeños) */
-            .nav-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                padding-bottom: 15px;
-                margin-bottom: 15px;
-                border-bottom: 1px solid #eaeaea;
-            }
-            .nav-logo-text {
-                font-family: 'Arial', sans-serif; font-size: 38px; font-weight: 900;
-                color: #A6802C; letter-spacing: -1.5px; margin-bottom: -5px;
-            }
-            .logo-circulo {
-                display: inline-block; width: 14px; height: 14px; background-color: #333;
-                border: 4px solid #A6802C; border-radius: 50%; margin: 0 2px; transform: translateY(-8px);
-            }
-            .nav-top-links { display: flex; gap: 20px; }
-            .nav-top-link { color: #d4a017; font-size: 11px; font-weight: 800; cursor: pointer; }
-            .perfil-usuario { color: #777; font-size: 11px; font-weight: bold; margin-left: 15px; }
-
-            /* Transformar los botones verdes de Streamlit en texto limpio estilo Poderosa */
-            div.stButton > button {
-                background-color: transparent !important;
-                border: none !important;
-                color: #555 !important;
-                font-size: 13px !important;
-                font-weight: 700 !important;
-                text-transform: uppercase !important;
-                box-shadow: none !important;
-                padding: 0px !important;
-                height: auto !important;
-            }
-            div.stButton > button:hover {
-                color: #d4a017 !important;
-            }
-        </style>
+    # 1. CSS para el Logo, la Fila Dorada y limpiar los botones de Streamlit
+    st.markdown("""
+    <style>
+        /* Fondo corporativo para toda la app (Blanco/Gris muy claro) */
+        .stApp { background-color: #F8F9FA !important; }
         
-        <div class="nav-header">
-            <div class="nav-logo-text">INKADR<span class="logo-circulo"></span>LL</div>
-            <div class="nav-top-links">
-                <span class="nav-top-link">Publicaciones</span>
-                <span class="nav-top-link">Intranet</span>
-                <span class="nav-top-link">Portal SST</span>
-                <span class="perfil-usuario">👤 Jean Ventocilla</span>
-            </div>
+        /* Contenedor Superior (Logo y Enlaces Pequeños) */
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        .nav-logo-text {
+            font-family: 'Arial', sans-serif; font-size: 38px; font-weight: 900;
+            color: #A6802C; letter-spacing: -1.5px; margin-bottom: -5px;
+        }
+        .logo-circulo {
+            display: inline-block; width: 14px; height: 14px; background-color: #333;
+            border: 4px solid #A6802C; border-radius: 50%; margin: 0 2px; transform: translateY(-8px);
+        }
+        .nav-top-links { display: flex; gap: 20px; }
+        .nav-top-link { color: #d4a017; font-size: 11px; font-weight: 800; cursor: pointer; }
+        .perfil-usuario { color: #777; font-size: 11px; font-weight: bold; margin-left: 15px; }
+
+        /* Transformar los botones verdes de Streamlit en texto limpio estilo Poderosa */
+        div.stButton > button {
+            background-color: transparent !important;
+            border: none !important;
+            color: #555 !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            box-shadow: none !important;
+            padding: 0px !important;
+            height: auto !important;
+        }
+        div.stButton > button:hover {
+            color: #d4a017 !important;
+        }
+    </style>
+    
+    <div class="nav-header">
+        <div class="nav-logo-text">INKADR<span class="logo-circulo"></span>LL</div>
+        <div class="nav-top-links">
+            <span class="nav-top-link">Publicaciones</span>
+            <span class="nav-top-link">Intranet</span>
+            <span class="nav-top-link">Portal SST</span>
+            <span class="perfil-usuario">👤 Jean Ventocilla</span>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-        # 2. Fila Inferior Interactiva (Tus botones reales de Streamlit camuflados)
-        col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1.2, 1.5, 1.5, 4])
+    # 2. Fila Inferior Interactiva (Tus botones reales de Streamlit camuflados)
+    col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1.2, 1.5, 1.5, 4])
+    
+    with col_nav1:
+        if st.button("INICIO"): st.session_state["pestaña_actual"] = "Inicio"
+    with col_nav2:
+        if st.button("TOPOGRAFÍA"): st.session_state["pestaña_actual"] = "Topografía"
+    with col_nav3:
+        if st.button("DATOS OPERATIVOS"): st.session_state["pestaña_actual"] = "Datos"
         
-        with col_nav1:
-            if st.button("INICIO"): st.session_state["pestaña_actual"] = "Inicio"
-        with col_nav2:
-            if st.button("TOPOGRAFÍA"): st.session_state["pestaña_actual"] = "Topografía"
-        with col_nav3:
-            if st.button("DATOS OPERATIVOS"): st.session_state["pestaña_actual"] = "Datos"
-            
-        # Espacio extra para separar el menú de la portada de abajo
-        st.markdown("<br>", unsafe_allow_html=True)
+    # Espacio extra para separar el menú de la portada de abajo
+    st.markdown("<br>", unsafe_allow_html=True)
 # --- 4. FUNCIÓN PARA DESCARGAR DATOS DE DRIVE ---
 @st.cache_data(ttl=300)
 def cargar_datos_excel():
