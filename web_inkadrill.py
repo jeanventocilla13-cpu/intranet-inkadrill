@@ -8,10 +8,16 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
 st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
+
+# --- INICIALIZAR VARIABLES DE SEGURIDAD ---
+if "acceso_concedido" not in st.session_state:
+    st.session_state["acceso_concedido"] = False
+
+if "pestaña_actual" not in st.session_state:
+    st.session_state["pestaña_actual"] = "Inicio"
+
 # --- 1. SISTEMA DE SEGURIDAD Y LOGIN (ESTILO PODEROSA) ---
 if not st.session_state["acceso_concedido"]:
-if "acceso_concedido" not in st.session_state:
-st.session_state["acceso_concedido"] = False
 
 if "pestaña_actual" not in st.session_state:
     st.session_state["pestaña_actual"] = "Inicio"
