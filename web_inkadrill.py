@@ -257,106 +257,143 @@ datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 if st.session_state["pestaña_actual"] == "Inicio":
         
        # ==========================================================
-        # EL BUSCADOR TIPO "HERO BANNER" (Estilo Poderosa.com.pe)
+        # EL BUSCADOR "PODEROSA STYLE" (Asimétrico, círculos y blanco)
         # ==========================================================
         st.markdown("""
         <style>
-            /* Transformar el formulario de Streamlit en un Banner Gigante Corporativo */
+            /* Quitar el fondo verde anterior y asegurar fondo transparente */
             div[data-testid="stForm"] {
-                background: linear-gradient(rgba(15, 63, 35, 0.85), rgba(10, 40, 20, 0.9)), url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") no-repeat center center !important;
-                background-size: cover !important;
+                background: transparent !important;
                 border: none !important;
-                border-radius: 12px !important;
-                padding: 70px 40px !important; /* Altura imponente como portada web */
-                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
-                margin-top: 10px !important;
+                padding: 0 !important;
+                box-shadow: none !important;
             }
             
-            /* Títulos del Banner imitando el diseño de Poderosa */
-            .hero-titulo { color: #F1C40F; font-size: 36px; font-weight: 900; text-align: center; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
-            .hero-sub { color: #E8ECEF; font-size: 16px; text-align: center; margin-bottom: 40px; font-weight: 400; letter-spacing: 0.5px; }
+            /* Títulos del lado izquierdo (Estilo Poderosa) */
+            .tit-poderosa { color: #404040; font-size: 50px; font-weight: 900; line-height: 1.1; margin-bottom: 15px; font-family: 'Arial', sans-serif; letter-spacing: -1px; }
+            .sub-poderosa { color: #666; font-size: 20px; margin-bottom: 30px; font-weight: 500; }
             
-            /* Input del buscador estilo 'Glass' transparente */
+            /* Caja de texto del buscador */
             div[data-baseweb="input"] > div {
-                background-color: rgba(255, 255, 255, 0.1) !important;
-                backdrop-filter: blur(5px) !important;
-                border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                border-radius: 8px !important;
+                background-color: #f5f5f5 !important;
+                border: 1px solid #ddd !important;
+                border-radius: 0px !important; /* Cuadrado y limpio */
+                padding: 5px !important;
             }
-            div[data-baseweb="input"] input { color: white !important; font-size: 16px !important; }
-            div[data-baseweb="input"]:focus-within > div { border-color: #F1C40F !important; }
+            div[data-baseweb="input"] input { color: #333 !important; font-size: 16px !important; }
             
-            /* Botón Consultar Dorado sólido */
+            /* Botón Consultar estilo Poderosa (Gris oscuro con bloque amarillo a la derecha) */
             div[data-testid="stFormSubmitButton"] > button {
-                background-color: #F1C40F !important;
-                color: #0F3F23 !important;
+                background-color: #4A4D4E !important; /* Gris oscuro */
+                color: white !important;
                 border: none !important;
-                font-weight: 900 !important;
+                font-weight: bold !important;
                 font-size: 16px !important;
-                padding: 8px !important;
-                border-radius: 8px !important;
-                width: 100% !important;
+                border-radius: 0px !important;
+                padding: 10px 40px !important;
+                border-right: 35px solid #d4a017 !important; /* El detalle amarillo simulando el botón de Poderosa */
+                transition: 0.3s;
+                width: auto !important;
             }
             div[data-testid="stFormSubmitButton"] > button:hover {
-                background-color: #d4a017 !important;
-                color: white !important;
+                background-color: #333 !important;
+                border-right: 45px solid #d4a017 !important;
+            }
+
+            /* Contenedor de la imagen circular derecha (Magia CSS) */
+            .circulos-container {
+                position: relative;
+                width: 100%;
+                height: 450px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-top: 10px;
+            }
+            .circulo-fondo {
+                position: absolute;
+                left: -5%;
+                width: 350px;
+                height: 350px;
+                background-color: #F8F5E6; /* Beige claro de fondo */
+                border-radius: 50%;
+                z-index: 1;
+            }
+            .circulo-foto {
+                position: relative;
+                width: 380px;
+                height: 380px;
+                border-radius: 50%;
+                background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=800&q=80");
+                background-size: cover;
+                background-position: center;
+                z-index: 2;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            .circulo-adorno {
+                position: absolute;
+                bottom: 5%;
+                left: 15%;
+                width: 120px;
+                height: 120px;
+                background-color: #d4a017; /* Círculo amarillo inferior */
+                border-radius: 50%;
+                border: 12px solid #E8ECEF; /* Borde del color de fondo de la app para simular corte */
+                z-index: 3;
             }
         </style>
         """, unsafe_allow_html=True)
         
-        # Hacemos que el banner ocupe más ancho para verse imponente en la pantalla
-        col_hero1, col_hero2, col_hero3 = st.columns([1, 8, 1])
+        # Dos columnas: Texto a la izquierda (1.2), Imagen con círculos a la derecha (1)
+        col_pod_txt, col_pod_img = st.columns([1.2, 1])
         
-        with col_hero2:
+        with col_pod_txt:
+            st.markdown("<br>", unsafe_allow_html=True) # Espacio superior
+            st.markdown("<div class='tit-poderosa'>Minería Inteligente<br>y Productividad</div>", unsafe_allow_html=True)
+            st.markdown("<div class='sub-poderosa'>Nuestra meta y responsabilidad operativa el 2026</div>", unsafe_allow_html=True)
+            
             with st.form(key='formulario_ia_premium', clear_on_submit=False):
-                # Textos corporativos sobre la imagen
-                st.markdown("<div class='hero-titulo'>Minería Inteligente y Sostenible</div>", unsafe_allow_html=True)
-                st.markdown("<div class='hero-sub'>Sistema Integrado de Topografía, Geomecánica y Data Operativa • InkaDrill</div>", unsafe_allow_html=True)
+                pregunta_usuario = st.text_input(
+                    label="Buscar",
+                    placeholder="Escribe tu consulta geomecánica o topográfica...",
+                    label_visibility="collapsed"
+                )
                 
-                col_in1, col_in2 = st.columns([4, 1])
+                # Botón de envío con la flecha
+                boton_buscar = st.form_submit_button("CONSULTAR   ▶")
                 
-                with col_in1:
-                    pregunta_usuario = st.text_input(
-                        label="Buscar",
-                        placeholder="🔍 Busque datos de túneles, informes o parámetros geomecánicos...",
-                        label_visibility="collapsed"
-                    )
-                with col_in2:
-                    boton_buscar = st.form_submit_button("CONSULTAR")
-                
-                # Lógica original de tu IA (¡Intacta!)
+                # Lógica de Gemini
                 if boton_buscar and pregunta_usuario:
-                    with st.spinner("Analizando documentos operativos..."):
+                    with st.spinner("Analizando documentos..."):
                         if drive_service:
                             try:
-                                # Descargamos ambos documentos
                                 doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
                                 doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
                                 
-                                # Preparamos las instrucciones para Gemini
                                 instruccion = f"""
-                                Eres un ingeniero de minas experto. Responde a la pregunta del usuario basándote UNICAMENTE
-                                en la información de los siguientes dos documentos operativos de la empresa.
-                                Sé preciso, profesional y directo.
-
-                                DOCUMENTO 1 (Procedimientos y Seguridad):
-                                {doc1}
-
-                                DOCUMENTO 2 (Contexto Geomecánico):
-                                {doc2}
-
+                                Eres un ingeniero de minas experto. Responde basándote UNICAMENTE
+                                en los siguientes documentos.
+                                DOCUMENTO 1: {doc1}
+                                DOCUMENTO 2: {doc2}
                                 PREGUNTA DEL USUARIO: {pregunta_usuario}
                                 """
-                                
-                                # Generamos la respuesta
                                 respuesta_ia = modelo.generate_content(instruccion)
                                 st.success("Respuesta generada según los datos de la empresa:")
                                 st.info(respuesta_ia.text)
-                                
                             except Exception as e:
-                                st.error(f"Error al leer los documentos de texto: {e}")
+                                st.error(f"Error al leer los documentos: {e}")
                         else:
                             st.error("No se pudo conectar a Google Drive.")
+
+        with col_pod_img:
+            # Dibujamos la estructura de círculos superpuestos idéntica a Poderosa
+            st.markdown("""
+            <div class="circulos-container">
+                <div class="circulo-fondo"></div>
+                <div class="circulo-foto"></div>
+                <div class="circulo-adorno"></div>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Un espacio elegante entre bloques
        # Un separador ajustado sin espacios gigantes
