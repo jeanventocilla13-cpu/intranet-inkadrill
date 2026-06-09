@@ -256,63 +256,107 @@ datos_reales, datos_geomecanicos, drive_service = cargar_datos_excel()
 
 if st.session_state["pestaña_actual"] == "Inicio":
         
+       # ==========================================================
+        # EL BUSCADOR TIPO "HERO BANNER" (Estilo Poderosa.com.pe)
         # ==========================================================
-        # EL BUSCADOR DE IA AHORA VA PRIMERO (Al inicio de la página)
-        # ==========================================================
-        # --- 5. BUSCADOR INTELIGENTE CON IA ---
-        col_busq1, col_busq2, col_busq3 = st.columns([1, 4, 1])
-        
-        with col_busq2:
-            # Envolvemos el formulario en un container para estilizar el fondo verde
-            st.markdown('<div class="franja-verde-buscador">', unsafe_allow_html=True)
+        st.markdown("""
+        <style>
+            /* Transformar el formulario de Streamlit en un Banner Gigante Corporativo */
+            div[data-testid="stForm"] {
+                background: linear-gradient(rgba(15, 63, 35, 0.85), rgba(10, 40, 20, 0.9)), url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=1920&q=80") no-repeat center center !important;
+                background-size: cover !important;
+                border: none !important;
+                border-radius: 12px !important;
+                padding: 70px 40px !important; /* Altura imponente como portada web */
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+                margin-top: 10px !important;
+            }
             
-            # Formulario de IA con estilo corporativo
+            /* Títulos del Banner imitando el diseño de Poderosa */
+            .hero-titulo { color: #F1C40F; font-size: 36px; font-weight: 900; text-align: center; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+            .hero-sub { color: #E8ECEF; font-size: 16px; text-align: center; margin-bottom: 40px; font-weight: 400; letter-spacing: 0.5px; }
+            
+            /* Input del buscador estilo 'Glass' transparente */
+            div[data-baseweb="input"] > div {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                backdrop-filter: blur(5px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                border-radius: 8px !important;
+            }
+            div[data-baseweb="input"] input { color: white !important; font-size: 16px !important; }
+            div[data-baseweb="input"]:focus-within > div { border-color: #F1C40F !important; }
+            
+            /* Botón Consultar Dorado sólido */
+            div[data-testid="stFormSubmitButton"] > button {
+                background-color: #F1C40F !important;
+                color: #0F3F23 !important;
+                border: none !important;
+                font-weight: 900 !important;
+                font-size: 16px !important;
+                padding: 8px !important;
+                border-radius: 8px !important;
+                width: 100% !important;
+            }
+            div[data-testid="stFormSubmitButton"] > button:hover {
+                background-color: #d4a017 !important;
+                color: white !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Hacemos que el banner ocupe más ancho para verse imponente en la pantalla
+        col_hero1, col_hero2, col_hero3 = st.columns([1, 8, 1])
+        
+        with col_hero2:
             with st.form(key='formulario_ia_premium', clear_on_submit=False):
+                # Textos corporativos sobre la imagen
+                st.markdown("<div class='hero-titulo'>Minería Inteligente y Sostenible</div>", unsafe_allow_html=True)
+                st.markdown("<div class='hero-sub'>Sistema Integrado de Topografía, Geomecánica y Data Operativa • InkaDrill</div>", unsafe_allow_html=True)
+                
                 col_in1, col_in2 = st.columns([4, 1])
                 
                 with col_in1:
                     pregunta_usuario = st.text_input(
-                        label="Buscar en la intranet",
-                        placeholder="🔍 Buscar en la intranet: topografía, datos mineros, informes, perforaciones...",
+                        label="Buscar",
+                        placeholder="🔍 Busque datos de túneles, informes o parámetros geomecánicos...",
                         label_visibility="collapsed"
                     )
                 with col_in2:
-                    boton_buscar = st.form_submit_button("Buscar", use_container_width=True)
-                    
-            st.markdown('</div>', unsafe_allow_html=True)
+                    boton_buscar = st.form_submit_button("CONSULTAR")
+                
+                # Lógica original de tu IA (¡Intacta!)
+                if boton_buscar and pregunta_usuario:
+                    with st.spinner("Analizando documentos operativos..."):
+                        if drive_service:
+                            try:
+                                # Descargamos ambos documentos
+                                doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
+                                doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
+                                
+                                # Preparamos las instrucciones para Gemini
+                                instruccion = f"""
+                                Eres un ingeniero de minas experto. Responde a la pregunta del usuario basándote UNICAMENTE
+                                en la información de los siguientes dos documentos operativos de la empresa.
+                                Sé preciso, profesional y directo.
 
-            if boton_buscar and pregunta_usuario:
-                with st.spinner("Analizando documentos operativos..."):
-                    if drive_service:
-                        try:
-                            # Descargamos ambos documentos
-                            doc1 = drive_service.files().export_media(fileId=DOC_WORD_1_ID, mimeType='text/plain').execute().decode('utf-8')
-                            doc2 = drive_service.files().export_media(fileId=DOC_WORD_2_ID, mimeType='text/plain').execute().decode('utf-8')
-                            
-                            # Preparamos las instrucciones para Gemini
-                            instruccion = f"""
-                            Eres un ingeniero de minas experto. Responde a la pregunta del usuario basándote UNICAMENTE
-                            en la información de los siguientes dos documentos operativos de la empresa.
-                            Sé preciso, profesional y directo.
+                                DOCUMENTO 1 (Procedimientos y Seguridad):
+                                {doc1}
 
-                            DOCUMENTO 1 (Procedimientos y Seguridad):
-                            {doc1}
+                                DOCUMENTO 2 (Contexto Geomecánico):
+                                {doc2}
 
-                            DOCUMENTO 2 (Contexto Geomecánico):
-                            {doc2}
-
-                            PREGUNTA DEL USUARIO: {pregunta_usuario}
-                            """
-                            
-                            # Generamos la respuesta
-                            respuesta_ia = modelo.generate_content(instruccion)
-                            st.success("Respuesta generada según los datos de la empresa:")
-                            st.info(respuesta_ia.text)
-                            
-                        except Exception as e:
-                            st.error(f"Error al leer los documentos de texto: {e}")
-                    else:
-                        st.error("No se pudo conectar a Google Drive.")
+                                PREGUNTA DEL USUARIO: {pregunta_usuario}
+                                """
+                                
+                                # Generamos la respuesta
+                                respuesta_ia = modelo.generate_content(instruccion)
+                                st.success("Respuesta generada según los datos de la empresa:")
+                                st.info(respuesta_ia.text)
+                                
+                            except Exception as e:
+                                st.error(f"Error al leer los documentos de texto: {e}")
+                        else:
+                            st.error("No se pudo conectar a Google Drive.")
         
         # Un espacio elegante entre bloques
        # Un separador ajustado sin espacios gigantes
