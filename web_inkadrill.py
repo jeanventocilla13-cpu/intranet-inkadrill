@@ -7,7 +7,7 @@ import google.generativeai as genai
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 # --- 1. SISTEMA DE SEGURIDAD (CONTRASEÑA) ---
-st.set_page_config(page_title="InkaDrill Intranet", page_icon="⛏️", layout="wide")
+st.set_page_config(page_title="InkaDrill Intranet", page_icon="https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/imagen%20logo%20inkadrill.png?raw=true", layout="wide")
 
 # --- INICIALIZAR VARIABLES DE SEGURIDAD ---
 if "acceso_concedido" not in st.session_state:
