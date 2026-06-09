@@ -96,11 +96,15 @@ if not st.session_state["acceso_concedido"]:
         
         st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
         
-        # 1.3 Lógica de validación
+     # 1.3 Lógica de validación usando Secrets
         if submit_btn:
-            if usuario == "CMPMINA" and contrasena == "1234":
+            # Traemos las credenciales reales de la bóveda secreta de Streamlit
+            usuario_real = st.secrets["USUARIO_WEB"]
+            clave_real = st.secrets["CLAVE_WEB"]
+            
+            if usuario == usuario_real and contrasena == clave_real:
                 st.session_state["acceso_concedido"] = True
-                st.rerun() 
+                st.rerun()
             else:
                 st.error("Credenciales incorrectas. Acceso denegado.")
     
