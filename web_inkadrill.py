@@ -48,10 +48,10 @@ if not st.session_state["acceso_concedido"]:
             max-width: 400px !important;
             margin: 10vh auto auto auto !important;
         }
-    
+
         /* ETIQUETAS AMARILLAS */
         [data-testid="stForm"] label p { color: #F1C40F !important; font-weight: bold !important; font-size: 12px !important; }
-    
+
         /* ARREGLO DE LAS CAJAS DE TEXTO Y EL "OJITO" BLANCO */
         div[data-baseweb="input"] {
             background-color: #222222 !important;
@@ -66,7 +66,7 @@ if not st.session_state["acceso_concedido"]:
         /* Pintar el ícono del ojito de gris oscuro */
         div[data-baseweb="input"] svg { fill: #888 !important; }
         div[data-baseweb="input"]:focus-within { border-color: #F1C40F !important; }
-    
+
         /* ESTILO DEL BOTÓN VERDE */
         [data-testid="stFormSubmitButton"] button {
             background-color: #3b7b63 !important;
@@ -82,30 +82,30 @@ if not st.session_state["acceso_concedido"]:
         }
     </style>
     """, unsafe_allow_html=True)
-    
-        # 1.2 Creamos el formulario visual interactivo
-        with st.form("login_form"):
-            st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
-            
-            usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
-            contrasena = st.text_input("CONTRASEÑA", type="password")
-            
-            # EL BOTÓN CON ANCHO COMPLETO NATIVO
-            submit_btn = st.form_submit_button("INICIAR SESIÓN", use_container_width=True)
-            
-            st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
-            
-            # 1.3 Lógica de validación
-            if submit_btn:
-                if usuario == "CMPMINA" and contrasena == "1234":
-                    st.session_state["acceso_concedido"] = True
-                    st.rerun() 
-                else:
-                    st.error("Credenciales incorrectas. Acceso denegado.")
+
+    # 1.2 Creamos el formulario visual interactivo
+    with st.form("login_form"):
+        st.markdown("<h1 style='text-align: center; color: #F1C40F; margin-bottom: 0; font-weight: 900;'>INKADRILL</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #ccc; font-size: 11px; margin-bottom: 35px; letter-spacing: 1px;'>VERSION 2.1.0</p>", unsafe_allow_html=True)
         
-        # 1.4 DETENER LA EJECUCIÓN
-        st.stop()
+        usuario = st.text_input("TIPO DE AUTENTICACIÓN (USUARIO)")
+        contrasena = st.text_input("CONTRASEÑA", type="password")
+        
+        # EL BOTÓN CON ANCHO COMPLETO NATIVO
+        submit_btn = st.form_submit_button("INICIAR SESIÓN", use_container_width=True)
+        
+        st.markdown("<p style='text-align: center; color: #888; font-size: 10px; margin-top: 30px;'>INKADRILL 2026 © - Todos los derechos reservados</p>", unsafe_allow_html=True)
+        
+        # 1.3 Lógica de validación
+        if submit_btn:
+            if usuario == "CMPMINA" and contrasena == "1234":
+                st.session_state["acceso_concedido"] = True
+                st.rerun() 
+            else:
+                st.error("Credenciales incorrectas. Acceso denegado.")
+    
+    # 1.4 DETENER LA EJECUCIÓN
+    st.stop()
 
 # --- 2. CONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL Y SECRETOS ---
 # (A partir de aquí hacia abajo va TODO tu código original intacto)
