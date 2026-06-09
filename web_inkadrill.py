@@ -324,7 +324,7 @@ if st.session_state["pestaña_actual"] == "Inicio":
                 width: 380px;
                 height: 380px;
                 border-radius: 50%;
-                background-image: url("https://images.unsplash.com/photo-1578593173274-cf47d3e69123?auto=format&fit=crop&w=800&q=80");
+                background-image: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/Grupo%20inkadrill.png?raw=true");
                 background-size: cover;
                 background-position: center;
                 z-index: 2;
