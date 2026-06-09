@@ -207,18 +207,19 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-    # 2. Fila Inferior Interactiva (Tus botones reales de Streamlit camuflados)
-    col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1.2, 1.5, 1.5, 4])
+# 2. Fila Inferior Interactiva (Tus botones reales de Streamlit camuflados)
+col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1.2, 1.5, 1.5, 4])
+
+with col_nav1:
+    if st.button("INICIO"): st.session_state["pestaña_actual"] = "Inicio"
+with col_nav2:
+    if st.button("TOPOGRAFÍA"): st.session_state["pestaña_actual"] = "Topografía"
+with col_nav3:
+    if st.button("DATOS OPERATIVOS"): st.session_state["pestaña_actual"] = "Datos"
     
-    with col_nav1:
-        if st.button("INICIO"): st.session_state["pestaña_actual"] = "Inicio"
-    with col_nav2:
-        if st.button("TOPOGRAFÍA"): st.session_state["pestaña_actual"] = "Topografía"
-    with col_nav3:
-        if st.button("DATOS OPERATIVOS"): st.session_state["pestaña_actual"] = "Datos"
-        
-    # Espacio extra para separar el menú de la portada de abajo
-    st.markdown("<br>", unsafe_allow_html=True)
+# Espacio extra para separar el menú de la portada de abajo
+st.markdown("<br>", unsafe_allow_html=True)
+
 # --- 4. FUNCIÓN PARA DESCARGAR DATOS DE DRIVE ---
 @st.cache_data(ttl=300)
 def cargar_datos_excel():
