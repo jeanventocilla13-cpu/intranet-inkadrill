@@ -15,7 +15,7 @@ if not os.path.exists(CARPETA_MEMORIA):
 # Asegúrate de tener tu API KEY en los Secrets de Streamlit
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-1.5-flash')
+    modelo = genai.GenerativeModel('gemini-2.5-flash')
 except:
     st.warning("⚠️ No se encontró la API Key de Gemini en los Secrets.")
 
