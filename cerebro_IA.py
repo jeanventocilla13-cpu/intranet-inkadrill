@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import os
 import PyPDF2
+import json
 from io import BytesIO
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2.credentials import Credentials
@@ -19,9 +20,12 @@ try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     modelo = genai.GenerativeModel('gemini-1.5-flash')
     
-    # 2.2 Conectar Google Drive (Usando el token.json que ya tienes en GitHub)
+    # 2.2 Conectar Google Drive (Usando los secretos de Streamlit)
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # Convertimos el texto del secreto en un diccionario que Google pueda leer
+    token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
+    creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
+    
     drive_service = build('drive', 'v3', credentials=creds)
     conexion_exitosa = True
 except Exception as e:
