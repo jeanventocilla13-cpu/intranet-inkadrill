@@ -136,17 +136,28 @@ if conexion_exitosa:
                 archivo_tabla = st.file_uploader("Sube un PDF para extraer sus tablas", type=["pdf"], key="extractor")
                 if st.button("Procesar y Extraer Tablas", type="primary", use_container_width=True):
                     if archivo_tabla:
-                        with st.spinner("La IA está leyendo y estructurando las tablas..."):
+                        with st.spinner("Leyendo tablas y guardando respaldo en Drive..."):
                             try:
+                                # 1. Guardar una copia original del PDF en tu Google Drive automáticamente
+                                media_cuerpo = MediaIoBaseUpload(BytesIO(archivo_tabla.getvalue()), mimetype='application/pdf', resumable=True)
+                                metadata = {'name': archivo_tabla.name, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
+                                
+                                # 2. Extraer el texto para Gemini
                                 texto_pdf = ""
                                 lector_pdf = PyPDF2.PdfReader(archivo_tabla)
                                 for pagina in lector_pdf.pages: texto_pdf += pagina.extract_text() + "\n"
                                 
+                                # 3. Convertir a CSV con IA
                                 instruccion_csv = f"Extrae todas las tablas presentes en este texto y devuélvelas estrictamente en formato CSV (sin saludos, ni formato markdown). Texto:\n{texto_pdf}"
                                 respuesta_csv = modelo.generate_content(instruccion_csv)
                                 datos_limpios = respuesta_csv.text.replace("```csv", "").replace("```", "").strip()
                                 
-                                st.success("¡Tablas extraídas con éxito!")
+                                # Actualizar la lista de la nube en tiempo real
+                                query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                                st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                                
+                                st.success("¡Tablas extraídas y PDF guardado en Drive con éxito!")
                                 st.download_button(label="📥 Descargar CSV para Excel", data=datos_limpios, file_name=f"Tablas_{datetime.date.today()}.csv", mime="text/csv", use_container_width=True)
                             except Exception as e:
                                 st.error(f"Error al procesar: {e}")
