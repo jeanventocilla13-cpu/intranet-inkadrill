@@ -34,28 +34,37 @@ st.markdown("""
         border-radius: 30px !important;
         background-color: #1e1f20 !important;
         border: 1px solid #444746 !important;
-        padding-left: 10px;
     }
     
-    /* Botón flotante estilo Gemini (+) */
+    /* Dar espacio al texto en la barra para que no pise el + */
+    .stChatInputContainer textarea {
+        padding-left: 45px !important;
+        font-size: 16px !important;
+    }
+    
+    /* HACK VISUAL: Botón flotante (+) sobre la barra de chat */
+    div[data-testid="stPopover"] {
+        position: fixed !important;
+        bottom: 30px !important;  /* Ajusta la altura para que quede alineado */
+        left: 20px !important;    /* Ajusta para que quede dentro de la barra */
+        z-index: 999999 !important;
+    }
+    
+    /* Estética del botón (+) transparente */
     div[data-testid="stPopover"] > button {
-        border-radius: 50px !important;
-        background-color: #1e1f20 !important;
-        border: 1px solid #444746 !important;
+        background-color: transparent !important;
+        border: none !important;
         color: #e3e3e3 !important;
-        padding: 10px 20px !important;
-        font-weight: 500 !important;
+        font-size: 26px !important;
+        padding: 0 !important;
+        width: 35px !important;
+        height: 35px !important;
         transition: 0.3s;
     }
     div[data-testid="stPopover"] > button:hover {
-        background-color: #444746 !important;
-        border-color: #a8c7fa !important;
-    }
-    
-    /* Botones principales limpios */
-    .stButton>button {
-        border-radius: 24px !important;
-        font-weight: 500 !important;
+        color: #a8c7fa !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 50% !important;
     }
     
     /* Ocultar elementos innecesarios */
@@ -124,15 +133,15 @@ if conexion_exitosa:
     # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "💬 Chat Asistente Operativo":
-        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 30px;'>Hola, Jean, ¿qué vamos a hacer?</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 30px;'>¿Qué toca ahora, Jean?</h1>", unsafe_allow_html=True)
         
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
             
-        # === EL NUEVO MENÚ FLOTANTE ESTILO GEMINI ===
-        with st.popover("➕ Herramientas y Subidas"):
-            st.markdown("### Selecciona una herramienta:")
-            tab1, tab2 = st.tabs(["📎 Subir a Base de Datos", "📊 Extractor Quirúrgico"])
+        # === EL BOTÓN FLOTANTE MÁGICO ===
+        with st.popover("➕"):
+            st.markdown("#### 🛠️ Herramientas")
+            tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
             
             with tab1:
                 archivo_subido = st.file_uploader("Arrastra PDFs, TXT, o Imágenes", type=["pdf", "txt", "png", "jpg", "jpeg"], key="uploader_normal")
@@ -143,8 +152,8 @@ if conexion_exitosa:
                             st.rerun()
 
             with tab2:
-                archivo_tabla = st.file_uploader("Sube un PDF de INGEMMET", type=["pdf"], key="extractor")
-                if st.button("Extraer Tablas", type="primary", use_container_width=True):
+                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"], key="extractor")
+                if st.button("Procesar Tabla", type="primary", use_container_width=True):
                     if archivo_tabla:
                         with st.spinner("Procesando..."):
                             try:
@@ -178,13 +187,13 @@ if conexion_exitosa:
                             except Exception as e:
                                 st.error(f"Error: {e}")
 
-        st.markdown("---")
-        
+        # LÓGICA DEL CHAT
         if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
         for mensaje in st.session_state.mensajes_ia:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        pregunta = st.chat_input("Pregunta a la IA sobre la mina, documentos o imágenes...")
+        # INPUT DEL CHAT (Con el texto actualizado para que coincida con tu imagen)
+        pregunta = st.chat_input("Pregunta a Gemini")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
             st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
