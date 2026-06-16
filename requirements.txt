@@ -10,3 +10,4 @@ PyPDF2
 Pillow
 folium
 streamlit-folium
+pyproj
