@@ -65,30 +65,6 @@ st.markdown("""
         border-right: 1px solid rgba(255, 255, 255, 0.08) !important; 
     }
 
-    /* 3. ALINEACIÓN PERFECTA (NAVEGACIÓN) */
-    [data-testid="stSidebar"] button[kind="secondary"] {
-        padding-left: 10px !important; 
-        background-color: transparent !important;
-        border: none !important;
-        border-radius: 8px !important;
-        display: flex !important;
-        justify-content: flex-start !important;
-    }
-    [data-testid="stSidebar"] button[kind="secondary"] div {
-        display: flex !important;
-        justify-content: flex-start !important;
-        width: 100% !important;
-    }
-    [data-testid="stSidebar"] button[kind="secondary"] p {
-        text-align: left !important;
-        color: #c4c7c5 !important;
-        margin: 0 !important;
-        font-size: 14px !important;
-    }
-    [data-testid="stSidebar"] button[kind="secondary"]:hover {
-        background-color: rgba(255, 255, 255, 0.08) !important;
-    }
-
     /* Botón Nueva Conversación */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
@@ -96,10 +72,12 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #e3e3e3 !important;
         font-weight: 500 !important;
+        padding: 8px 15px !important;
     }
     
     /* ---------------------------------------------------
-       4. MAGIA: RECIENTES CON CUADRO AMARILLO PERFECTO
+       3. MAGIA UNIVERSAL: MENÚS CON CUADRO AMARILLO PERFECTO
+       (Aplica tanto para Navegación como para Archivos)
        --------------------------------------------------- */
     div[role="radiogroup"] > label {
         background-color: transparent !important;
@@ -113,10 +91,10 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.05) !important;
     }
     div[role="radiogroup"] > label > div:first-of-type {
-        display: none !important; /* Oculta el círculo */
+        display: none !important; /* Oculta el círculo nativo */
     }
     
-    /* Regla avanzada :has() para pintar de amarillo el seleccionado */
+    /* Efecto Amarillo para elemento activo */
     div[role="radiogroup"] > label:has(input:checked) {
         background-color: rgba(255, 213, 79, 0.15) !important;
         border-left: 3px solid #ffd54f !important;
@@ -128,26 +106,27 @@ st.markdown("""
     
     div[role="radiogroup"] p {
         color: #c4c7c5 !important;
-        font-size: 14px !important;
+        font-size: 14.5px !important;
         margin: 0 !important;
         text-align: left !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
     /* ---------------------------------------------------
-       5. FIX: CHAT INPUT Y BOTÓN FLOTANTE ALINEADOS
+       4. FIX DEFINITIVO: CHAT INPUT 100% TRANSPARENTE
        --------------------------------------------------- */
-    /* Desaparecemos el contenedor base de Streamlit */
-    [data-testid="stBottom"] > div {
-        background-color: transparent !important;
-        padding-bottom: 20px !important;
-    }
+    [data-testid="stBottom"] { background-color: transparent !important; }
+    [data-testid="stBottom"] > div { background-color: transparent !important; }
+    .stChatFloatingInputContainer { background-color: transparent !important; } /* Elimina la franja negra base */
 
     .stChatInputContainer {
         border-radius: 30px !important;
-        background-color: rgba(25, 26, 27, 0.85) !important; /* Cristal oscuro */
+        background-color: rgba(25, 26, 27, 0.85) !important; 
         backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        width: calc(100% - 70px) !important; /* Dejamos hueco para el botón */
+        width: calc(100% - 70px) !important; 
         margin-left: 70px !important;
     }
     .stChatInputContainer textarea {
@@ -155,7 +134,7 @@ st.markdown("""
         color: #e3e3e3 !important;
     }
     
-    /* Botón + flotante corregido */
+    /* Botón + flotante */
     div[data-testid="stPopover"] {
         position: fixed !important;
         bottom: 28px !important;
@@ -200,7 +179,7 @@ try:
     conexion_exitosa = True
 except Exception as e:
     conexion_exitosa = False
-    st.error(f"Error de conexión con Drive: {e}. (Posible token expirado).")
+    st.error(f"Error de conexión con Drive: {e}")
 
 if "archivos_nube" not in st.session_state and conexion_exitosa:
     try:
@@ -218,6 +197,7 @@ with st.sidebar:
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
         st.rerun()
         
+    # --- SECCIÓN NAVEGACIÓN (AHORA CON FORMATO RADIO PARA CUADRO AMARILLO) ---
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
     opciones_nav = {
@@ -228,14 +208,24 @@ with st.sidebar:
         "📈": "Dashboard Analíticas"
     }
     
-    # Eliminado el formato "**" que rompía la alineación
-    for icono, nombre in opciones_nav.items():
-        if st.button(f"{icono} {nombre}", key=f"nav_{nombre}", type="secondary", use_container_width=True):
-            st.session_state.pestaña_activa = nombre
-            st.rerun()
+    nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
+    
+    indice_nav_activo = 0
+    for i, (_, nombre) in enumerate(opciones_nav.items()):
+        if nombre == st.session_state.pestaña_activa:
+            indice_nav_activo = i
+            break
+            
+    seleccion_nav = st.radio("Navegación", options=nombres_nav_formateados, index=indice_nav_activo, label_visibility="collapsed", key="radio_nav")
+    nav_real = seleccion_nav.split(" ", 1)[1] # Extrae el nombre sin el emoji
+    
+    if nav_real != st.session_state.pestaña_activa:
+        st.session_state.pestaña_activa = nav_real
+        st.rerun()
     
     pestaña = st.session_state.pestaña_activa
     
+    # --- SECCIÓN ARCHIVOS (CON LOGOS DINÁMICOS) ---
     st.markdown("<br>", unsafe_allow_html=True) 
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
     
@@ -251,16 +241,16 @@ with st.sidebar:
     for f in archivos_filtrados:
         opciones_archivos.append(f['name'])
         
-    nombres_formateados = [f"{obtener_icono(arch)} {arch}" for arch in opciones_archivos]
+    nombres_archivos_formateados = [f"{obtener_icono(arch)} {arch}" for arch in opciones_archivos]
     
-    indice_activo = 0
+    indice_archivo_activo = 0
     for i, arch in enumerate(opciones_archivos):
         if arch == st.session_state.archivo_activo:
-            indice_activo = i
+            indice_archivo_activo = i
             break
             
-    seleccion_radio = st.radio("Recientes", options=nombres_formateados, index=indice_activo, label_visibility="collapsed")
-    archivo_real = seleccion_radio.split(" ", 1)[1]
+    seleccion_archivo = st.radio("Recientes", options=nombres_archivos_formateados, index=indice_archivo_activo, label_visibility="collapsed", key="radio_archivos")
+    archivo_real = seleccion_archivo.split(" ", 1)[1]
     
     if archivo_real != st.session_state.archivo_activo:
         st.session_state.archivo_activo = archivo_real
@@ -292,60 +282,4 @@ if conexion_exitosa:
                 if st.button("Guardar en Nube", type="primary", use_container_width=True):
                     if archivo_subido:
                         st.success("Guardado correctamente.")
-            with tab2:
-                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
-                if st.button("Procesar Tabla", type="primary", use_container_width=True):
-                    if archivo_tabla:
-                        st.success("¡Datos extraídos limpiamente!")
-
-        if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
-        for mensaje in st.session_state.mensajes_ia:
-            with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
-
-        # CHAT CON LECTURA DE ARCHIVOS DE DRIVE
-        pregunta = st.chat_input("Pregunta a Gemini")
-        if pregunta:
-            with st.chat_message("user"): st.markdown(pregunta)
-            st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
-            
-            with st.chat_message("assistant"):
-                caja_respuesta = st.empty()
-                caja_respuesta.markdown("Extrayendo datos de la nube y procesando... ⏳")
-                
-                try:
-                    contexto_documento = ""
-                    if st.session_state.archivo_activo != "Base de datos general (Simulación)":
-                        try:
-                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
-                            if st.session_state.archivo_activo.endswith('.pdf'):
-                                pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
-                                lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                texto_extraido = ""
-                                for pagina in lector_pdf.pages:
-                                    texto_extraido += pagina.extract_text() + "\n"
-                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
-                        except Exception as e:
-                            pass
-
-                    instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
-                    respuesta_ia = modelo.generate_content(instruccion_final)
-                    texto_final = respuesta_ia.text
-                    
-                    caja_respuesta.markdown(texto_final)
-                    st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": texto_final})
-                    
-                except Exception as e:
-                    caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
-
-    # ====================================================================
-    # OTRAS PESTAÑAS SIMPLIFICADAS EN ESTE BLOQUE 
-    # ====================================================================
-    elif pestaña == "Cálculos Geomecánicos":
-        st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
-        st.info("Herramientas operativas disponibles.")
-    elif pestaña == "Visor Topográfico":
-        st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
-    elif pestaña == "Visualizador 3D Sondajes":
-        st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
-    elif pestaña == "Dashboard Analíticas":
-        st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
+            with tab
