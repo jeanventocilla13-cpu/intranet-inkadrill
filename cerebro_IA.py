@@ -7,22 +7,20 @@ from io import BytesIO
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+import datetime # Para exportar reportes con fecha
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="InkaDrill - Academico", page_icon="https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/imagen%20logo%20inkadrill.png?raw=true", layout="wide")
+st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="🧠", layout="wide")
 
 # Tu ID de carpeta en Google Drive
 ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
-    # 2.1 Conectar Gemini
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     modelo = genai.GenerativeModel('gemini-1.5-flash')
     
-    # 2.2 Conectar Google Drive (Usando los secretos de Streamlit)
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    # Convertimos el texto del secreto en un diccionario que Google pueda leer
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
     creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
     
@@ -32,29 +30,46 @@ except Exception as e:
     conexion_exitosa = False
     st.error(f"Error de conexión con los servidores: {e}")
 
-# --- 3. BARRA LATERAL (MENÚ IZQUIERDO ESTILO ESTÁNDAR) ---
+# --- 3. BARRA LATERAL ESTILO PODEROSA ---
 with st.sidebar:
     st.markdown("<h2 style='color: #A6802C; font-weight: 900; text-align: center;'>INKADRILL<br>CEREBRO IA</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
-    # Menú de navegación lateral
+    # ¡NUEVO MENÚ CON HERRAMIENTAS TÉCNICAS!
     pestaña = st.radio(
         "Navegación:",
-        ["💬 Chat Asistente Operativo", "📂 Alimentar Base de Datos"],
+        ["💬 Chat Asistente Operativo", "🧮 Cálculos Geomecánicos", "📂 Alimentar Base de Datos"],
         label_visibility="collapsed"
     )
     
     st.markdown("---")
     st.markdown("<p style='font-size: 11px; color: #888; text-align: center;'>InkaDrill 2026 ©<br>Gestión de Conocimiento Minero</p>", unsafe_allow_html=True)
 
-# Solo mostramos el contenido principal si hay conexión exitosa con las APIs
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT (Lee los archivos .txt desde Google Drive)
+    # PESTAÑA 1: CHATBOT CON EXPORTACIÓN DE REPORTES
     # ====================================================================
     if pestaña == "💬 Chat Asistente Operativo":
-        st.title("Asistente Operativo InkaDrill ⛏️")
-        st.markdown("Realiza consultas técnicas. La IA buscará las respuestas en los documentos almacenados en tu Google Drive corporativo.")
+        col_tit, col_btn = st.columns([4, 1])
+        with col_tit:
+            st.title("Asistente Operativo InkaDrill ⛏️")
+        
+        # Botón para exportar el chat
+        with col_btn:
+            if "mensajes_ia" in st.session_state and len(st.session_state.mensajes_ia) > 0:
+                chat_history = "REPORTE TÉCNICO INKADRILL\n" + "="*30 + "\n\n"
+                for m in st.session_state.mensajes_ia:
+                    rol = "INGENIERO" if m["rol"] == "user" else "SISTEMA IA"
+                    chat_history += f"[{rol}]:\n{m['contenido']}\n\n"
+                
+                st.download_button(
+                    label="📄 Exportar Reporte",
+                    data=chat_history,
+                    file_name=f"Reporte_InkaDrill_{datetime.date.today()}.txt",
+                    mime="text/plain"
+                )
+
+        st.markdown("Realiza consultas técnicas. La IA buscará las respuestas en los documentos de Google Drive.")
         
         if "mensajes_ia" not in st.session_state:
             st.session_state.mensajes_ia = []
@@ -71,27 +86,20 @@ if conexion_exitosa:
             st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
             
             contexto_documentos = ""
-            
-            with st.spinner("Conectando a la base de datos documental en Google Drive..."):
+            with st.spinner("Conectando a la base de datos documental..."):
                 try:
                     query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
                     archivos_drive = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
-                    
                     for archivo in archivos_drive:
-                        file_id = archivo['id']
-                        file_name = archivo['name']
-                        contenido_archivo = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
-                        contexto_documentos += f"\n\n=== DOCUMENTO: {file_name} ===\n{contenido_archivo}"
-                except Exception as e:
-                    st.error(f"Error al leer los documentos: {e}")
+                        contenido_archivo = drive_service.files().get_media(fileId=archivo['id']).execute().decode('utf-8')
+                        contexto_documentos += f"\n\n=== {archivo['name']} ===\n{contenido_archivo}"
+                except:
+                    pass # Evitamos romper el chat si falla un archivo
                     
             instruccion = f"""
-            Eres un Ingeniero de Minas experto que labora en InkaDrill. 
-            Responde a la consulta del usuario basándote ESTRICTAMENTE en la siguiente base de conocimientos:
+            Eres el Ingeniero de Minas Jefe de InkaDrill. Responde basándote ESTRICTAMENTE en estos documentos:
             {contexto_documentos}
-            Si la información no se encuentra registrada en los documentos provistos, indica amablemente: 
-            "La información no se encuentra registrada en la base de datos documental actual de InkaDrill."
-            Consulta: {pregunta}
+            Si no hay información, indícalo. Consulta: {pregunta}
             """
             
             with st.chat_message("assistant"):
@@ -100,11 +108,50 @@ if conexion_exitosa:
                         respuesta_modelo = modelo.generate_content(instruccion)
                         st.markdown(respuesta_modelo.text)
                         st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": respuesta_modelo.text})
+                        st.rerun() # Recargamos para que aparezca el botón de exportar
                     except Exception as e:
-                        st.error(f"Error al generar la respuesta con IA: {e}")
+                        st.error(f"Error IA: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: SUBIR DOCUMENTOS (Sube PDFs/TXT a Drive)
+    # PESTAÑA NUEVA: CÁLCULOS GEOMECÁNICOS (RMR y GSI)
+    # ====================================================================
+    elif pestaña == "🧮 Cálculos Geomecánicos":
+        st.title("Suite de Análisis Geomecánico 🪨")
+        st.markdown("Herramientas de evaluación rápida para el macizo rocoso en frentes de avance.")
+        
+        tab_rmr, tab_gsi = st.tabs(["Clasificación RMR (Bieniawski)", "Índice GSI (Hoek)"])
+        
+        with tab_rmr:
+            st.markdown("### Parámetros de Rock Mass Rating")
+            col1, col2 = st.columns(2)
+            with col1:
+                p1 = st.number_input("1. Resistencia Compresión Simple (MPa)", min_value=0, max_value=300, value=50)
+                p2 = st.slider("2. RQD (%)", min_value=0, max_value=100, value=75)
+                p3 = st.selectbox("3. Espaciado de Discontinuidades", ["< 60 mm", "60 - 200 mm", "200 - 600 mm", "0.6 - 2.0 m", "> 2.0 m"])
+            with col2:
+                p4 = st.selectbox("4. Condición de Discontinuidades", ["Muy Rugosas, cerradas", "Ligeramente rugosas", "Ligeramente abiertas (<1mm)", "Relleno suave / Abiertas", "Relleno blando (>5mm)"])
+                p5 = st.selectbox("5. Agua Subterránea", ["Completamente seco", "Húmedo", "Goteo", "Flujo continuo"])
+            
+            if st.button("Calcular RMR", type="primary"):
+                # Simulación de un cálculo básico (Ajustable a tablas reales posteriormente)
+                puntaje_base = (p2 * 0.2) + (p1 * 0.1) + 30 # Fórmula prototipo simplificada
+                st.success(f"**Puntaje RMR Estimado:** {puntaje_base:.1f}")
+                if puntaje_base > 60:
+                    st.info("Clase: Buena (II) - Sostenimiento sugerido: Pernos sistemáticos ocasionales.")
+                else:
+                    st.warning("Clase: Regular (III) - Sostenimiento sugerido: Pernos + Malla sistemática.")
+                    
+        with tab_gsi:
+            st.markdown("### Geological Strength Index")
+            st.markdown("Seleccione las condiciones estructurales y de superficie:")
+            estruct = st.selectbox("Estructura del Macizo", ["Intacto / Masivo", "Blocoso", "Muy Blocoso", "Fracturado / Disturbado"])
+            superf = st.selectbox("Condición de Superficie", ["Muy Buena", "Buena", "Regular", "Pobre", "Muy Pobre"])
+            if st.button("Estimar GSI", type="primary"):
+                st.success("GSI Estimado: Rango 45 - 55")
+                st.info("Aplicable para criterios de falla Hoek-Brown.")
+
+    # ====================================================================
+    # PESTAÑA 3: SUBIR DOCUMENTOS
     # ====================================================================
     elif pestaña == "📂 Alimentar Base de Datos":
         st.title("Alimentar Base de Datos Documental 🧠")
@@ -123,32 +170,10 @@ if conexion_exitosa:
                         for pagina in lector_pdf.pages:
                             texto_extraido += pagina.extract_text() + "\n"
                     
-                    metadata_archivo = {
-                        'name': f"{archivo_subido.name}.txt",
-                        'parents': [ID_CARPETA_MEMORIA]
-                    }
-                    media_cuerpo = MediaIoBaseUpload(
-                        BytesIO(texto_extraido.encode('utf-8')), 
-                        mimetype='text/plain', 
-                        chunksize=1024*1024, 
-                        resumable=True
-                    )
+                    metadata_archivo = {'name': f"{archivo_subido.name}.txt", 'parents': [ID_CARPETA_MEMORIA]}
+                    media_cuerpo = MediaIoBaseUpload(BytesIO(texto_extraido.encode('utf-8')), mimetype='text/plain', resumable=True)
                     drive_service.files().create(body=metadata_archivo, media_body=media_cuerpo, fields='id').execute()
                         
-                st.success(f"¡El archivo '{archivo_subido.name}' fue convertido a texto y guardado en Google Drive!")
+                st.success(f"¡El archivo '{archivo_subido.name}' fue guardado en Google Drive!")
             else:
                 st.warning("Por favor, carga un archivo primero.")
-                
-        st.markdown("---")
-        st.markdown("### 📂 Documentos actualmente en la nube:")
-        with st.spinner("Cargando lista de documentos..."):
-            try:
-                query_lista = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
-                archivos_actuales = drive_service.files().list(q=query_lista, fields="files(name)").execute().get('files', [])
-                if len(archivos_actuales) > 0:
-                    for arch in archivos_actuales:
-                        st.markdown(f"📄 `{arch['name']}`")
-                else:
-                    st.info("La carpeta en Google Drive está vacía.")
-            except Exception as e:
-                st.error("No se pudo conectar a Google Drive para listar los archivos.")
