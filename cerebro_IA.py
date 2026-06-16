@@ -133,24 +133,27 @@ st.markdown("""
     }
     
     /* ---------------------------------------------------
-       5. FIX DEFINITIVO: CHAT INPUT Y BOTÓN FLOTANTE
+       5. DESTRUCCIÓN TOTAL DE LA FRANJA NEGRA INFERIOR
        --------------------------------------------------- */
-    /* Destruimos la franja negra de Streamlit en la base */
-    [data-testid="stBottom"], [data-testid="stBottom"] > div { 
-        background-color: transparent !important; 
+    /* Apuntamos a todos los contenedores madre posibles de Streamlit en la base */
+    .stAppBottom, [data-testid="stBottom"], [data-testid="stBottom"] > div {
+        background-color: transparent !important;
+        background: transparent !important;
+        border: none !important;
     }
-    .stChatFloatingInputContainer { 
-        background-color: transparent !important; 
+    .stChatFloatingInputContainer {
+        background-color: transparent !important;
     }
 
-    /* La cápsula de texto */
+    /* La cápsula del chat */
     .stChatInputContainer {
         border-radius: 30px !important;
         background-color: rgba(25, 26, 27, 0.85) !important; 
         backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        width: calc(100% - 70px) !important; 
-        margin-left: 70px !important;
+        width: calc(100% - 75px) !important; 
+        margin-left: 75px !important;
+        margin-bottom: 15px !important; /* Despegamos el chat del piso */
     }
     .stChatInputContainer textarea {
         padding-left: 20px !important;
@@ -160,13 +163,13 @@ st.markdown("""
     /* El botón + circular y flotante */
     div[data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 27px !important; /* Ajustado para alinearse perfecto con la cápsula */
-        left: 20px !important;
+        bottom: 40px !important; /* Alineado con el margin-bottom del chat */
+        left: 25px !important;
         z-index: 999999 !important;
     }
     div[data-testid="stPopover"] > button {
-        width: 44px !important;
-        height: 44px !important;
+        width: 46px !important;
+        height: 46px !important;
         border-radius: 50% !important;
         padding: 0 !important;
         display: flex !important;
@@ -176,19 +179,20 @@ st.markdown("""
         backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         color: #e3e3e3 !important;
-        font-size: 24px !important;
-        line-height: 0 !important;
+        font-size: 20px !important;
+        transition: 0.3s;
     }
-    
-    /* Efecto al pasar el mouse por el + */
     div[data-testid="stPopover"] > button:hover {
         background-color: rgba(255, 255, 255, 0.15) !important;
-        color: #ffd54f !important; /* Un destello amarillo para hacer juego */
+        color: #ffd54f !important;
     }
     
-    /* HACK CLAVE: Ocultar la flechita (chevron) que Streamlit agrega a la fuerza */
-    div[data-testid="stPopover"] > button svg {
+    /* DESTRUIR LA FLECHITA NATIVA DEL BOTÓN POPOVER */
+    div[data-testid="stPopover"] svg, 
+    div[data-testid="stPopover"] span:nth-child(2) {
         display: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
     
     #MainMenu {visibility: hidden;}
@@ -257,114 +261,4 @@ with st.sidebar:
     pestaña = st.session_state.pestaña_activa
     
     st.markdown("<br>", unsafe_allow_html=True) 
-    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
-    
-    opciones_archivos = ["Base de datos general (Simulación)"]
-    archivos_filtrados = []
-    
-    if "archivos_nube" in st.session_state:
-        if pestaña in ["Dashboard Analíticas", "Visualizador 3D Sondajes", "Visor Topográfico"]:
-            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
-        elif pestaña in ["Chat Asistente Operativo"]:
-            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
-    
-    for f in archivos_filtrados:
-        opciones_archivos.append(f['name'])
-        
-    nombres_archivos_formateados = [f"{obtener_icono(arch)} {arch}" for arch in opciones_archivos]
-    
-    indice_archivo_activo = 0
-    for i, arch in enumerate(opciones_archivos):
-        if arch == st.session_state.archivo_activo:
-            indice_archivo_activo = i
-            break
-            
-    seleccion_archivo = st.radio("Recientes", options=nombres_archivos_formateados, index=indice_archivo_activo, label_visibility="collapsed", key="radio_archivos")
-    archivo_real = seleccion_archivo.split(" ", 1)[1]
-    
-    if archivo_real != st.session_state.archivo_activo:
-        st.session_state.archivo_activo = archivo_real
-        st.rerun()
-    
-    st.markdown("---")
-    st.markdown("""
-        <div style='display:flex; align-items:center; padding-left:10px;'>
-            <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
-            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Jean Kennedy</p><p style='margin:0; font-size:12px; color:#aaa;'>Ingeniería Pro</p></div>
-        </div>
-    """, unsafe_allow_html=True)
-
-if conexion_exitosa:
-    # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO
-    # ====================================================================
-    if pestaña == "Chat Asistente Operativo":
-        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
-        
-        if st.session_state.archivo_activo != "Base de datos general (Simulación)":
-            st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
-            
-        with st.popover("➕"):
-            st.markdown("#### 🛠️ Herramientas")
-            tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
-            with tab1:
-                archivo_subido = st.file_uploader("Arrastra PDFs", type=["pdf", "txt", "png", "jpg", "jpeg"])
-                if st.button("Guardar en Nube", type="primary", use_container_width=True):
-                    if archivo_subido:
-                        st.success("Guardado correctamente.")
-            with tab2:
-                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
-                if st.button("Procesar Tabla", type="primary", use_container_width=True):
-                    if archivo_tabla:
-                        st.success("¡Datos extraídos limpiamente!")
-
-        if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
-        for mensaje in st.session_state.mensajes_ia:
-            with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
-
-        pregunta = st.chat_input("Pregunta a Gemini")
-        if pregunta:
-            with st.chat_message("user"): st.markdown(pregunta)
-            st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
-            
-            with st.chat_message("assistant"):
-                caja_respuesta = st.empty()
-                caja_respuesta.markdown("Extrayendo datos de la nube y procesando... ⏳")
-                
-                try:
-                    contexto_documento = ""
-                    if st.session_state.archivo_activo != "Base de datos general (Simulación)":
-                        try:
-                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
-                            if st.session_state.archivo_activo.endswith('.pdf'):
-                                pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
-                                lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                texto_extraido = ""
-                                for pagina in lector_pdf.pages:
-                                    texto_extraido += pagina.extract_text() + "\n"
-                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
-                        except Exception as e:
-                            pass
-
-                    instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
-                    respuesta_ia = modelo.generate_content(instruccion_final)
-                    texto_final = respuesta_ia.text
-                    
-                    caja_respuesta.markdown(texto_final)
-                    st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": texto_final})
-                    
-                except Exception as e:
-                    caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
-
-    # ====================================================================
-    # OTRAS PESTAÑAS 
-    # ====================================================================
-    elif pestaña == "Cálculos Geomecánicos":
-        st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
-        st.info("Herramientas operativas disponibles.")
-    elif pestaña == "Visor Topográfico":
-        st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
-    elif pestaña == "Visualizador 3D Sondajes":
-        st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
-    elif pestaña == "Dashboard Analíticas":
-        st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#888;
