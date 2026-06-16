@@ -168,12 +168,12 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 # --- 3. BARRA LATERAL ESTILO GEMINI ---
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
-    
-    # Botón de Nueva Conversación
-    if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
-        st.session_state.mensajes_ia = [] 
-        st.session_state.pestaña_activa = "💬 Chat Asistente Operativo"
-        st.rerun()
+   
+    # Bucle limpio sin el rombo azul para mantener la alineación perfecta
+    for opt in opciones_nav:
+        if st.button(opt, key=f"nav_{opt}", type="secondary", use_container_width=True):
+            st.session_state.pestaña_activa = opt
+            st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
