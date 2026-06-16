@@ -29,42 +29,44 @@ st.markdown("""
         font-family: 'Google Sans', sans-serif !important;
     }
     
-    /* Input del chat estilo píldora Gemini */
+    /* 1. Modificamos la barra de chat para dejar un hueco a la izquierda */
     .stChatInputContainer {
         border-radius: 30px !important;
         background-color: #1e1f20 !important;
         border: 1px solid #444746 !important;
+        width: calc(100% - 60px) !important; /* Le quitamos 60px de ancho */
+        margin-left: 60px !important;        /* La empujamos 60px a la derecha */
     }
     
-    /* Dar espacio al texto en la barra para que no pise el + */
-    .stChatInputContainer textarea {
-        padding-left: 45px !important;
-        font-size: 16px !important;
-    }
-    
-    /* HACK VISUAL: Botón flotante (+) sobre la barra de chat */
+    /* 2. Fijamos el contenedor del botón exactamente en ese hueco */
     div[data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 30px !important;  /* Ajusta la altura para que quede alineado */
-        left: 20px !important;    /* Ajusta para que quede dentro de la barra */
+        bottom: 27px !important;  /* Ajusta verticalmente con la barra */
         z-index: 999999 !important;
+        width: auto !important;
     }
     
-    /* Estética del botón (+) transparente */
+    /* 3. Transformamos el botón en un Círculo Perfecto */
     div[data-testid="stPopover"] > button {
-        background-color: transparent !important;
-        border: none !important;
-        color: #e3e3e3 !important;
-        font-size: 26px !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
         padding: 0 !important;
-        width: 35px !important;
-        height: 35px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #1e1f20 !important;
+        border: 1px solid #444746 !important;
+        color: #e3e3e3 !important;
+        font-size: 24px !important;
+        line-height: 0 !important;
         transition: 0.3s;
     }
+    
     div[data-testid="stPopover"] > button:hover {
+        background-color: #444746 !important;
+        border-color: #a8c7fa !important;
         color: #a8c7fa !important;
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        border-radius: 50% !important;
     }
     
     /* Ocultar elementos innecesarios */
@@ -133,12 +135,12 @@ if conexion_exitosa:
     # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "💬 Chat Asistente Operativo":
-        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 30px;'>¿Qué toca ahora, Jean?</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 30px;'>Hola, Jean, ¿qué vamos a hacer?</h1>", unsafe_allow_html=True)
         
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
             
-        # === EL BOTÓN FLOTANTE MÁGICO ===
+        # === EL BOTÓN CIRCULAR MAGICO (➕) ===
         with st.popover("➕"):
             st.markdown("#### 🛠️ Herramientas")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
@@ -192,7 +194,7 @@ if conexion_exitosa:
         for mensaje in st.session_state.mensajes_ia:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        # INPUT DEL CHAT (Con el texto actualizado para que coincida con tu imagen)
+        # INPUT DEL CHAT 
         pregunta = st.chat_input("Pregunta a Gemini")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
