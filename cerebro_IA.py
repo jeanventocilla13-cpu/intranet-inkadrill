@@ -322,16 +322,39 @@ if conexion_exitosa:
             # 2. Llamamos a Gemini y mostramos la respuesta
             with st.chat_message("assistant"):
                 caja_respuesta = st.empty()
-                caja_respuesta.markdown("Procesando... ⏳")
+                caja_respuesta.markdown("Extrayendo datos de la nube y procesando... ⏳")
                 
                 try:
-                    # Construimos el contexto si hay un archivo seleccionado
-                    contexto = ""
+                    contexto_documento = ""
+                    # Si hay un archivo seleccionado que NO sea la simulación
                     if st.session_state.archivo_activo != "Base de datos general (Simulación)":
-                        contexto = f"[El usuario está enfocando la consulta en el archivo: {st.session_state.archivo_activo}].\n\n"
+                        try:
+                            # 1. Buscar el ID del archivo en nuestra memoria de Drive
+                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
+                            
+                            # 2. Si es un PDF, lo descargamos y leemos sus páginas
+                            if st.session_state.archivo_activo.endswith('.pdf'):
+                                pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
+                                lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
+                                texto_extraido = ""
+                                for pagina in lector_pdf.pages:
+                                    texto_extraido += pagina.extract_text() + "\n"
+                                
+                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
+                            
+                            # 3. Si es un CSV (como tus tablas topográficas), también lo leemos
+                            elif st.session_state.archivo_activo.endswith('.csv'):
+                                csv_bytes = drive_service.files().get_media(fileId=file_id).execute()
+                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN LA SIGUIENTE TABLA DE DATOS ({st.session_state.archivo_activo}):\n\n{csv_bytes.decode('utf-8')}\n\n"
+                                
+                        except Exception as e:
+                            st.warning(f"No pude leer el interior del archivo. Responderé de forma general. (Detalle: {e})")
+
+                    # Construimos la orden final para Gemini
+                    instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
                     
                     # Llamada real a la inteligencia artificial
-                    respuesta_ia = modelo.generate_content(contexto + pregunta)
+                    respuesta_ia = modelo.generate_content(instruccion_final)
                     texto_final = respuesta_ia.text
                     
                     # Actualizamos la interfaz y guardamos en memoria
