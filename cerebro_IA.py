@@ -26,7 +26,7 @@ if "pestaña_activa" not in st.session_state:
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
-# --- INYECCIÓN DE ESTÉTICA GEMINI Y FONDO (CSS Customizado) ---
+# --- INYECCIÓN DE ESTÉTICA GEMINI Y FONDO INMERSIVO (CSS) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
@@ -36,25 +36,32 @@ st.markdown("""
     }
     
     /* ---------------------------------------------------
-       FONDO DE PANTALLA PERSONALIZADO INKADRILL
+       1. FONDO DE PANTALLA COMPLETO CON CAPA SEMI-TRANSPARENTE
        --------------------------------------------------- */
     .stApp {
-        background-image: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") !important;
+        /* Capa oscura (65%) fusionada con tu imagen de fondo */
+        background: linear-gradient(rgba(19, 19, 20, 0.65), rgba(19, 19, 20, 0.65)), 
+                    url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") no-repeat center center fixed !important;
         background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
     }
     
-    /* Aseguramos que la barra lateral mantenga su color oscuro sólido para que el texto sea legible */
-    [data-testid="stSidebar"] {
-        background-color: #131314 !important;
+    /* Ocultar la barra superior blanca/gris de Streamlit */
+    [data-testid="stHeader"] {
+        background-color: transparent !important;
     }
 
     /* ---------------------------------------------------
-       HACKS DE LA BARRA LATERAL (ALINEACIÓN ESTRICTA)
+       2. EFECTO CRISTAL (GLASSMORPHISM) EN LA BARRA LATERAL
        --------------------------------------------------- */
-       
+    [data-testid="stSidebar"] {
+        background-color: rgba(19, 19, 20, 0.3) !important; /* Cristal oscuro al 30% */
+        backdrop-filter: blur(12px) !important; /* Efecto borroso detrás de la barra */
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important; /* Línea sutil separadora */
+    }
+
+    /* ---------------------------------------------------
+       3. HACKS DE LA BARRA LATERAL (ALINEACIÓN ESTRICTA)
+       --------------------------------------------------- */
     [data-testid="stSidebar"] .stButton > button {
         display: flex !important;
         justify-content: flex-start !important;
@@ -74,21 +81,21 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* Botón "Nueva Conversación" (Tipo Primary) */
+    /* Botón "Nueva Conversación" */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
-        background-color: #1e1f20 !important;
-        border: 1px solid #444746 !important;
+        background-color: rgba(30, 31, 32, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #e3e3e3 !important;
         padding: 8px 15px !important;
         font-weight: 500 !important;
         transition: 0.3s !important;
     }
     [data-testid="stSidebar"] button[kind="primary"]:hover {
-        background-color: #333639 !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
     }
     
-    /* Enlaces Sueltos del Historial (Tipo Secondary) */
+    /* Enlaces Sueltos del Historial */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: transparent !important;
         border: none !important;
@@ -112,18 +119,20 @@ st.markdown("""
     }
     
     /* ---------------------------------------------------
-       HACKS DEL CHAT Y BOTÓN FLOTANTE
+       4. HACKS DEL CHAT Y BOTÓN FLOTANTE
        --------------------------------------------------- */
     .stChatInputContainer {
         border-radius: 30px !important;
-        background-color: #1e1f20 !important;
-        border: 1px solid #444746 !important;
+        background-color: rgba(30, 31, 32, 0.8) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         width: calc(100% - 60px) !important;
         margin-left: 60px !important;
     }
     .stChatInputContainer textarea {
         padding-left: 45px !important;
         font-size: 16px !important;
+        color: #e3e3e3 !important;
     }
     div[data-testid="stPopover"] {
         position: fixed !important;
@@ -139,16 +148,16 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background-color: #1e1f20 !important;
-        border: 1px solid #444746 !important;
+        background-color: rgba(30, 31, 32, 0.8) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #e3e3e3 !important;
         font-size: 24px !important;
         line-height: 0 !important;
         transition: 0.3s;
     }
     div[data-testid="stPopover"] > button:hover {
-        background-color: #444746 !important;
-        border-color: #a8c7fa !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
         color: #a8c7fa !important;
     }
     #MainMenu {visibility: hidden;}
@@ -232,7 +241,7 @@ with st.sidebar:
     st.markdown("""
         <div style='display:flex; align-items:center; padding-left:10px;'>
             <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
-            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Jean Kennedy</p><p style='margin:0; font-size:12px; color:#888;'>Ingeniería Pro</p></div>
+            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Jean Kennedy</p><p style='margin:0; font-size:12px; color:#aaa;'>Ingeniería Pro</p></div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -309,7 +318,7 @@ if conexion_exitosa:
     # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
     # ====================================================================
     elif pestaña == "🧮 Cálculos Geomecánicos":
-        st.title("Suite de Análisis Geomecánico 🪨")
+        st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
         tab_rmr, tab_gsi = st.tabs(["Clasificación RMR", "Índice GSI"])
         with tab_rmr:
             col1, col2 = st.columns(2)
@@ -329,7 +338,7 @@ if conexion_exitosa:
     # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "🗺️ Visor Topográfico":
-        st.title("Control Topográfico y Planos 🗺️")
+        st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
         if st.session_state.archivo_activo == "Base de datos general (Simulación)":
             st.info("ℹ️ Mostrando mapa base de simulación (Área referencial Condestable).")
             mapa_mina = folium.Map(location=[-12.684, -76.602], zoom_start=14, tiles="CartoDB positron")
@@ -376,30 +385,4 @@ if conexion_exitosa:
                     st.error(f"Error procesando el mapa: {e}")
 
     # ====================================================================
-    # PESTAÑAS 4 Y 5: SONDAJES Y DASHBOARD 
-    # ====================================================================
-    elif pestaña == "🛢️ Visualizador 3D Sondajes":
-        st.title("Modelamiento 3D de Sondajes Diamantinos 🛢️")
-        seed_val = len(st.session_state.archivo_activo)
-        np.random.seed(seed_val)
-        datos_lista = []
-        for h_id in ["DDH-001", "DDH-002", "DDH-003"]:
-            x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
-            for depth in range(0, 150, 10):
-                datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "CU_PCT": np.random.uniform(0.1, 3.0)})
-        df_sondajes = pd.DataFrame(datos_lista)
-        
-        fig_3d = go.Figure()
-        for hole in df_sondajes["HOLE_ID"].unique():
-            df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
-            fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["CU_PCT"], colorscale='Jet', colorbar=dict(title="Ley Cu (%)")), name=hole))
-        fig_3d.update_layout(margin=dict(r=20, l=20, b=20, t=40), height=500)
-        st.plotly_chart(fig_3d, use_container_width=True)
-
-    elif pestaña == "📈 Dashboard Analíticas":
-        st.title("Panel de Analíticas y Control Operativo 📈")
-        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-        modificador = len(st.session_state.archivo_activo)
-        with col_kpi1: st.metric(label="Documentos Indexados en la Nube", value=len(st.session_state.get("archivos_nube", [])))
-        with col_kpi2: st.metric(label="Promedio RMR Registrado", value=f"{68.5 + (modificador*0.2):.1f}")
-        with col_kpi3: st.metric(label="Consultas de IA este mes", value=142 + modificador)
+    # PESTAÑAS 4 Y 5: SONDAJES Y DASH
