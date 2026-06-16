@@ -65,6 +65,30 @@ st.markdown("""
         border-right: 1px solid rgba(255, 255, 255, 0.08) !important; 
     }
 
+    /* 3. ALINEACIÓN PERFECTA (NAVEGACIÓN) */
+    [data-testid="stSidebar"] button[kind="secondary"] {
+        padding-left: 10px !important; 
+        background-color: transparent !important;
+        border: none !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        justify-content: flex-start !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"] div {
+        display: flex !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"] p {
+        text-align: left !important;
+        color: #c4c7c5 !important;
+        margin: 0 !important;
+        font-size: 14px !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"]:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
     /* Botón Nueva Conversación */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
@@ -72,12 +96,10 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #e3e3e3 !important;
         font-weight: 500 !important;
-        padding: 8px 15px !important;
     }
     
     /* ---------------------------------------------------
-       3. MAGIA UNIVERSAL: MENÚS CON CUADRO AMARILLO PERFECTO
-       (Aplica tanto para Navegación como para Archivos)
+       4. MAGIA: RECIENTES CON CUADRO AMARILLO PERFECTO
        --------------------------------------------------- */
     div[role="radiogroup"] > label {
         background-color: transparent !important;
@@ -91,10 +113,9 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.05) !important;
     }
     div[role="radiogroup"] > label > div:first-of-type {
-        display: none !important; /* Oculta el círculo nativo */
+        display: none !important; 
     }
     
-    /* Efecto Amarillo para elemento activo */
     div[role="radiogroup"] > label:has(input:checked) {
         background-color: rgba(255, 213, 79, 0.15) !important;
         border-left: 3px solid #ffd54f !important;
@@ -106,21 +127,23 @@ st.markdown("""
     
     div[role="radiogroup"] p {
         color: #c4c7c5 !important;
-        font-size: 14.5px !important;
+        font-size: 14px !important;
         margin: 0 !important;
         text-align: left !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
     }
     
     /* ---------------------------------------------------
-       4. FIX DEFINITIVO: CHAT INPUT 100% TRANSPARENTE
+       5. FIX DEFINITIVO: CHAT INPUT Y BOTÓN FLOTANTE
        --------------------------------------------------- */
-    [data-testid="stBottom"] { background-color: transparent !important; }
-    [data-testid="stBottom"] > div { background-color: transparent !important; }
-    .stChatFloatingInputContainer { background-color: transparent !important; } /* Elimina la franja negra base */
+    /* Destruimos la franja negra de Streamlit en la base */
+    [data-testid="stBottom"], [data-testid="stBottom"] > div { 
+        background-color: transparent !important; 
+    }
+    .stChatFloatingInputContainer { 
+        background-color: transparent !important; 
+    }
 
+    /* La cápsula de texto */
     .stChatInputContainer {
         border-radius: 30px !important;
         background-color: rgba(25, 26, 27, 0.85) !important; 
@@ -134,16 +157,16 @@ st.markdown("""
         color: #e3e3e3 !important;
     }
     
-    /* Botón + flotante */
+    /* El botón + circular y flotante */
     div[data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 28px !important;
+        bottom: 27px !important; /* Ajustado para alinearse perfecto con la cápsula */
         left: 20px !important;
         z-index: 999999 !important;
     }
     div[data-testid="stPopover"] > button {
-        width: 46px !important;
-        height: 46px !important;
+        width: 44px !important;
+        height: 44px !important;
         border-radius: 50% !important;
         padding: 0 !important;
         display: flex !important;
@@ -154,11 +177,20 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         color: #e3e3e3 !important;
         font-size: 24px !important;
+        line-height: 0 !important;
     }
+    
+    /* Efecto al pasar el mouse por el + */
     div[data-testid="stPopover"] > button:hover {
         background-color: rgba(255, 255, 255, 0.15) !important;
-        color: #a8c7fa !important;
+        color: #ffd54f !important; /* Un destello amarillo para hacer juego */
     }
+    
+    /* HACK CLAVE: Ocultar la flechita (chevron) que Streamlit agrega a la fuerza */
+    div[data-testid="stPopover"] > button svg {
+        display: none !important;
+    }
+    
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 </style>
@@ -197,7 +229,6 @@ with st.sidebar:
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
         st.rerun()
         
-    # --- SECCIÓN NAVEGACIÓN (AHORA CON FORMATO RADIO PARA CUADRO AMARILLO) ---
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
     opciones_nav = {
@@ -217,7 +248,7 @@ with st.sidebar:
             break
             
     seleccion_nav = st.radio("Navegación", options=nombres_nav_formateados, index=indice_nav_activo, label_visibility="collapsed", key="radio_nav")
-    nav_real = seleccion_nav.split(" ", 1)[1] # Extrae el nombre sin el emoji
+    nav_real = seleccion_nav.split(" ", 1)[1] 
     
     if nav_real != st.session_state.pestaña_activa:
         st.session_state.pestaña_activa = nav_real
@@ -225,7 +256,6 @@ with st.sidebar:
     
     pestaña = st.session_state.pestaña_activa
     
-    # --- SECCIÓN ARCHIVOS (CON LOGOS DINÁMICOS) ---
     st.markdown("<br>", unsafe_allow_html=True) 
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
     
@@ -292,7 +322,6 @@ if conexion_exitosa:
         for mensaje in st.session_state.mensajes_ia:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        # CHAT CON LECTURA DE ARCHIVOS DE DRIVE
         pregunta = st.chat_input("Pregunta a Gemini")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
@@ -328,7 +357,7 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
 
     # ====================================================================
-    # OTRAS PESTAÑAS SIMPLIFICADAS
+    # OTRAS PESTAÑAS 
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
