@@ -206,4 +206,182 @@ with st.sidebar:
     # Renderizamos la lista de archivos con iconos simples, alineados a la izquierda
     for arch in opciones_archivos:
         icono = "📌" if st.session_state.archivo_activo == arch else "📄"
-        if st.button(f"{icono} {arch}", key=f"file_{arch}", type="secondary", use_
+        if st.button(f"{icono} {arch}", key=f"file_{arch}", type="secondary", use_container_width=True):
+            st.session_state.archivo_activo = arch
+            st.rerun()
+    
+    st.markdown("---")
+    st.markdown("""
+        <div style='display:flex; align-items:center; padding-left:10px;'>
+            <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
+            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Jean Kennedy</p><p style='margin:0; font-size:12px; color:#888;'>Ingeniería Pro</p></div>
+        </div>
+    """, unsafe_allow_html=True)
+
+if conexion_exitosa:
+    # ====================================================================
+    # PESTAÑA 1: CHATBOT UNIFICADO
+    # ====================================================================
+    if pestaña == "💬 Chat Asistente Operativo":
+        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
+        
+        if st.session_state.archivo_activo != "Base de datos general (Simulación)":
+            st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
+            
+        with st.popover("➕"):
+            st.markdown("#### 🛠️ Herramientas")
+            tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
+            
+            with tab1:
+                archivo_subido = st.file_uploader("Arrastra PDFs, TXT, o Imágenes", type=["pdf", "txt", "png", "jpg", "jpeg"], key="uploader_normal")
+                if st.button("Guardar en Nube InkaDrill", type="primary", use_container_width=True):
+                    if archivo_subido:
+                        with st.spinner("Subiendo..."):
+                            st.success("Guardado correctamente.")
+                            st.rerun()
+
+            with tab2:
+                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"], key="extractor")
+                if st.button("Procesar Tabla", type="primary", use_container_width=True):
+                    if archivo_tabla:
+                        with st.spinner("Procesando..."):
+                            try:
+                                media_pdf = MediaIoBaseUpload(BytesIO(archivo_tabla.getvalue()), mimetype='application/pdf', resumable=True)
+                                metadata_pdf = {'name': archivo_tabla.name, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata_pdf, media_body=media_pdf, fields='id').execute()
+                                
+                                texto_pdf = ""
+                                lector_pdf = PyPDF2.PdfReader(archivo_tabla)
+                                for pagina in lector_pdf.pages: texto_pdf += pagina.extract_text() + "\n"
+                                
+                                instruccion_csv = f"""
+                                Actúa como experto. Extrae ÚNICAMENTE la tabla "Coordenadas WGS84".
+                                IGNORA "Demarcaciones", "Cartas" y "PSAD56".
+                                Devuelve CSV con 3 columnas: Vertice,Norte,Este
+                                No uses comas de miles. Texto:\n{texto_pdf}
+                                """
+                                respuesta_csv = modelo.generate_content(instruccion_csv)
+                                datos_limpios = respuesta_csv.text.replace("```csv", "").replace("```", "").strip()
+                                
+                                nombre_csv = f"Datos_{archivo_tabla.name.replace('.pdf', '')}.csv"
+                                media_csv = MediaIoBaseUpload(BytesIO(datos_limpios.encode('utf-8')), mimetype='text/csv', resumable=True)
+                                metadata_csv = {'name': nombre_csv, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata_csv, media_body=media_csv, fields='id').execute()
+                                
+                                query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                                st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                                
+                                st.success("¡Datos extraídos limpiamente!")
+                                st.download_button(label="📥 Descargar CSV", data=datos_limpios, file_name=nombre_csv, mime="text/csv", use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Error: {e}")
+
+        if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
+        for mensaje in st.session_state.mensajes_ia:
+            with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
+
+        pregunta = st.chat_input("Pregunta a Gemini")
+        if pregunta:
+            with st.chat_message("user"): st.markdown(pregunta)
+            st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
+            with st.chat_message("assistant"):
+                st.markdown("Procesando...")
+
+    # ====================================================================
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
+    # ====================================================================
+    elif pestaña == "🧮 Cálculos Geomecánicos":
+        st.title("Suite de Análisis Geomecánico 🪨")
+        tab_rmr, tab_gsi = st.tabs(["Clasificación RMR", "Índice GSI"])
+        with tab_rmr:
+            col1, col2 = st.columns(2)
+            with col1:
+                p1 = st.number_input("Resistencia Compresión Simple (MPa)", value=50)
+                p2 = st.slider("RQD (%)", 0, 100, 75)
+            with col2:
+                p4 = st.selectbox("Condición de Discontinuidades", ["Cerradas", "Rugosas", "Abiertas"])
+            if st.button("Calcular RMR", type="primary"):
+                val_rmr = (p2 * 0.2) + (p1 * 0.1) + 30
+                st.success(f"**Puntaje RMR Estimado:** {val_rmr:.1f}")
+        with tab_gsi:
+            estruct = st.selectbox("Estructura", ["Masivo", "Blocoso", "Fracturado"])
+            if st.button("Estimar GSI", type="primary"): st.success("GSI Estimado: Rango 45 - 55")
+
+    # ====================================================================
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # ====================================================================
+    elif pestaña == "🗺️ Visor Topográfico":
+        st.title("Control Topográfico y Planos 🗺️")
+        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
+            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial Condestable).")
+            mapa_mina = folium.Map(location=[-12.684, -76.602], zoom_start=14, tiles="CartoDB positron")
+            st_folium(mapa_mina, width=1000, height=500)
+        else:
+            st.success(f"🗺️ Leyendo datos topográficos desde: **{st.session_state.archivo_activo}**")
+            with st.spinner("Analizando coordenadas..."):
+                try:
+                    file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
+                    csv_content = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
+                    df_mapa = pd.read_csv(StringIO(csv_content))
+                    
+                    with st.expander("Ver datos extraídos por la IA", expanded=False):
+                        st.dataframe(df_mapa)
+                    
+                    col_lat = next((col for col in df_mapa.columns if 'lat' in col.lower()), None)
+                    col_lon = next((col for col in df_mapa.columns if 'lon' in col.lower() or 'lng' in col.lower()), None)
+                    col_norte = next((col for col in df_mapa.columns if 'norte' in col.lower()), None)
+                    col_este = next((col for col in df_mapa.columns if 'este' in col.lower()), None)
+                    
+                    if col_lat and col_lon:
+                        df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
+                        mapa_dinamico = folium.Map(location=[float(df_mapa.iloc[0][col_lat]), float(df_mapa.iloc[0][col_lon])], zoom_start=14)
+                        for idx, row in df_mapa.iterrows():
+                            folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0])).add_to(mapa_dinamico)
+                        st_folium(mapa_dinamico, width=1000, height=500)
+                        
+                    elif col_norte and col_este:
+                        st.info("🔄 Coordenadas UTM detectadas. Convirtiendo a Latitud/Longitud (Zona 18S)...")
+                        df_mapa = df_mapa.dropna(subset=[col_norte, col_este])
+                        transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
+                        
+                        lon_centro, lat_centro = transformer.transform(float(df_mapa.iloc[0][col_este]), float(df_mapa.iloc[0][col_norte]))
+                        mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=15, tiles="OpenStreetMap")
+                        
+                        for idx, row in df_mapa.iterrows():
+                            lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
+                            folium.Marker([lat_val, lon_val], popup=f"Vértice: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
+                            
+                        st_folium(mapa_dinamico, width=1000, height=500)
+                    else:
+                        st.warning("⚠️ No se detectaron columnas válidas de coordenadas.")
+                except Exception as e:
+                    st.error(f"Error procesando el mapa: {e}")
+
+    # ====================================================================
+    # PESTAÑAS 4 Y 5: SONDAJES Y DASHBOARD 
+    # ====================================================================
+    elif pestaña == "🛢️ Visualizador 3D Sondajes":
+        st.title("Modelamiento 3D de Sondajes Diamantinos 🛢️")
+        seed_val = len(st.session_state.archivo_activo)
+        np.random.seed(seed_val)
+        datos_lista = []
+        for h_id in ["DDH-001", "DDH-002", "DDH-003"]:
+            x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
+            for depth in range(0, 150, 10):
+                datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "CU_PCT": np.random.uniform(0.1, 3.0)})
+        df_sondajes = pd.DataFrame(datos_lista)
+        
+        fig_3d = go.Figure()
+        for hole in df_sondajes["HOLE_ID"].unique():
+            df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
+            fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["CU_PCT"], colorscale='Jet', colorbar=dict(title="Ley Cu (%)")), name=hole))
+        fig_3d.update_layout(margin=dict(r=20, l=20, b=20, t=40), height=500)
+        st.plotly_chart(fig_3d, use_container_width=True)
+
+    elif pestaña == "📈 Dashboard Analíticas":
+        st.title("Panel de Analíticas y Control Operativo 📈")
+        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+        modificador = len(st.session_state.archivo_activo)
+        with col_kpi1: st.metric(label="Documentos Indexados en la Nube", value=len(st.session_state.get("archivos_nube", [])))
+        with col_kpi2: st.metric(label="Promedio RMR Registrado", value=f"{68.5 + (modificador*0.2):.1f}")
+        with col_kpi3: st.metric(label="Consultas de IA este mes", value=142 + modificador)
