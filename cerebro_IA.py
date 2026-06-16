@@ -20,6 +20,10 @@ from pyproj import Transformer
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
+# Inicializamos la pestaña activa en la memoria
+if "pestaña_activa" not in st.session_state:
+    st.session_state.pestaña_activa = "💬 Chat Asistente Operativo"
+
 # --- INYECCIÓN DE ESTÉTICA GEMINI (CSS Customizado) ---
 st.markdown("""
 <style>
@@ -32,49 +36,41 @@ st.markdown("""
     /* ---------------------------------------------------
        HACKS DE LA BARRA LATERAL (ESTILO GEMINI)
        --------------------------------------------------- */
-    
-    /* Ocultar los círculos nativos de Streamlit */
-    [data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child {
-        display: none !important;
-    }
-    
-    /* Darle forma de píldora a los elementos del menú */
-    [data-testid="stSidebar"] div[role="radiogroup"] > label {
-        padding: 10px 15px !important;
-        border-radius: 30px !important;
-        margin-bottom: 2px !important;
-        transition: 0.2s !important;
-        color: #e3e3e3 !important;
-        cursor: pointer !important;
-    }
-    
-    /* Efecto Hover (pasar el mouse) */
-    [data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-        background-color: rgba(255, 255, 255, 0.08) !important;
-    }
-    
-    /* Estilo del elemento seleccionado (Activo) */
-    [data-testid="stSidebar"] div[role="radiogroup"] > label[aria-checked="true"] {
-        background-color: rgba(168, 199, 250, 0.12) !important;
-    }
-    [data-testid="stSidebar"] div[role="radiogroup"] > label[aria-checked="true"] > div:last-child {
-        color: #a8c7fa !important;
-        font-weight: 500 !important;
-    }
-    
-    /* Botón "Nueva Conversación" */
-    [data-testid="stSidebar"] .stButton>button {
+       
+    /* Botón "Nueva Conversación" (Tipo Primary) */
+    [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
         background-color: #1e1f20 !important;
         border: 1px solid #444746 !important;
         color: #e3e3e3 !important;
-        padding: 12px 20px !important;
+        padding: 8px 15px !important;
         justify-content: flex-start !important;
         font-weight: 500 !important;
         transition: 0.3s !important;
     }
-    [data-testid="stSidebar"] .stButton>button:hover {
-        background-color: #444746 !important;
+    [data-testid="stSidebar"] button[kind="primary"]:hover {
+        background-color: #333639 !important;
+    }
+    
+    /* Enlaces Sueltos del Historial (Tipo Secondary) */
+    [data-testid="stSidebar"] button[kind="secondary"] {
+        background-color: transparent !important;
+        border: none !important;
+        justify-content: flex-start !important;
+        color: #c4c7c5 !important;
+        font-weight: 400 !important;
+        padding: 2px 10px !important;
+        border-radius: 8px !important;
+        margin-bottom: 2px !important;
+        height: auto !important;
+        min-height: 34px !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"]:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: #e3e3e3 !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"] p {
+        font-size: 13.5px !important; 
     }
     
     /* ---------------------------------------------------
@@ -148,22 +144,38 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 
 # --- 3. BARRA LATERAL ESTILO GEMINI ---
 with st.sidebar:
+    # Logo o título superior
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
     # Botón de Nueva Conversación
-    if st.button("📝 Nueva conversación", use_container_width=True):
-        st.session_state.mensajes_ia = [] # Limpia el historial del chat
+    if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
+        st.session_state.mensajes_ia = [] 
+        st.session_state.pestaña_activa = "💬 Chat Asistente Operativo"
         st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
     
-    pestaña = st.radio(
-        "Navegación:",
-        ["💬 Chat Asistente Operativo", "🧮 Cálculos Geomecánicos", "🗺️ Visor Topográfico", "🛢️ Visualizador 3D Sondajes", "📈 Dashboard Analíticas"],
-        label_visibility="collapsed"
-    )
+    # Renderizamos los enlaces "sueltos" del menú
+    opciones_nav = [
+        "💬 Chat Asistente Operativo", 
+        "🧮 Cálculos Geomecánicos", 
+        "🗺️ Visor Topográfico", 
+        "🛢️ Visualizador 3D Sondajes", 
+        "📈 Dashboard Analíticas"
+    ]
     
-    st.markdown("<br><br><br>", unsafe_allow_html=True) # Espaciador
+    for opt in opciones_nav:
+        # Añadimos un pequeño indicador azul a la pestaña activa para diferenciarla
+        etiqueta = f"🔹 {opt}" if st.session_state.pestaña_activa == opt else f"  {opt}"
+        
+        if st.button(etiqueta, key=opt, type="secondary", use_container_width=True):
+            st.session_state.pestaña_activa = opt
+            st.rerun()
+    
+    # Guardamos la pestaña seleccionada en una variable corta para usarla en el resto del código
+    pestaña = st.session_state.pestaña_activa
+    
+    st.markdown("<br><br>", unsafe_allow_html=True) 
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>📂 Archivo Activo en Memoria</p>", unsafe_allow_html=True)
     
     opciones_archivos = ["Base de datos general (Simulación)"]
@@ -182,7 +194,7 @@ with st.sidebar:
     st.session_state.archivo_activo = archivo_seleccionado
     
     st.markdown("---")
-    # Tu perfil simulado en la parte inferior
+    # Perfil inferior
     st.markdown("""
         <div style='display:flex; align-items:center; padding-left:10px;'>
             <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
@@ -248,12 +260,10 @@ if conexion_exitosa:
                             except Exception as e:
                                 st.error(f"Error: {e}")
 
-        # LÓGICA DEL CHAT
         if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
         for mensaje in st.session_state.mensajes_ia:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        # INPUT DEL CHAT 
         pregunta = st.chat_input("Pregunta a Gemini")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
@@ -282,16 +292,14 @@ if conexion_exitosa:
             if st.button("Estimar GSI", type="primary"): st.success("GSI Estimado: Rango 45 - 55")
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (RESTAURADO)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "🗺️ Visor Topográfico":
         st.title("Control Topográfico y Planos 🗺️")
-        
         if st.session_state.archivo_activo == "Base de datos general (Simulación)":
             st.info("ℹ️ Mostrando mapa base de simulación (Área referencial Condestable).")
             mapa_mina = folium.Map(location=[-12.684, -76.602], zoom_start=14, tiles="CartoDB positron")
             st_folium(mapa_mina, width=1000, height=500)
-            
         else:
             st.success(f"🗺️ Leyendo datos topográficos desde: **{st.session_state.archivo_activo}**")
             with st.spinner("Analizando coordenadas..."):
@@ -334,7 +342,7 @@ if conexion_exitosa:
                     st.error(f"Error procesando el mapa: {e}")
 
     # ====================================================================
-    # PESTAÑAS 4 Y 5: SONDAJES Y DASHBOARD (RESTAURADOS)
+    # PESTAÑAS 4 Y 5: SONDAJES Y DASHBOARD 
     # ====================================================================
     elif pestaña == "🛢️ Visualizador 3D Sondajes":
         st.title("Modelamiento 3D de Sondajes Diamantinos 🛢️")
