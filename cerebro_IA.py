@@ -20,9 +20,11 @@ from pyproj import Transformer
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
-# Inicializamos la pestaña activa en la memoria
+# Inicializamos variables en la memoria
 if "pestaña_activa" not in st.session_state:
     st.session_state.pestaña_activa = "💬 Chat Asistente Operativo"
+if "archivo_activo" not in st.session_state:
+    st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
 # --- INYECCIÓN DE ESTÉTICA GEMINI (CSS Customizado) ---
 st.markdown("""
@@ -33,11 +35,7 @@ st.markdown("""
         font-family: 'Google Sans', sans-serif !important;
     }
     
-    /* ---------------------------------------------------
-       HACKS DE LA BARRA LATERAL (ESTILO GEMINI)
-       --------------------------------------------------- */
-       
-    /* Botón "Nueva Conversación" (Tipo Primary) */
+    /* Botón "Nueva Conversación" (Tipo Primary en Sidebar) */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
         background-color: #1e1f20 !important;
@@ -52,30 +50,32 @@ st.markdown("""
         background-color: #333639 !important;
     }
     
-    /* Enlaces Sueltos del Historial (Tipo Secondary) */
+    /* Enlaces Sueltos (Navegación e Historial de Archivos) */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: transparent !important;
         border: none !important;
         justify-content: flex-start !important;
         color: #c4c7c5 !important;
         font-weight: 400 !important;
-        padding: 2px 10px !important;
+        padding: 4px 10px !important;
         border-radius: 8px !important;
         margin-bottom: 2px !important;
         height: auto !important;
-        min-height: 34px !important;
+        min-height: 32px !important;
+        text-align: left !important;
     }
     [data-testid="stSidebar"] button[kind="secondary"]:hover {
         background-color: rgba(255, 255, 255, 0.08) !important;
         color: #e3e3e3 !important;
     }
     [data-testid="stSidebar"] button[kind="secondary"] p {
-        font-size: 13.5px !important; 
+        font-size: 13px !important; 
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
-    /* ---------------------------------------------------
-       HACKS DEL CHAT Y BOTÓN FLOTANTE
-       --------------------------------------------------- */
+    /* HACKS DEL CHAT Y BOTÓN FLOTANTE */
     .stChatInputContainer {
         border-radius: 30px !important;
         background-color: #1e1f20 !important;
@@ -144,7 +144,6 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 
 # --- 3. BARRA LATERAL ESTILO GEMINI ---
 with st.sidebar:
-    # Logo o título superior
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
     # Botón de Nueva Conversación
@@ -153,9 +152,8 @@ with st.sidebar:
         st.session_state.pestaña_activa = "💬 Chat Asistente Operativo"
         st.rerun()
         
-    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    # Renderizamos los enlaces "sueltos" del menú
     opciones_nav = [
         "💬 Chat Asistente Operativo", 
         "🧮 Cálculos Geomecánicos", 
@@ -165,18 +163,15 @@ with st.sidebar:
     ]
     
     for opt in opciones_nav:
-        # Añadimos un pequeño indicador azul a la pestaña activa para diferenciarla
         etiqueta = f"🔹 {opt}" if st.session_state.pestaña_activa == opt else f"  {opt}"
-        
         if st.button(etiqueta, key=opt, type="secondary", use_container_width=True):
             st.session_state.pestaña_activa = opt
             st.rerun()
     
-    # Guardamos la pestaña seleccionada en una variable corta para usarla en el resto del código
     pestaña = st.session_state.pestaña_activa
     
-    st.markdown("<br><br>", unsafe_allow_html=True) 
-    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>📂 Archivo Activo en Memoria</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True) 
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Recientes (Archivo Activo)</p>", unsafe_allow_html=True)
     
     opciones_archivos = ["Base de datos general (Simulación)"]
     archivos_filtrados = []
@@ -190,11 +185,17 @@ with st.sidebar:
     for f in archivos_filtrados:
         opciones_archivos.append(f['name'])
         
-    archivo_seleccionado = st.selectbox("Selecciona un documento para analizar:", opciones_archivos, label_visibility="collapsed")
-    st.session_state.archivo_activo = archivo_seleccionado
+    # --- AQUI ESTA LA MAGIA: REEMPLAZAMOS EL SELECTBOX POR LISTA VERTICAL ---
+    for arch in opciones_archivos:
+        # Pone un PIN al archivo activo, y un ícono de documento a los demás
+        icono = "📌" if st.session_state.archivo_activo == arch else "📄"
+        
+        # Generamos un botón invisible tipo "secondary" para cada archivo
+        if st.button(f"{icono} {arch}", key=f"file_{arch}", type="secondary", use_container_width=True):
+            st.session_state.archivo_activo = arch
+            st.rerun()
     
     st.markdown("---")
-    # Perfil inferior
     st.markdown("""
         <div style='display:flex; align-items:center; padding-left:10px;'>
             <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
