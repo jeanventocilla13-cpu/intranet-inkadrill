@@ -315,10 +315,31 @@ if conexion_exitosa:
 
         pregunta = st.chat_input("Pregunta a Gemini")
         if pregunta:
+            # 1. Mostramos la pregunta del usuario
             with st.chat_message("user"): st.markdown(pregunta)
             st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
+            
+            # 2. Llamamos a Gemini y mostramos la respuesta
             with st.chat_message("assistant"):
-                st.markdown("Procesando...")
+                caja_respuesta = st.empty()
+                caja_respuesta.markdown("Procesando... ⏳")
+                
+                try:
+                    # Construimos el contexto si hay un archivo seleccionado
+                    contexto = ""
+                    if st.session_state.archivo_activo != "Base de datos general (Simulación)":
+                        contexto = f"[El usuario está enfocando la consulta en el archivo: {st.session_state.archivo_activo}].\n\n"
+                    
+                    # Llamada real a la inteligencia artificial
+                    respuesta_ia = modelo.generate_content(contexto + pregunta)
+                    texto_final = respuesta_ia.text
+                    
+                    # Actualizamos la interfaz y guardamos en memoria
+                    caja_respuesta.markdown(texto_final)
+                    st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": texto_final})
+                    
+                except Exception as e:
+                    caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
 
     # ====================================================================
     # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
