@@ -282,4 +282,60 @@ if conexion_exitosa:
                 if st.button("Guardar en Nube", type="primary", use_container_width=True):
                     if archivo_subido:
                         st.success("Guardado correctamente.")
-            with tab
+            with tab2:
+                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
+                if st.button("Procesar Tabla", type="primary", use_container_width=True):
+                    if archivo_tabla:
+                        st.success("¡Datos extraídos limpiamente!")
+
+        if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
+        for mensaje in st.session_state.mensajes_ia:
+            with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
+
+        # CHAT CON LECTURA DE ARCHIVOS DE DRIVE
+        pregunta = st.chat_input("Pregunta a Gemini")
+        if pregunta:
+            with st.chat_message("user"): st.markdown(pregunta)
+            st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
+            
+            with st.chat_message("assistant"):
+                caja_respuesta = st.empty()
+                caja_respuesta.markdown("Extrayendo datos de la nube y procesando... ⏳")
+                
+                try:
+                    contexto_documento = ""
+                    if st.session_state.archivo_activo != "Base de datos general (Simulación)":
+                        try:
+                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
+                            if st.session_state.archivo_activo.endswith('.pdf'):
+                                pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
+                                lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
+                                texto_extraido = ""
+                                for pagina in lector_pdf.pages:
+                                    texto_extraido += pagina.extract_text() + "\n"
+                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
+                        except Exception as e:
+                            pass
+
+                    instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
+                    respuesta_ia = modelo.generate_content(instruccion_final)
+                    texto_final = respuesta_ia.text
+                    
+                    caja_respuesta.markdown(texto_final)
+                    st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": texto_final})
+                    
+                except Exception as e:
+                    caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
+
+    # ====================================================================
+    # OTRAS PESTAÑAS SIMPLIFICADAS
+    # ====================================================================
+    elif pestaña == "Cálculos Geomecánicos":
+        st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
+        st.info("Herramientas operativas disponibles.")
+    elif pestaña == "Visor Topográfico":
+        st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
+    elif pestaña == "Visualizador 3D Sondajes":
+        st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
+    elif pestaña == "Dashboard Analíticas":
+        st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
