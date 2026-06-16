@@ -26,7 +26,7 @@ if "pestaña_activa" not in st.session_state:
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
-# --- INYECCIÓN DE ESTÉTICA GEMINI (CSS Customizado) ---
+# --- INYECCIÓN DE ESTÉTICA GEMINI Y FONDO (CSS Customizado) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
@@ -36,10 +36,25 @@ st.markdown("""
     }
     
     /* ---------------------------------------------------
+       FONDO DE PANTALLA PERSONALIZADO INKADRILL
+       --------------------------------------------------- */
+    .stApp {
+        background-image: url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+    }
+    
+    /* Aseguramos que la barra lateral mantenga su color oscuro sólido para que el texto sea legible */
+    [data-testid="stSidebar"] {
+        background-color: #131314 !important;
+    }
+
+    /* ---------------------------------------------------
        HACKS DE LA BARRA LATERAL (ALINEACIÓN ESTRICTA)
        --------------------------------------------------- */
        
-    /* FORZAR LA ALINEACIÓN A LA IZQUIERDA EN TODOS LOS BOTONES */
     [data-testid="stSidebar"] .stButton > button {
         display: flex !important;
         justify-content: flex-start !important;
@@ -177,7 +192,6 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    # 1. Definimos la lista PRIMERO
     opciones_nav = [
         "💬 Chat Asistente Operativo", 
         "🧮 Cálculos Geomecánicos", 
@@ -186,7 +200,6 @@ with st.sidebar:
         "📈 Dashboard Analíticas"
     ]
     
-    # 2. Hacemos el bucle DESPUÉS (sin rombos, para alineación recta perfecta)
     for opt in opciones_nav:
         if st.button(opt, key=f"nav_{opt}", type="secondary", use_container_width=True):
             st.session_state.pestaña_activa = opt
@@ -209,7 +222,6 @@ with st.sidebar:
     for f in archivos_filtrados:
         opciones_archivos.append(f['name'])
         
-    # Renderizamos la lista de archivos limpios
     for arch in opciones_archivos:
         icono = "📌" if st.session_state.archivo_activo == arch else "📄"
         if st.button(f"{icono} {arch}", key=f"file_{arch}", type="secondary", use_container_width=True):
@@ -317,77 +329,4 @@ if conexion_exitosa:
     # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "🗺️ Visor Topográfico":
-        st.title("Control Topográfico y Planos 🗺️")
-        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
-            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial Condestable).")
-            mapa_mina = folium.Map(location=[-12.684, -76.602], zoom_start=14, tiles="CartoDB positron")
-            st_folium(mapa_mina, width=1000, height=500)
-        else:
-            st.success(f"🗺️ Leyendo datos topográficos desde: **{st.session_state.archivo_activo}**")
-            with st.spinner("Analizando coordenadas..."):
-                try:
-                    file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
-                    csv_content = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
-                    df_mapa = pd.read_csv(StringIO(csv_content))
-                    
-                    with st.expander("Ver datos extraídos por la IA", expanded=False):
-                        st.dataframe(df_mapa)
-                    
-                    col_lat = next((col for col in df_mapa.columns if 'lat' in col.lower()), None)
-                    col_lon = next((col for col in df_mapa.columns if 'lon' in col.lower() or 'lng' in col.lower()), None)
-                    col_norte = next((col for col in df_mapa.columns if 'norte' in col.lower()), None)
-                    col_este = next((col for col in df_mapa.columns if 'este' in col.lower()), None)
-                    
-                    if col_lat and col_lon:
-                        df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
-                        mapa_dinamico = folium.Map(location=[float(df_mapa.iloc[0][col_lat]), float(df_mapa.iloc[0][col_lon])], zoom_start=14)
-                        for idx, row in df_mapa.iterrows():
-                            folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0])).add_to(mapa_dinamico)
-                        st_folium(mapa_dinamico, width=1000, height=500)
-                        
-                    elif col_norte and col_este:
-                        st.info("🔄 Coordenadas UTM detectadas. Convirtiendo a Latitud/Longitud (Zona 18S)...")
-                        df_mapa = df_mapa.dropna(subset=[col_norte, col_este])
-                        transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
-                        
-                        lon_centro, lat_centro = transformer.transform(float(df_mapa.iloc[0][col_este]), float(df_mapa.iloc[0][col_norte]))
-                        mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=15, tiles="OpenStreetMap")
-                        
-                        for idx, row in df_mapa.iterrows():
-                            lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
-                            folium.Marker([lat_val, lon_val], popup=f"Vértice: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
-                            
-                        st_folium(mapa_dinamico, width=1000, height=500)
-                    else:
-                        st.warning("⚠️ No se detectaron columnas válidas de coordenadas.")
-                except Exception as e:
-                    st.error(f"Error procesando el mapa: {e}")
-
-    # ====================================================================
-    # PESTAÑAS 4 Y 5: SONDAJES Y DASHBOARD 
-    # ====================================================================
-    elif pestaña == "🛢️ Visualizador 3D Sondajes":
-        st.title("Modelamiento 3D de Sondajes Diamantinos 🛢️")
-        seed_val = len(st.session_state.archivo_activo)
-        np.random.seed(seed_val)
-        datos_lista = []
-        for h_id in ["DDH-001", "DDH-002", "DDH-003"]:
-            x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
-            for depth in range(0, 150, 10):
-                datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "CU_PCT": np.random.uniform(0.1, 3.0)})
-        df_sondajes = pd.DataFrame(datos_lista)
-        
-        fig_3d = go.Figure()
-        for hole in df_sondajes["HOLE_ID"].unique():
-            df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
-            fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["CU_PCT"], colorscale='Jet', colorbar=dict(title="Ley Cu (%)")), name=hole))
-        fig_3d.update_layout(margin=dict(r=20, l=20, b=20, t=40), height=500)
-        st.plotly_chart(fig_3d, use_container_width=True)
-
-    elif pestaña == "📈 Dashboard Analíticas":
-        st.title("Panel de Analíticas y Control Operativo 📈")
-        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-        modificador = len(st.session_state.archivo_activo)
-        with col_kpi1: st.metric(label="Documentos Indexados en la Nube", value=len(st.session_state.get("archivos_nube", [])))
-        with col_kpi2: st.metric(label="Promedio RMR Registrado", value=f"{68.5 + (modificador*0.2):.1f}")
-        with col_kpi3: st.metric(label="Consultas de IA este mes", value=142 + modificador)
+        st.
