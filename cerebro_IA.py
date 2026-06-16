@@ -29,24 +29,74 @@ st.markdown("""
         font-family: 'Google Sans', sans-serif !important;
     }
     
-    /* 1. Modificamos la barra de chat para dejar un hueco a la izquierda */
+    /* ---------------------------------------------------
+       HACKS DE LA BARRA LATERAL (ESTILO GEMINI)
+       --------------------------------------------------- */
+    
+    /* Ocultar los círculos nativos de Streamlit */
+    [data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child {
+        display: none !important;
+    }
+    
+    /* Darle forma de píldora a los elementos del menú */
+    [data-testid="stSidebar"] div[role="radiogroup"] > label {
+        padding: 10px 15px !important;
+        border-radius: 30px !important;
+        margin-bottom: 2px !important;
+        transition: 0.2s !important;
+        color: #e3e3e3 !important;
+        cursor: pointer !important;
+    }
+    
+    /* Efecto Hover (pasar el mouse) */
+    [data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    /* Estilo del elemento seleccionado (Activo) */
+    [data-testid="stSidebar"] div[role="radiogroup"] > label[aria-checked="true"] {
+        background-color: rgba(168, 199, 250, 0.12) !important;
+    }
+    [data-testid="stSidebar"] div[role="radiogroup"] > label[aria-checked="true"] > div:last-child {
+        color: #a8c7fa !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Botón "Nueva Conversación" */
+    [data-testid="stSidebar"] .stButton>button {
+        border-radius: 30px !important;
+        background-color: #1e1f20 !important;
+        border: 1px solid #444746 !important;
+        color: #e3e3e3 !important;
+        padding: 12px 20px !important;
+        justify-content: flex-start !important;
+        font-weight: 500 !important;
+        transition: 0.3s !important;
+    }
+    [data-testid="stSidebar"] .stButton>button:hover {
+        background-color: #444746 !important;
+    }
+    
+    /* ---------------------------------------------------
+       HACKS DEL CHAT Y BOTÓN FLOTANTE
+       --------------------------------------------------- */
     .stChatInputContainer {
         border-radius: 30px !important;
         background-color: #1e1f20 !important;
         border: 1px solid #444746 !important;
-        width: calc(100% - 60px) !important; /* Le quitamos 60px de ancho */
-        margin-left: 60px !important;        /* La empujamos 60px a la derecha */
+        width: calc(100% - 60px) !important;
+        margin-left: 60px !important;
     }
-    
-    /* 2. Fijamos el contenedor del botón exactamente en ese hueco */
+    .stChatInputContainer textarea {
+        padding-left: 45px !important;
+        font-size: 16px !important;
+    }
     div[data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 27px !important;  /* Ajusta verticalmente con la barra */
+        bottom: 27px !important;
         z-index: 999999 !important;
         width: auto !important;
     }
-    
-    /* 3. Transformamos el botón en un Círculo Perfecto */
     div[data-testid="stPopover"] > button {
         width: 44px !important;
         height: 44px !important;
@@ -62,14 +112,11 @@ st.markdown("""
         line-height: 0 !important;
         transition: 0.3s;
     }
-    
     div[data-testid="stPopover"] > button:hover {
         background-color: #444746 !important;
         border-color: #a8c7fa !important;
         color: #a8c7fa !important;
     }
-    
-    /* Ocultar elementos innecesarios */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 </style>
@@ -99,24 +146,31 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
     except:
         st.session_state.archivos_nube = []
 
-# --- 3. BARRA LATERAL CON HISTORIAL CONTEXTUAL ---
+# --- 3. BARRA LATERAL ESTILO GEMINI ---
 with st.sidebar:
-    st.markdown("<h2 style='color: #a8c7fa; font-weight: 700; text-align: center; letter-spacing: 1px;'>✨ INKADRILL IA</h2>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
+    
+    # Botón de Nueva Conversación
+    if st.button("📝 Nueva conversación", use_container_width=True):
+        st.session_state.mensajes_ia = [] # Limpia el historial del chat
+        st.rerun()
+        
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
     
     pestaña = st.radio(
         "Navegación:",
-        ["💬 Chat Asistente Operativo", "🧮 Cálculos Geomecánicos", "🗺️ Visor Topográfico", "🛢️ Visualizador 3D de Sondajes", "📈 Dashboard de Analíticas"]
+        ["💬 Chat Asistente Operativo", "🧮 Cálculos Geomecánicos", "🗺️ Visor Topográfico", "🛢️ Visualizador 3D Sondajes", "📈 Dashboard Analíticas"],
+        label_visibility="collapsed"
     )
     
-    st.markdown("---")
-    st.markdown("### 🗂️ Archivo Activo")
+    st.markdown("<br><br><br>", unsafe_allow_html=True) # Espaciador
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>📂 Archivo Activo en Memoria</p>", unsafe_allow_html=True)
     
     opciones_archivos = ["Base de datos general (Simulación)"]
     archivos_filtrados = []
     
     if "archivos_nube" in st.session_state:
-        if pestaña in ["📈 Dashboard de Analíticas", "🛢️ Visualizador 3D de Sondajes", "🗺️ Visor Topográfico"]:
+        if pestaña in ["📈 Dashboard Analíticas", "🛢️ Visualizador 3D Sondajes", "🗺️ Visor Topográfico"]:
             archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
         elif pestaña in ["💬 Chat Asistente Operativo"]:
             archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
@@ -128,19 +182,24 @@ with st.sidebar:
     st.session_state.archivo_activo = archivo_seleccionado
     
     st.markdown("---")
-    st.markdown("<p style='font-size: 11px; color: #888; text-align: center;'>InkaDrill 2026 ©<br>Plataforma Integral Minera</p>", unsafe_allow_html=True)
+    # Tu perfil simulado en la parte inferior
+    st.markdown("""
+        <div style='display:flex; align-items:center; padding-left:10px;'>
+            <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
+            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Jean Kennedy</p><p style='margin:0; font-size:12px; color:#888;'>Ingeniería Pro</p></div>
+        </div>
+    """, unsafe_allow_html=True)
 
 if conexion_exitosa:
     # ====================================================================
     # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "💬 Chat Asistente Operativo":
-        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 30px;'>Hola, Jean, ¿qué vamos a hacer?</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
         
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
             
-        # === EL BOTÓN CIRCULAR MAGICO (➕) ===
         with st.popover("➕"):
             st.markdown("#### 🛠️ Herramientas")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
@@ -203,11 +262,18 @@ if conexion_exitosa:
                 st.markdown("Procesando...")
 
     # ====================================================================
-    # DEMÁS PESTAÑAS
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
     # ====================================================================
     elif pestaña == "🧮 Cálculos Geomecánicos":
-        st.title("Suite Geomecánica 🪨")
-    elif pestaña == "🗺️ Visor Topográfico":
-        st.title("Control Topográfico 🗺️")
-    elif pestaña in ["🛢️ Visualizador 3D de Sondajes", "📈 Dashboard de Analíticas"]:
-        st.title(pestaña)
+        st.title("Suite de Análisis Geomecánico 🪨")
+        tab_rmr, tab_gsi = st.tabs(["Clasificación RMR", "Índice GSI"])
+        with tab_rmr:
+            col1, col2 = st.columns(2)
+            with col1:
+                p1 = st.number_input("Resistencia Compresión Simple (MPa)", value=50)
+                p2 = st.slider("RQD (%)", 0, 100, 75)
+            with col2:
+                p4 = st.selectbox("Condición de Discontinuidades", ["Cerradas", "Rugosas", "Abiertas"])
+            if st.button("Calcular RMR", type="primary"):
+                val_rmr = (p2 * 0.2) + (p1 * 0.1) + 30
+                st.success(f"**Puntaje RMR Estimado:** {val_rmr:.
