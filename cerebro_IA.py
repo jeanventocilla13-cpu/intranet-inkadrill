@@ -177,6 +177,7 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
+    # 1. PRIMERO definimos la lista de opciones
     opciones_nav = [
         "💬 Chat Asistente Operativo", 
         "🧮 Cálculos Geomecánicos", 
@@ -185,7 +186,7 @@ with st.sidebar:
         "📈 Dashboard Analíticas"
     ]
     
-    # Código limpio para los botones (sin espacios extra que dañen la alineación)
+    # 2. DESPUÉS hacemos el bucle limpio (ahora Python sí sabe qué es opciones_nav)
     for opt in opciones_nav:
         if st.button(opt, key=f"nav_{opt}", type="secondary", use_container_width=True):
             st.session_state.pestaña_activa = opt
