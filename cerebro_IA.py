@@ -37,21 +37,28 @@ st.markdown("""
         padding-left: 10px;
     }
     
-    /* Cajas expandibles redondeadas */
-    div[data-testid="stExpander"] {
-        border-radius: 16px !important;
-        border: 1px solid #444746 !important;
+    /* Botón flotante estilo Gemini (+) */
+    div[data-testid="stPopover"] > button {
+        border-radius: 50px !important;
         background-color: #1e1f20 !important;
-        box-shadow: none !important;
+        border: 1px solid #444746 !important;
+        color: #e3e3e3 !important;
+        padding: 10px 20px !important;
+        font-weight: 500 !important;
+        transition: 0.3s;
+    }
+    div[data-testid="stPopover"] > button:hover {
+        background-color: #444746 !important;
+        border-color: #a8c7fa !important;
     }
     
-    /* Botones más limpios */
+    /* Botones principales limpios */
     .stButton>button {
         border-radius: 24px !important;
         font-weight: 500 !important;
     }
     
-    /* Ocultar elementos innecesarios de Streamlit para más limpieza */
+    /* Ocultar elementos innecesarios */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 </style>
@@ -117,25 +124,25 @@ if conexion_exitosa:
     # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "💬 Chat Asistente Operativo":
-        # ¡NUEVO SALUDO CON DEGRADADO ESTILO GEMINI!
-        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 40px;'>Hola, Jean, ¿qué vamos a hacer?</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 10px; margin-bottom: 30px;'>Hola, Jean, ¿qué vamos a hacer?</h1>", unsafe_allow_html=True)
         
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
             
-        col_tool1, col_tool2 = st.columns(2)
-        
-        with col_tool1:
-            with st.expander("📎 Subir documentos o imágenes"):
-                archivo_subido = st.file_uploader("Arrastra PDFs, TXT, o Imágenes", type=["pdf", "txt", "png", "jpg", "jpeg"])
+        # === EL NUEVO MENÚ FLOTANTE ESTILO GEMINI ===
+        with st.popover("➕ Herramientas y Subidas"):
+            st.markdown("### Selecciona una herramienta:")
+            tab1, tab2 = st.tabs(["📎 Subir a Base de Datos", "📊 Extractor Quirúrgico"])
+            
+            with tab1:
+                archivo_subido = st.file_uploader("Arrastra PDFs, TXT, o Imágenes", type=["pdf", "txt", "png", "jpg", "jpeg"], key="uploader_normal")
                 if st.button("Guardar en Nube InkaDrill", type="primary", use_container_width=True):
                     if archivo_subido:
                         with st.spinner("Subiendo..."):
                             st.success("Guardado correctamente.")
                             st.rerun()
 
-        with col_tool2:
-            with st.expander("📊 Extractor Quirúrgico a Excel"):
+            with tab2:
                 archivo_tabla = st.file_uploader("Sube un PDF de INGEMMET", type=["pdf"], key="extractor")
                 if st.button("Extraer Tablas", type="primary", use_container_width=True):
                     if archivo_tabla:
@@ -185,7 +192,7 @@ if conexion_exitosa:
                 st.markdown("Procesando...")
 
     # ====================================================================
-    # DEMÁS PESTAÑAS (Mantenidas idénticas para no alargar el bloque visual)
+    # DEMÁS PESTAÑAS
     # ====================================================================
     elif pestaña == "🧮 Cálculos Geomecánicos":
         st.title("Suite Geomecánica 🪨")
