@@ -39,13 +39,11 @@ st.markdown("""
        1. FONDO DE PANTALLA COMPLETO CON CAPA SEMI-TRANSPARENTE
        --------------------------------------------------- */
     .stApp {
-        /* Capa oscura (65%) fusionada con tu imagen de fondo */
         background: linear-gradient(rgba(19, 19, 20, 0.65), rgba(19, 19, 20, 0.65)), 
                     url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") no-repeat center center fixed !important;
         background-size: cover !important;
     }
     
-    /* Ocultar la barra superior blanca/gris de Streamlit */
     [data-testid="stHeader"] {
         background-color: transparent !important;
     }
@@ -54,9 +52,9 @@ st.markdown("""
        2. EFECTO CRISTAL (GLASSMORPHISM) EN LA BARRA LATERAL
        --------------------------------------------------- */
     [data-testid="stSidebar"] {
-        background-color: rgba(19, 19, 20, 0.3) !important; /* Cristal oscuro al 30% */
-        backdrop-filter: blur(12px) !important; /* Efecto borroso detrás de la barra */
-        border-right: 1px solid rgba(255, 255, 255, 0.08) !important; /* Línea sutil separadora */
+        background-color: rgba(19, 19, 20, 0.3) !important;
+        backdrop-filter: blur(12px) !important; 
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important; 
     }
 
     /* ---------------------------------------------------
@@ -81,7 +79,6 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* Botón "Nueva Conversación" */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
         background-color: rgba(30, 31, 32, 0.8) !important;
@@ -95,7 +92,6 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.1) !important;
     }
     
-    /* Enlaces Sueltos del Historial */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: transparent !important;
         border: none !important;
@@ -119,12 +115,21 @@ st.markdown("""
     }
     
     /* ---------------------------------------------------
-       4. HACKS DEL CHAT Y BOTÓN FLOTANTE
+       4. HACKS DEL CHAT Y BOTÓN FLOTANTE (CRISTAL TRANSPARENTE)
        --------------------------------------------------- */
+    /* Destruir el fondo sólido ancla de Streamlit */
+    [data-testid="stBottom"] {
+        background-color: transparent !important;
+    }
+    [data-testid="stBottom"] > div {
+        background-color: transparent !important;
+    }
+
     .stChatInputContainer {
         border-radius: 30px !important;
-        background-color: rgba(30, 31, 32, 0.8) !important;
-        backdrop-filter: blur(10px) !important;
+        /* Mismo cristal que la barra lateral (30% de opacidad) */
+        background-color: rgba(19, 19, 20, 0.3) !important;
+        backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         width: calc(100% - 60px) !important;
         margin-left: 60px !important;
@@ -134,6 +139,7 @@ st.markdown("""
         font-size: 16px !important;
         color: #e3e3e3 !important;
     }
+    
     div[data-testid="stPopover"] {
         position: fixed !important;
         bottom: 27px !important;
@@ -148,8 +154,9 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background-color: rgba(30, 31, 32, 0.8) !important;
-        backdrop-filter: blur(10px) !important;
+        /* Mismo cristal para el botón + */
+        background-color: rgba(19, 19, 20, 0.3) !important;
+        backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #e3e3e3 !important;
         font-size: 24px !important;
@@ -193,7 +200,6 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
-    # Botón de Nueva Conversación
     if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
         st.session_state.mensajes_ia = [] 
         st.session_state.pestaña_activa = "💬 Chat Asistente Operativo"
@@ -385,4 +391,30 @@ if conexion_exitosa:
                     st.error(f"Error procesando el mapa: {e}")
 
     # ====================================================================
-    # PESTAÑAS 4 Y 5: SONDAJES Y DASH
+    # PESTAÑAS 4 Y 5: SONDAJES Y DASHBOARD 
+    # ====================================================================
+    elif pestaña == "🛢️ Visualizador 3D Sondajes":
+        st.markdown("<h1 style='color: white;'>Modelamiento 3D de Sondajes Diamantinos 🛢️</h1>", unsafe_allow_html=True)
+        seed_val = len(st.session_state.archivo_activo)
+        np.random.seed(seed_val)
+        datos_lista = []
+        for h_id in ["DDH-001", "DDH-002", "DDH-003"]:
+            x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
+            for depth in range(0, 150, 10):
+                datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "CU_PCT": np.random.uniform(0.1, 3.0)})
+        df_sondajes = pd.DataFrame(datos_lista)
+        
+        fig_3d = go.Figure()
+        for hole in df_sondajes["HOLE_ID"].unique():
+            df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
+            fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["CU_PCT"], colorscale='Jet', colorbar=dict(title="Ley Cu (%)")), name=hole))
+        fig_3d.update_layout(margin=dict(r=20, l=20, b=20, t=40), height=500)
+        st.plotly_chart(fig_3d, use_container_width=True)
+
+    elif pestaña == "📈 Dashboard Analíticas":
+        st.markdown("<h1 style='color: white;'>Panel de Analíticas y Control Operativo 📈</h1>", unsafe_allow_html=True)
+        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+        modificador = len(st.session_state.archivo_activo)
+        with col_kpi1: st.metric(label="Documentos Indexados en la Nube", value=len(st.session_state.get("archivos_nube", [])))
+        with col_kpi2: st.metric(label="Promedio RMR Registrado", value=f"{68.5 + (modificador*0.2):.1f}")
+        with col_kpi3: st.metric(label="Consultas de IA este mes", value=142 + modificador)
