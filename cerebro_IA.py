@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="InkaDrill - Academico", page_icon="🧠", layout="wide")
 
 # Tu ID de carpeta en Google Drive
 ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
