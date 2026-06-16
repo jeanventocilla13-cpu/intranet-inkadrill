@@ -232,12 +232,69 @@ if conexion_exitosa:
     # ====================================================================
     # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
+    # ====================================================================
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # ====================================================================
     elif pestaña == "🗺️ Visor Topográfico":
         st.title("Control Topográfico y Planos 🗺️")
-        lat_centro, lon_centro = -12.684, -76.602 
-        mapa_mina = folium.Map(location=[lat_centro, lon_centro], zoom_start=14, tiles="CartoDB positron")
-        folium.Marker([lat_centro, lon_centro], popup="Bocamina", icon=folium.Icon(color="red")).add_to(mapa_mina)
-        st_folium(mapa_mina, width=1000, height=500)
+        
+        # Si estamos en modo simulación
+        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
+            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial Condestable). Selecciona un CSV con coordenadas para ver tus datos reales.")
+            lat_centro, lon_centro = -12.684, -76.602 
+            mapa_mina = folium.Map(location=[lat_centro, lon_centro], zoom_start=14, tiles="CartoDB positron")
+            folium.Marker([lat_centro, lon_centro], popup="Bocamina Principal", icon=folium.Icon(color="red", icon="info-sign")).add_to(mapa_mina)
+            folium.Marker([-12.688, -76.610], popup="Frente Sur", icon=folium.Icon(color="orange", icon="wrench")).add_to(mapa_mina)
+            st_folium(mapa_mina, width=1000, height=500)
+            
+        # Si el usuario seleccionó un archivo real de su Drive
+        else:
+            st.success(f"🗺️ Leyendo datos topográficos desde: **{st.session_state.archivo_activo}**")
+            
+            with st.spinner("Descargando coordenadas desde la nube..."):
+                try:
+                    # 1. Buscar el ID del archivo seleccionado
+                    file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
+                    
+                    # 2. Descargar y leer el CSV con Pandas
+                    csv_content = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
+                    df_mapa = pd.read_csv(StringIO(csv_content))
+                    
+                    # Mostramos una tabla rápida para que el ingeniero vea qué datos se leyeron
+                    with st.expander("Ver tabla de datos extraída", expanded=False):
+                        st.dataframe(df_mapa)
+                    
+                    # 3. Inteligencia para detectar qué columnas son las coordenadas
+                    col_lat = next((col for col in df_mapa.columns if 'lat' in col.lower()), None)
+                    col_lon = next((col for col in df_mapa.columns if 'lon' in col.lower() or 'lng' in col.lower()), None)
+                    
+                    # 4. Si encontramos coordenadas geográficas, dibujamos el mapa
+                    if col_lat and col_lon:
+                        # Limpiar celdas vacías
+                        df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
+                        
+                        # Centrar el mapa en el primer punto del Excel
+                        lat_centro = float(df_mapa.iloc[0][col_lat])
+                        lon_centro = float(df_mapa.iloc[0][col_lon])
+                        
+                        mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=12, tiles="CartoDB positron")
+                        
+                        # Bucle para dibujar cada punto del Excel
+                        for idx, row in df_mapa.iterrows():
+                            # Usa la primera columna como nombre del punto (ej. Nombre de concesión o vértice)
+                            nombre_punto = str(row.iloc[0]) 
+                            folium.Marker(
+                                [float(row[col_lat]), float(row[col_lon])], 
+                                popup=nombre_punto, 
+                                icon=folium.Icon(color="blue", icon="map-marker")
+                            ).add_to(mapa_dinamico)
+                            
+                        st_folium(mapa_dinamico, width=1000, height=500)
+                    else:
+                        st.warning("⚠️ El sistema no detectó columnas llamadas 'Latitud' y 'Longitud' (o similares) en este archivo CSV. Para dibujar en el mapa geográfico, la tabla extraída debe contener coordenadas.")
+                        
+                except Exception as e:
+                    st.error(f"No se pudo procesar el mapa con este archivo: Asegúrate de que el documento seleccionado sea un CSV de tablas. Detalle: {e}")
 
     # ====================================================================
     # PESTAÑA 4: VISUALIZADOR 3D DE SONDAJES
