@@ -8,3 +8,5 @@ google-auth-oauthlib
 openpyxl
 PyPDF2
 Pillow
+folium
+streamlit-folium
