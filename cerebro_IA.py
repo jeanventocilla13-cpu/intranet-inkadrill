@@ -70,12 +70,11 @@ with st.sidebar:
     
     # Filtramos la lista según la pestaña en la que estemos
     if "archivos_nube" in st.session_state:
-        if pestaña in ["📈 Dashboard de Analíticas", "🛢️ Visualizador 3D de Sondajes"]:
-            # Solo mostrar Excels o CSVs
-            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+        # Agregamos el Visor Topográfico y permitimos ver los PDFs y CSVs
+        if pestaña in ["📈 Dashboard de Analíticas", "🛢️ Visualizador 3D de Sondajes", "🗺️ Visor Topográfico"]:
+            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
         elif pestaña in ["💬 Chat Asistente Operativo"]:
-            # Solo mostrar PDFs, Textos o Imágenes
-            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg'))]
+            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
     
     # Agregamos los nombres a las opciones
     for f in archivos_filtrados:
@@ -136,29 +135,35 @@ if conexion_exitosa:
                 archivo_tabla = st.file_uploader("Sube un PDF para extraer sus tablas", type=["pdf"], key="extractor")
                 if st.button("Procesar y Extraer Tablas", type="primary", use_container_width=True):
                     if archivo_tabla:
-                        with st.spinner("Leyendo tablas y guardando respaldo en Drive..."):
+                        with st.spinner("Extrayendo tablas y guardando datos topográficos en Drive..."):
                             try:
-                                # 1. Guardar una copia original del PDF en tu Google Drive automáticamente
-                                media_cuerpo = MediaIoBaseUpload(BytesIO(archivo_tabla.getvalue()), mimetype='application/pdf', resumable=True)
-                                metadata = {'name': archivo_tabla.name, 'parents': [ID_CARPETA_MEMORIA]}
-                                drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
+                                # 1. Guardar el PDF original en Drive
+                                media_pdf = MediaIoBaseUpload(BytesIO(archivo_tabla.getvalue()), mimetype='application/pdf', resumable=True)
+                                metadata_pdf = {'name': archivo_tabla.name, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata_pdf, media_body=media_pdf, fields='id').execute()
                                 
-                                # 2. Extraer el texto para Gemini
+                                # 2. Extraer el texto para la IA
                                 texto_pdf = ""
                                 lector_pdf = PyPDF2.PdfReader(archivo_tabla)
                                 for pagina in lector_pdf.pages: texto_pdf += pagina.extract_text() + "\n"
                                 
-                                # 3. Convertir a CSV con IA
+                                # 3. Convertir a formato de tabla (CSV)
                                 instruccion_csv = f"Extrae todas las tablas presentes en este texto y devuélvelas estrictamente en formato CSV (sin saludos, ni formato markdown). Texto:\n{texto_pdf}"
                                 respuesta_csv = modelo.generate_content(instruccion_csv)
                                 datos_limpios = respuesta_csv.text.replace("```csv", "").replace("```", "").strip()
                                 
-                                # Actualizar la lista de la nube en tiempo real
+                                # 4. ¡NUEVO! Guardar el CSV estructurado en Drive para los planos topográficos
+                                nombre_csv = f"Datos_Topografia_{archivo_tabla.name.replace('.pdf', '')}.csv"
+                                media_csv = MediaIoBaseUpload(BytesIO(datos_limpios.encode('utf-8')), mimetype='text/csv', resumable=True)
+                                metadata_csv = {'name': nombre_csv, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata_csv, media_body=media_csv, fields='id').execute()
+                                
+                                # 5. Actualizar la memoria de la aplicación al instante
                                 query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
                                 st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
                                 
-                                st.success("¡Tablas extraídas y PDF guardado en Drive con éxito!")
-                                st.download_button(label="📥 Descargar CSV para Excel", data=datos_limpios, file_name=f"Tablas_{datetime.date.today()}.csv", mime="text/csv", use_container_width=True)
+                                st.success("¡Datos extraídos y guardados en Drive para el Visor Topográfico!")
+                                st.download_button(label="📥 Descargar CSV Manualmente", data=datos_limpios, file_name=nombre_csv, mime="text/csv", use_container_width=True)
                             except Exception as e:
                                 st.error(f"Error al procesar: {e}")
                     else:
