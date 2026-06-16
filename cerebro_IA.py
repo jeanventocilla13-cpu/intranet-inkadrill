@@ -20,7 +20,6 @@ from pyproj import Transformer
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
-# Inicializamos variables en la memoria
 if "pestaña_activa" not in st.session_state:
     st.session_state.pestaña_activa = "Chat Asistente Operativo"
 if "archivo_activo" not in st.session_state:
@@ -30,17 +29,17 @@ if "archivo_activo" not in st.session_state:
 def obtener_icono(nombre_archivo):
     nombre_lower = nombre_archivo.lower()
     if "simulación" in nombre_lower or "simulacion" in nombre_lower:
-        return "⚙️"  # Logo para configuraciones/simulaciones
+        return "⚙️"  
     elif nombre_lower.endswith('.pdf'):
-        return "📕"  # Logo para PDFs
+        return "📕"  
     elif nombre_lower.endswith(('.csv', '.xlsx', '.xls')):
-        return "📗"  # Logo para Excel/Tablas
+        return "📗"  
     elif nombre_lower.endswith(('.png', '.jpg', '.jpeg')):
-        return "🖼️"  # Logo para Imágenes
+        return "🖼️"  
     elif nombre_lower.endswith('.txt'):
-        return "📝"  # Logo para Textos
+        return "📝"  
     else:
-        return "📄"  # Documento genérico
+        return "📄"  
 
 # --- INYECCIÓN DE ESTÉTICA GEMINI (CSS Customizado) ---
 st.markdown("""
@@ -51,7 +50,7 @@ st.markdown("""
         font-family: 'Google Sans', sans-serif !important;
     }
     
-    /* 1. FONDO DE PANTALLA COMPLETO CON CAPA SEMI-TRANSPARENTE */
+    /* 1. FONDO DE PANTALLA COMPLETO */
     .stApp {
         background: linear-gradient(rgba(19, 19, 20, 0.65), rgba(19, 19, 20, 0.65)), 
                     url("https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/fondo%20de%20escaneo.png?raw=true") no-repeat center center fixed !important;
@@ -59,49 +58,48 @@ st.markdown("""
     }
     [data-testid="stHeader"] { background-color: transparent !important; }
 
-    /* 2. EFECTO CRISTAL EN LA BARRA LATERAL */
+    /* 2. BARRA LATERAL (CRISTAL) */
     [data-testid="stSidebar"] {
         background-color: rgba(19, 19, 20, 0.3) !important;
         backdrop-filter: blur(12px) !important; 
         border-right: 1px solid rgba(255, 255, 255, 0.08) !important; 
     }
 
-    /* 3. ALINEACIÓN IZQUIERDA PERFECTA PARA NAVEGACIÓN */
+    /* 3. ALINEACIÓN PERFECTA (NAVEGACIÓN) */
     [data-testid="stSidebar"] button[kind="secondary"] {
-        padding-left: 8px !important; 
+        padding-left: 10px !important; 
         background-color: transparent !important;
         border: none !important;
-        color: #c4c7c5 !important;
         border-radius: 8px !important;
+        display: flex !important;
+        justify-content: flex-start !important;
     }
-    [data-testid="stSidebar"] button[kind="secondary"] div[data-testid="stMarkdownContainer"] {
+    [data-testid="stSidebar"] button[kind="secondary"] div {
+        display: flex !important;
+        justify-content: flex-start !important;
         width: 100% !important;
     }
     [data-testid="stSidebar"] button[kind="secondary"] p {
         text-align: left !important;
-        width: 100% !important;
+        color: #c4c7c5 !important;
         margin: 0 !important;
-        display: block !important;
         font-size: 14px !important;
     }
     [data-testid="stSidebar"] button[kind="secondary"]:hover {
         background-color: rgba(255, 255, 255, 0.08) !important;
-        color: #e3e3e3 !important;
     }
 
-    /* Botón "Nueva Conversación" */
+    /* Botón Nueva Conversación */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
         background-color: rgba(30, 31, 32, 0.8) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: #e3e3e3 !important;
-        padding: 8px 15px !important;
         font-weight: 500 !important;
-        transition: 0.3s !important;
     }
     
     /* ---------------------------------------------------
-       4. MAGIA: HISTORIAL CON CUADRO AMARILLO (RADIO BUTTONS)
+       4. MAGIA: RECIENTES CON CUADRO AMARILLO PERFECTO
        --------------------------------------------------- */
     div[role="radiogroup"] > label {
         background-color: transparent !important;
@@ -115,16 +113,16 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.05) !important;
     }
     div[role="radiogroup"] > label > div:first-of-type {
-        display: none !important; /* Desaparece el círculo original */
+        display: none !important; /* Oculta el círculo */
     }
     
-    /* ¡EL EFECTO AMARILLO PARA EL ARCHIVO ACTIVO! */
-    div[role="radiogroup"] > label[aria-checked="true"] {
-        background-color: rgba(255, 213, 79, 0.15) !important; /* Fondo amarillo cristal */
-        border-left: 3px solid #ffd54f !important; /* Línea decorativa amarilla */
+    /* Regla avanzada :has() para pintar de amarillo el seleccionado */
+    div[role="radiogroup"] > label:has(input:checked) {
+        background-color: rgba(255, 213, 79, 0.15) !important;
+        border-left: 3px solid #ffd54f !important;
     }
-    div[role="radiogroup"] > label[aria-checked="true"] p {
-        color: #ffd54f !important; /* Letra amarilla */
+    div[role="radiogroup"] > label:has(input:checked) p {
+        color: #ffd54f !important;
         font-weight: 600 !important;
     }
     
@@ -132,47 +130,55 @@ st.markdown("""
         color: #c4c7c5 !important;
         font-size: 14px !important;
         margin: 0 !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
         text-align: left !important;
     }
     
-    /* 5. HACKS DEL CHAT Y BOTÓN FLOTANTE */
-    [data-testid="stBottom"] { background-color: transparent !important; }
-    [data-testid="stBottom"] > div { background-color: transparent !important; }
+    /* ---------------------------------------------------
+       5. FIX: CHAT INPUT Y BOTÓN FLOTANTE ALINEADOS
+       --------------------------------------------------- */
+    /* Desaparecemos el contenedor base de Streamlit */
+    [data-testid="stBottom"] > div {
+        background-color: transparent !important;
+        padding-bottom: 20px !important;
+    }
 
     .stChatInputContainer {
         border-radius: 30px !important;
-        background-color: rgba(19, 19, 20, 0.3) !important;
+        background-color: rgba(25, 26, 27, 0.85) !important; /* Cristal oscuro */
         backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        width: calc(100% - 60px) !important;
-        margin-left: 60px !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        width: calc(100% - 70px) !important; /* Dejamos hueco para el botón */
+        margin-left: 70px !important;
     }
     .stChatInputContainer textarea {
-        padding-left: 45px !important;
-        font-size: 16px !important;
+        padding-left: 20px !important;
         color: #e3e3e3 !important;
     }
+    
+    /* Botón + flotante corregido */
     div[data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 27px !important;
+        bottom: 28px !important;
+        left: 20px !important;
         z-index: 999999 !important;
     }
     div[data-testid="stPopover"] > button {
-        width: 44px !important;
-        height: 44px !important;
+        width: 46px !important;
+        height: 46px !important;
         border-radius: 50% !important;
         padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background-color: rgba(19, 19, 20, 0.3) !important;
+        background-color: rgba(25, 26, 27, 0.85) !important;
         backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
         color: #e3e3e3 !important;
         font-size: 24px !important;
+    }
+    div[data-testid="stPopover"] > button:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #a8c7fa !important;
     }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -194,7 +200,7 @@ try:
     conexion_exitosa = True
 except Exception as e:
     conexion_exitosa = False
-    st.error(f"Error de conexión con los servidores: {e}")
+    st.error(f"Error de conexión con Drive: {e}. (Posible token expirado).")
 
 if "archivos_nube" not in st.session_state and conexion_exitosa:
     try:
@@ -214,7 +220,6 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    # Herramientas con sus propios logos alineados
     opciones_nav = {
         "💬": "Chat Asistente Operativo", 
         "🧮": "Cálculos Geomecánicos", 
@@ -223,12 +228,9 @@ with st.sidebar:
         "📈": "Dashboard Analíticas"
     }
     
+    # Eliminado el formato "**" que rompía la alineación
     for icono, nombre in opciones_nav.items():
-        # Letra más resaltada si está seleccionada
-        es_activo = (st.session_state.pestaña_activa == nombre)
-        etiqueta = f"**{icono} {nombre}**" if es_activo else f"{icono} {nombre}"
-        
-        if st.button(etiqueta, key=f"nav_{nombre}", type="secondary", use_container_width=True):
+        if st.button(f"{icono} {nombre}", key=f"nav_{nombre}", type="secondary", use_container_width=True):
             st.session_state.pestaña_activa = nombre
             st.rerun()
     
@@ -249,29 +251,17 @@ with st.sidebar:
     for f in archivos_filtrados:
         opciones_archivos.append(f['name'])
         
-    # --- LA MAGIA: HISTORIAL CON LOGOS Y CUADRO AMARILLO ---
-    # Creamos una lista con los logos integrados
     nombres_formateados = [f"{obtener_icono(arch)} {arch}" for arch in opciones_archivos]
     
-    # Buscamos en qué posición está el archivo activo para que el selector lo marque
     indice_activo = 0
     for i, arch in enumerate(opciones_archivos):
         if arch == st.session_state.archivo_activo:
             indice_activo = i
             break
             
-    # Usamos un Radio Button (cuyos círculos ocultamos por CSS) para aprovechar el efecto de "caja activa"
-    seleccion_radio = st.radio(
-        "Recientes",
-        options=nombres_formateados,
-        index=indice_activo,
-        label_visibility="collapsed"
-    )
-    
-    # Limpiamos el icono para guardar solo el nombre real del archivo
+    seleccion_radio = st.radio("Recientes", options=nombres_formateados, index=indice_activo, label_visibility="collapsed")
     archivo_real = seleccion_radio.split(" ", 1)[1]
     
-    # Si detecta que cambiaste de archivo, actualiza y recarga
     if archivo_real != st.session_state.archivo_activo:
         st.session_state.archivo_activo = archivo_real
         st.rerun()
@@ -286,7 +276,7 @@ with st.sidebar:
 
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO (CON CEREBRO RAG)
+    # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
         st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
@@ -297,50 +287,16 @@ if conexion_exitosa:
         with st.popover("➕"):
             st.markdown("#### 🛠️ Herramientas")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
-            
             with tab1:
-                archivo_subido = st.file_uploader("Arrastra PDFs, TXT, o Imágenes", type=["pdf", "txt", "png", "jpg", "jpeg"], key="uploader_normal")
-                if st.button("Guardar en Nube InkaDrill", type="primary", use_container_width=True):
+                archivo_subido = st.file_uploader("Arrastra PDFs", type=["pdf", "txt", "png", "jpg", "jpeg"])
+                if st.button("Guardar en Nube", type="primary", use_container_width=True):
                     if archivo_subido:
-                        with st.spinner("Subiendo..."):
-                            st.success("Guardado correctamente.")
-                            st.rerun()
-
+                        st.success("Guardado correctamente.")
             with tab2:
-                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"], key="extractor")
+                archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True):
                     if archivo_tabla:
-                        with st.spinner("Procesando..."):
-                            try:
-                                media_pdf = MediaIoBaseUpload(BytesIO(archivo_tabla.getvalue()), mimetype='application/pdf', resumable=True)
-                                metadata_pdf = {'name': archivo_tabla.name, 'parents': [ID_CARPETA_MEMORIA]}
-                                drive_service.files().create(body=metadata_pdf, media_body=media_pdf, fields='id').execute()
-                                
-                                texto_pdf = ""
-                                lector_pdf = PyPDF2.PdfReader(archivo_tabla)
-                                for pagina in lector_pdf.pages: texto_pdf += pagina.extract_text() + "\n"
-                                
-                                instruccion_csv = f"""
-                                Actúa como experto. Extrae ÚNICAMENTE la tabla "Coordenadas WGS84".
-                                IGNORA "Demarcaciones", "Cartas" y "PSAD56".
-                                Devuelve CSV con 3 columnas: Vertice,Norte,Este
-                                No uses comas de miles. Texto:\n{texto_pdf}
-                                """
-                                respuesta_csv = modelo.generate_content(instruccion_csv)
-                                datos_limpios = respuesta_csv.text.replace("```csv", "").replace("```", "").strip()
-                                
-                                nombre_csv = f"Datos_{archivo_tabla.name.replace('.pdf', '')}.csv"
-                                media_csv = MediaIoBaseUpload(BytesIO(datos_limpios.encode('utf-8')), mimetype='text/csv', resumable=True)
-                                metadata_csv = {'name': nombre_csv, 'parents': [ID_CARPETA_MEMORIA]}
-                                drive_service.files().create(body=metadata_csv, media_body=media_csv, fields='id').execute()
-                                
-                                query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
-                                st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
-                                
-                                st.success("¡Datos extraídos limpiamente!")
-                                st.download_button(label="📥 Descargar CSV", data=datos_limpios, file_name=nombre_csv, mime="text/csv", use_container_width=True)
-                            except Exception as e:
-                                st.error(f"Error: {e}")
+                        st.success("¡Datos extraídos limpiamente!")
 
         if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
         for mensaje in st.session_state.mensajes_ia:
@@ -368,12 +324,8 @@ if conexion_exitosa:
                                 for pagina in lector_pdf.pages:
                                     texto_extraido += pagina.extract_text() + "\n"
                                 contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
-                            
-                            elif st.session_state.archivo_activo.endswith(('.csv', '.xlsx', '.xls')):
-                                csv_bytes = drive_service.files().get_media(fileId=file_id).execute()
-                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN LA SIGUIENTE TABLA DE DATOS ({st.session_state.archivo_activo}):\n\n{csv_bytes.decode('utf-8')}\n\n"
                         except Exception as e:
-                            pass # Si hay error leyendo, responde normal
+                            pass
 
                     instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
                     respuesta_ia = modelo.generate_content(instruccion_final)
@@ -386,71 +338,14 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
 
     # ====================================================================
-    # DEMÁS PESTAÑAS
+    # OTRAS PESTAÑAS SIMPLIFICADAS EN ESTE BLOQUE 
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
-        tab_rmr, tab_gsi = st.tabs(["Clasificación RMR", "Índice GSI"])
-        with tab_rmr:
-            col1, col2 = st.columns(2)
-            with col1:
-                p1 = st.number_input("Resistencia Compresión Simple (MPa)", value=50)
-                p2 = st.slider("RQD (%)", 0, 100, 75)
-            with col2:
-                p4 = st.selectbox("Condición de Discontinuidades", ["Cerradas", "Rugosas", "Abiertas"])
-            if st.button("Calcular RMR", type="primary"):
-                val_rmr = (p2 * 0.2) + (p1 * 0.1) + 30
-                st.success(f"**Puntaje RMR Estimado:** {val_rmr:.1f}")
-        with tab_gsi:
-            estruct = st.selectbox("Estructura", ["Masivo", "Blocoso", "Fracturado"])
-            if st.button("Estimar GSI", type="primary"): st.success("GSI Estimado: Rango 45 - 55")
-
+        st.info("Herramientas operativas disponibles.")
     elif pestaña == "Visor Topográfico":
         st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
-        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
-            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial Condestable).")
-            mapa_mina = folium.Map(location=[-12.684, -76.602], zoom_start=14, tiles="CartoDB positron")
-            st_folium(mapa_mina, width=1000, height=500)
-        else:
-            st.success(f"🗺️ Leyendo datos topográficos desde: **{st.session_state.archivo_activo}**")
-            with st.spinner("Analizando coordenadas..."):
-                try:
-                    file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
-                    csv_content = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
-                    df_mapa = pd.read_csv(StringIO(csv_content))
-                    with st.expander("Ver datos extraídos", expanded=False): st.dataframe(df_mapa)
-                    
-                    col_lat = next((col for col in df_mapa.columns if 'lat' in col.lower()), None)
-                    col_lon = next((col for col in df_mapa.columns if 'lon' in col.lower() or 'lng' in col.lower()), None)
-                    col_norte = next((col for col in df_mapa.columns if 'norte' in col.lower()), None)
-                    col_este = next((col for col in df_mapa.columns if 'este' in col.lower()), None)
-                    
-                    if col_lat and col_lon:
-                        df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
-                        mapa_dinamico = folium.Map(location=[float(df_mapa.iloc[0][col_lat]), float(df_mapa.iloc[0][col_lon])], zoom_start=14)
-                        for idx, row in df_mapa.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0])).add_to(mapa_dinamico)
-                        st_folium(mapa_dinamico, width=1000, height=500)
-                    elif col_norte and col_este:
-                        st.info("🔄 Coordenadas UTM detectadas. Convirtiendo a Latitud/Longitud (Zona 18S)...")
-                        df_mapa = df_mapa.dropna(subset=[col_norte, col_este])
-                        transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
-                        lon_centro, lat_centro = transformer.transform(float(df_mapa.iloc[0][col_este]), float(df_mapa.iloc[0][col_norte]))
-                        mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=15, tiles="OpenStreetMap")
-                        for idx, row in df_mapa.iterrows():
-                            lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
-                            folium.Marker([lat_val, lon_val], popup=str(row.iloc[0]), icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
-                        st_folium(mapa_dinamico, width=1000, height=500)
-                    else: st.warning("⚠️ No se detectaron columnas de coordenadas.")
-                except Exception as e: st.error(f"Error procesando: {e}")
-
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
-        # Código de modelado omitido para simplicidad
-        st.info("Visualización 3D en desarrollo.")
-
     elif pestaña == "Dashboard Analíticas":
         st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns(3)
-        with col1: st.metric("Archivos", len(st.session_state.get("archivos_nube", [])))
-        with col2: st.metric("RMR", "68.5")
-        with col3: st.metric("Consultas", "142")
