@@ -49,13 +49,13 @@ with st.sidebar:
     st.markdown("<h2 style='color: #A6802C; font-weight: 900; text-align: center;'>INKADRILL<br>CEREBRO IA</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
+    # Hemos removido "Extractor de Tablas" de la navegación principal
     pestaña = st.radio(
         "Navegación:",
         [
             "💬 Chat Asistente Operativo", 
             "🧮 Cálculos Geomecánicos", 
             "🗺️ Visor Topográfico", 
-            "📊 Extractor de Tablas",
             "🛢️ Visualizador 3D de Sondajes",
             "📈 Dashboard de Analíticas"
         ]
@@ -63,7 +63,6 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # === EL NUEVO HISTORIAL CONTEXTUAL (En la zona inferior que marcaste) ===
     st.markdown("### 🗂️ Archivo Activo")
     
     opciones_archivos = ["Base de datos general (Simulación)"]
@@ -74,7 +73,7 @@ with st.sidebar:
         if pestaña in ["📈 Dashboard de Analíticas", "🛢️ Visualizador 3D de Sondajes"]:
             # Solo mostrar Excels o CSVs
             archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
-        elif pestaña in ["💬 Chat Asistente Operativo", "📊 Extractor de Tablas"]:
+        elif pestaña in ["💬 Chat Asistente Operativo"]:
             # Solo mostrar PDFs, Textos o Imágenes
             archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg'))]
     
@@ -83,8 +82,6 @@ with st.sidebar:
         opciones_archivos.append(f['name'])
         
     archivo_seleccionado = st.selectbox("Selecciona un documento para analizar:", opciones_archivos, label_visibility="collapsed")
-    
-    # Guardamos el archivo seleccionado en la sesión para usarlo en los gráficos
     st.session_state.archivo_activo = archivo_seleccionado
     
     st.markdown("---")
@@ -92,44 +89,73 @@ with st.sidebar:
 
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO
+    # PESTAÑA 1: CHATBOT UNIFICADO + CARGA DE ARCHIVOS + EXTRACTOR
     # ====================================================================
     if pestaña == "💬 Chat Asistente Operativo":
         st.markdown("<h1 style='text-align: center; color: #444; font-weight: 400; font-size: 40px; margin-top: 20px; margin-bottom: 40px;'>¿Qué toca hoy, JEAN KENNEDY?</h1>", unsafe_allow_html=True)
         
-        # Muestra qué archivo está analizando el chat
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose prioritariamente en el archivo: `{st.session_state.archivo_activo}`")
             
-        with st.expander("📎 Subir documentos o imágenes (Alimentar BD)"):
-            archivo_subido = st.file_uploader("Arrastra aquí tus archivos PDF, TXT, PNG o JPG", type=["pdf", "txt", "png", "jpg", "jpeg"])
-            if st.button("Guardar en Nube InkaDrill ☁️", type="primary"):
-                if archivo_subido:
-                    with st.spinner("Subiendo a Google Drive..."):
-                        if archivo_subido.name.endswith(".txt"):
-                            texto = archivo_subido.read().decode("utf-8")
-                            media_cuerpo = MediaIoBaseUpload(BytesIO(texto.encode('utf-8')), mimetype='text/plain', resumable=True)
-                            metadata = {'name': archivo_subido.name, 'parents': [ID_CARPETA_MEMORIA]}
-                            drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
-                        elif archivo_subido.name.endswith(".pdf"):
-                            texto_extraido = ""
-                            lector_pdf = PyPDF2.PdfReader(archivo_subido)
-                            for pagina in lector_pdf.pages: texto_extraido += pagina.extract_text() + "\n"
-                            media_cuerpo = MediaIoBaseUpload(BytesIO(texto_extraido.encode('utf-8')), mimetype='text/plain', resumable=True)
-                            metadata = {'name': f"{archivo_subido.name}.txt", 'parents': [ID_CARPETA_MEMORIA]}
-                            drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
-                        elif archivo_subido.name.endswith((".png", ".jpg", ".jpeg")):
-                            mimetype = 'image/jpeg' if archivo_subido.name.endswith((".jpg", ".jpeg")) else 'image/png'
-                            media_cuerpo = MediaIoBaseUpload(BytesIO(archivo_subido.getvalue()), mimetype=mimetype, resumable=True)
-                            metadata = {'name': archivo_subido.name, 'parents': [ID_CARPETA_MEMORIA]}
-                            drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
-                    
-                    # Refrescar la caché de archivos al subir uno nuevo
-                    query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
-                    st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
-                    st.success(f"¡El archivo '{archivo_subido.name}' se integró a la base de datos de la mina!")
-                    st.rerun()
+        # --- ZONA DE HERRAMIENTAS (Desplegables) ---
+        col_tool1, col_tool2 = st.columns(2)
+        
+        with col_tool1:
+            with st.expander("📎 Subir documentos o imágenes (Alimentar BD)"):
+                archivo_subido = st.file_uploader("Arrastra aquí PDFs, TXT, o Imágenes", type=["pdf", "txt", "png", "jpg", "jpeg"])
+                if st.button("Guardar en Nube InkaDrill ☁️", type="primary", use_container_width=True):
+                    if archivo_subido:
+                        with st.spinner("Subiendo a Google Drive..."):
+                            if archivo_subido.name.endswith(".txt"):
+                                texto = archivo_subido.read().decode("utf-8")
+                                media_cuerpo = MediaIoBaseUpload(BytesIO(texto.encode('utf-8')), mimetype='text/plain', resumable=True)
+                                metadata = {'name': archivo_subido.name, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
+                            elif archivo_subido.name.endswith(".pdf"):
+                                texto_extraido = ""
+                                lector_pdf = PyPDF2.PdfReader(archivo_subido)
+                                for pagina in lector_pdf.pages: texto_extraido += pagina.extract_text() + "\n"
+                                media_cuerpo = MediaIoBaseUpload(BytesIO(texto_extraido.encode('utf-8')), mimetype='text/plain', resumable=True)
+                                metadata = {'name': f"{archivo_subido.name}.txt", 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
+                            elif archivo_subido.name.endswith((".png", ".jpg", ".jpeg")):
+                                mimetype = 'image/jpeg' if archivo_subido.name.endswith((".jpg", ".jpeg")) else 'image/png'
+                                media_cuerpo = MediaIoBaseUpload(BytesIO(archivo_subido.getvalue()), mimetype=mimetype, resumable=True)
+                                metadata = {'name': archivo_subido.name, 'parents': [ID_CARPETA_MEMORIA]}
+                                drive_service.files().create(body=metadata, media_body=media_cuerpo, fields='id').execute()
+                        
+                        query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                        st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                        st.success(f"¡Integrado a la base de datos de la mina!")
+                        st.rerun()
+                    else:
+                        st.warning("Sube un archivo primero.")
 
+        with col_tool2:
+            with st.expander("📊 Extractor de Tablas a Excel (IA)"):
+                archivo_tabla = st.file_uploader("Sube un PDF para extraer sus tablas", type=["pdf"], key="extractor")
+                if st.button("Procesar y Extraer Tablas", type="primary", use_container_width=True):
+                    if archivo_tabla:
+                        with st.spinner("La IA está leyendo y estructurando las tablas..."):
+                            try:
+                                texto_pdf = ""
+                                lector_pdf = PyPDF2.PdfReader(archivo_tabla)
+                                for pagina in lector_pdf.pages: texto_pdf += pagina.extract_text() + "\n"
+                                
+                                instruccion_csv = f"Extrae todas las tablas presentes en este texto y devuélvelas estrictamente en formato CSV (sin saludos, ni formato markdown). Texto:\n{texto_pdf}"
+                                respuesta_csv = modelo.generate_content(instruccion_csv)
+                                datos_limpios = respuesta_csv.text.replace("```csv", "").replace("```", "").strip()
+                                
+                                st.success("¡Tablas extraídas con éxito!")
+                                st.download_button(label="📥 Descargar CSV para Excel", data=datos_limpios, file_name=f"Tablas_{datetime.date.today()}.csv", mime="text/csv", use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Error al procesar: {e}")
+                    else:
+                        st.warning("Por favor, sube un documento PDF primero.")
+
+        st.markdown("---")
+        
+        # --- LÓGICA DEL CHAT ---
         if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
 
         for mensaje in st.session_state.mensajes_ia:
@@ -147,9 +173,8 @@ if conexion_exitosa:
                     query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
                     archivos_drive = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
                     for archivo in archivos_drive:
-                        # Si hay un archivo seleccionado en el historial, darle prioridad
                         if st.session_state.archivo_activo != "Base de datos general (Simulación)" and archivo['name'] != st.session_state.archivo_activo and not st.session_state.archivo_activo.endswith('.pdf'):
-                            pass # Filtrado lógico
+                            pass
                         elif archivo['name'].endswith('.txt'):
                             contenido_archivo = drive_service.files().get_media(fileId=archivo['id']).execute().decode('utf-8')
                             contexto_documentos += f"\n\n=== {archivo['name']} ===\n{contenido_archivo}"
@@ -199,16 +224,7 @@ if conexion_exitosa:
         st_folium(mapa_mina, width=1000, height=500)
 
     # ====================================================================
-    # PESTAÑA 4: EXTRACTOR DE TABLAS (IA)
-    # ====================================================================
-    elif pestaña == "📊 Extractor de Tablas":
-        st.title("Extractor de Datos Estructurados 📊")
-        archivo_tabla = st.file_uploader("Subir PDF", type=["pdf"], key="extractor")
-        if st.button("Extraer a Excel", type="primary"):
-            st.success("Configurado correctamente.")
-
-    # ====================================================================
-    # PESTAÑA 5: VISUALIZADOR 3D DE SONDAJES
+    # PESTAÑA 4: VISUALIZADOR 3D DE SONDAJES
     # ====================================================================
     elif pestaña == "🛢️ Visualizador 3D de Sondajes":
         st.title("Modelamiento 3D de Sondajes Diamantinos 🛢️")
@@ -217,7 +233,6 @@ if conexion_exitosa:
         else:
             st.info("ℹ️ Mostrando simulación por defecto. Selecciona un archivo en la barra lateral para ver sus datos.")
             
-        # Simulación dinámica (Los datos cambian ligeramente según el nombre del archivo para notar el cambio)
         seed_val = len(st.session_state.archivo_activo)
         np.random.seed(seed_val)
         
@@ -245,7 +260,7 @@ if conexion_exitosa:
         st.plotly_chart(fig_3d, use_container_width=True)
 
     # ====================================================================
-    # PESTAÑA 6: DASHBOARD CON REACCIÓN AL HISTORIAL
+    # PESTAÑA 5: DASHBOARD CON REACCIÓN AL HISTORIAL
     # ====================================================================
     elif pestaña == "📈 Dashboard de Analíticas":
         st.title("Panel de Analíticas y Control Operativo 📈")
@@ -253,11 +268,8 @@ if conexion_exitosa:
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.success(f"📊 Gráficos generados a partir de los datos de: **{st.session_state.archivo_activo}**")
         
-        # MÉTTRICAS DINÁMICAS
         col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
         total_docs = len(st.session_state.get("archivos_nube", []))
-        
-        # Variamos las métricas usando el nombre del archivo como semilla para que veas que cambia
         modificador = len(st.session_state.archivo_activo)
         
         with col_kpi1: st.metric(label="Documentos Indexados en la Nube", value=total_docs)
@@ -266,12 +278,10 @@ if conexion_exitosa:
             
         st.markdown("---")
         
-        # GRÁFICOS DINÁMICOS
         col_graph1, col_graph2 = st.columns(2)
         
         with col_graph1:
             st.markdown("### Calidad de Roca (Dinámico)")
-            # Los datos de la torta cambian según el archivo seleccionado
             data_pie = pd.DataFrame({
                 "Calidad": ["Muy Buena", "Buena", "Regular", "Mala"],
                 "Frentes": [12 + modificador, 45 - modificador, 28, 8]
