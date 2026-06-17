@@ -98,7 +98,9 @@ st.markdown("""
         font-weight: 500 !important;
     }
     
-    /* 4. RECIENTES CON CUADRO AMARILLO PERFECTO */
+    /* ---------------------------------------------------
+       4. MAGIA: CUADRO AMARILLO (NAVEGACIÓN Y RECIENTES)
+       --------------------------------------------------- */
     div[role="radiogroup"] > label {
         background-color: transparent !important;
         padding: 8px 10px !important;
@@ -124,13 +126,16 @@ st.markdown("""
     }
     div[role="radiogroup"] p {
         color: #c4c7c5 !important;
-        font-size: 14px !important;
+        font-size: 14.5px !important;
         margin: 0 !important;
         text-align: left !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
     /* ---------------------------------------------------
-       5. RESTAURACIÓN DEL BOTÓN "+" CIRCULAR Y CHAT
+       5. FIX DEFINITIVO: CHAT INPUT Y BOTÓN FLOTANTE ALINEADO
        --------------------------------------------------- */
     [data-testid="stBottom"], [data-testid="stBottom"] > div {
         background-color: transparent !important;
@@ -142,14 +147,14 @@ st.markdown("""
         background-color: transparent !important;
     }
 
-    /* Cápsula del chat recortada para dar espacio al círculo izquierdo */
+    /* La cápsula del chat */
     .stChatInputContainer {
         border-radius: 30px !important;
         background-color: rgba(25, 26, 27, 0.85) !important; 
         backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        width: calc(100% - 75px) !important; 
-        margin-left: 75px !important;
+        width: calc(100% - 65px) !important; 
+        margin-left: 65px !important; /* Espacio reservado para el botón + */
         margin-bottom: 15px !important;
     }
     .stChatInputContainer textarea {
@@ -157,21 +162,19 @@ st.markdown("""
         color: #e3e3e3 !important;
     }
     
-    /* Contenedor del Popover fijo a la izquierda */
+    /* El botón + circular y flotante (CORREGIDO PARA QUE RESPETE LA BARRA LATERAL) */
     div[data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 31px !important; /* Centrado vertical respecto al chat container */
-        left: 20px !important;
+        bottom: 27px !important; 
+        left: auto !important; /* ESTO ES LA CLAVE: Evita que se meta a la barra lateral */
         z-index: 999999 !important;
-        width: auto !important;
     }
     
-    /* Forzado estricto del botón para que sea un CÍRCULO PEQUEÑO PERFECTO */
     div[data-testid="stPopover"] > button {
-        width: 42px !important;
-        height: 42px !important;
-        max-width: 42px !important;
-        max-height: 42px !important;
+        width: 46px !important;
+        height: 46px !important;
+        min-width: 46px !important;
+        max-width: 46px !important;
         border-radius: 50% !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -182,30 +185,26 @@ st.markdown("""
         backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         color: #e3e3e3 !important;
-        gap: 0px !important; /* Elimina espacio fantasma que ensancha el botón */
+        font-size: 24px !important;
+        line-height: 0 !important;
+        transition: 0.3s;
     }
     div[data-testid="stPopover"] > button:hover {
         background-color: rgba(255, 255, 255, 0.15) !important;
         color: #ffd54f !important;
     }
     
-    /* Forzar que el símbolo interior se mantenga al centro sin moverse */
-    div[data-testid="stPopover"] > button p,
-    div[data-testid="stPopover"] > button span {
-        font-size: 20px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100% !important;
-    }
-    
-    /* OCULTAR TOTALMENTE LA FLECHA CHEVRON (v) DE STREAMLIT */
-    div[data-testid="stPopover"] button svg {
+    /* Destruir la flecha nativa que rompe el círculo */
+    div[data-testid="stPopover"] > button svg {
         display: none !important;
         width: 0 !important;
         height: 0 !important;
+    }
+    div[data-testid="stPopover"] > button p {
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     #MainMenu {visibility: hidden;}
@@ -321,7 +320,7 @@ if conexion_exitosa:
         if st.session_state.archivo_activo != "Base de datos general (Simulación)":
             st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
             
-        # El st.popover que ahora se estiliza como círculo perfecto
+        # El st.popover ahora está configurado para anclarse automáticamente al contenido principal
         with st.popover("➕"):
             st.markdown("#### 🛠️ Herramientas")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
@@ -375,7 +374,7 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
 
     # ====================================================================
-    # OTRAS PESTAÑAS 
+    # OTRAS PESTAÑAS
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h1 style='color: white;'>Suite de Análisis Geomecánico 🪨</h1>", unsafe_allow_html=True)
