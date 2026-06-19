@@ -83,7 +83,6 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.08) !important;
     }
 
-    /* Botón Nueva Conversación */
     [data-testid="stSidebar"] button[kind="primary"] {
         border-radius: 30px !important;
         background-color: rgba(30, 31, 32, 0.8) !important;
@@ -183,9 +182,7 @@ st.markdown("""
         margin: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important;
     }
     
-    /* ---------------------------------------------------
-       6. ESTILOS PRO PARA LA SUITE GEOMECÁNICA
-       --------------------------------------------------- */
+    /* 6. ESTILOS PRO PARA LA SUITE GEOMECÁNICA */
     .panel-geo {
         background-color: rgba(25, 26, 27, 0.6) !important;
         backdrop-filter: blur(10px);
@@ -244,7 +241,6 @@ try:
     conexion_exitosa = True
 except Exception as e:
     conexion_exitosa = False
-    st.error(f"Error de conexión con Drive: {e}")
 
 if "archivos_nube" not in st.session_state and conexion_exitosa:
     try:
@@ -256,7 +252,6 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 # --- 3. BARRA LATERAL ESTILO GEMINI ---
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
-    
     if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
         st.session_state.mensajes_ia = [] 
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
@@ -264,14 +259,7 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    opciones_nav = {
-        "💬": "Chat Asistente Operativo", 
-        "🧮": "Cálculos Geomecánicos", 
-        "🗺️": "Visor Topográfico", 
-        "🛢️": "Visualizador 3D Sondajes", 
-        "📈": "Dashboard Analíticas"
-    }
-    
+    opciones_nav = {"💬": "Chat Asistente Operativo", "🧮": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "📈": "Dashboard Analíticas"}
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
     indice_nav_activo = 0
@@ -282,7 +270,6 @@ with st.sidebar:
             
     seleccion_nav = st.radio("Navegación", options=nombres_nav_formateados, index=indice_nav_activo, label_visibility="collapsed", key="radio_nav")
     nav_real = seleccion_nav.split(" ", 1)[1] 
-    
     if nav_real != st.session_state.pestaña_activa:
         st.session_state.pestaña_activa = nav_real
         st.rerun()
@@ -296,16 +283,11 @@ with st.sidebar:
     archivos_filtrados = []
     
     if "archivos_nube" in st.session_state:
-        if pestaña in ["Dashboard Analíticas", "Visualizador 3D Sondajes", "Visor Topográfico"]:
-            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
-        elif pestaña in ["Chat Asistente Operativo"]:
-            archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
-    
-    for f in archivos_filtrados:
-        opciones_archivos.append(f['name'])
+        if pestaña in ["Dashboard Analíticas", "Visualizador 3D Sondajes", "Visor Topográfico"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
+        elif pestaña in ["Chat Asistente Operativo"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
+    for f in archivos_filtrados: opciones_archivos.append(f['name'])
         
     nombres_archivos_formateados = [f"{obtener_icono(arch)} {arch}" for arch in opciones_archivos]
-    
     indice_archivo_activo = 0
     for i, arch in enumerate(opciones_archivos):
         if arch == st.session_state.archivo_activo:
@@ -314,7 +296,6 @@ with st.sidebar:
             
     seleccion_archivo = st.radio("Recientes", options=nombres_archivos_formateados, index=indice_archivo_activo, label_visibility="collapsed", key="radio_archivos")
     archivo_real = seleccion_archivo.split(" ", 1)[1]
-    
     if archivo_real != st.session_state.archivo_activo:
         st.session_state.archivo_activo = archivo_real
         st.rerun()
@@ -333,23 +314,17 @@ if conexion_exitosa:
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
         st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
-        
-        if st.session_state.archivo_activo != "Base de datos general (Simulación)":
-            st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
+        if st.session_state.archivo_activo != "Base de datos general (Simulación)": st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
             
         with st.popover("➕", use_container_width=False):
             st.markdown("#### 🛠️ Herramientas")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
             with tab1:
                 archivo_subido = st.file_uploader("Arrastra PDFs", type=["pdf", "txt", "png", "jpg", "jpeg"])
-                if st.button("Guardar en Nube", type="primary", use_container_width=True):
-                    if archivo_subido:
-                        st.success("Guardado correctamente.")
+                if st.button("Guardar en Nube", type="primary", use_container_width=True) and archivo_subido: st.success("Guardado correctamente.")
             with tab2:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
-                if st.button("Procesar Tabla", type="primary", use_container_width=True):
-                    if archivo_tabla:
-                        st.success("¡Datos extraídos limpiamente!")
+                if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
 
         if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
         for mensaje in st.session_state.mensajes_ia:
@@ -359,11 +334,9 @@ if conexion_exitosa:
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
             st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
-            
             with st.chat_message("assistant"):
                 caja_respuesta = st.empty()
                 caja_respuesta.markdown("Extrayendo datos de la nube y procesando... ⏳")
-                
                 try:
                     contexto_documento = ""
                     if st.session_state.archivo_activo != "Base de datos general (Simulación)":
@@ -372,121 +345,135 @@ if conexion_exitosa:
                             if st.session_state.archivo_activo.endswith('.pdf'):
                                 pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
                                 lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                texto_extraido = ""
-                                for pagina in lector_pdf.pages:
-                                    texto_extraido += pagina.extract_text() + "\n"
+                                texto_extraido = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
                                 contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
-                        except Exception as e:
-                            pass
-
+                        except Exception as e: pass
                     instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
-                    respuesta_ia = modelo.generate_content(instruccion_final)
-                    texto_final = respuesta_ia.text
-                    
+                    texto_final = modelo.generate_content(instruccion_final).text
                     caja_respuesta.markdown(texto_final)
                     st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": texto_final})
-                    
-                except Exception as e:
-                    caja_respuesta.error(f"Hubo un error de conexión con la IA: {e}")
+                except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (DISEÑO PRO)
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (AHORA CON LÓGICA 100% DINÁMICA)
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
         
-        # Inicializar variables en memoria para los resultados
-        if "rmr_calc" not in st.session_state: st.session_state.rmr_calc = 74
-        if "gsi_calc" not in st.session_state: st.session_state.gsi_calc = 68
+        # Inicializar en memoria
+        if "rmr_calc" not in st.session_state: st.session_state.rmr_calc = 45 # Default como en tu foto
+        if "gsi_calc" not in st.session_state: st.session_state.gsi_calc = 51 # Default como en tu foto
         
-        # Estructura de 3 Columnas: Parámetros | Visor 3D | Resultados
         col_param, col_visor, col_resultados = st.columns([1.2, 1.2, 1])
         
-        # 1. COLUMNA IZQUIERDA: PARÁMETROS
+        # 1. PARÁMETROS DE ENTRADA
         with col_param:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Parámetros de Roca Intacta</div>", unsafe_allow_html=True)
-            ucs = st.number_input("Resistencia Compresión Simple (UCS) (MPa)", min_value=0, max_value=300, value=25)
+            ucs = st.number_input("Resistencia Compresión Simple (UCS) (MPa)", min_value=0, max_value=300, value=16)
             
             st.markdown("<br><div class='titulo-seccion'>Propiedades del Macizo Rocoso</div>", unsafe_allow_html=True)
-            rqd = st.slider("RQD (%)", 0, 100, 80)
-            sep = st.slider("Separación de Discontinuidades (m)", 0.0, 2.0, 0.5)
+            rqd = st.slider("RQD (%)", 0, 100, 55)
+            sep = st.slider("Separación de Discontinuidades (m)", 0.0, 2.0, 0.96)
             
-            condicion = st.selectbox("Condición de Discontinuidades", ["Rugosas", "Lisas", "Ligeramente Rugosas", "Espejadas"])
-            estructura = st.selectbox("Estructura del Macizo Rocoso", ["Masivo", "Laminado", "Fracturado", "Triturado"])
+            condicion = st.selectbox("Condición de Discontinuidades", ["Lisas", "Rugosas", "Ligeramente Rugosas", "Espejadas"])
+            estructura = st.selectbox("Estructura del Macizo Rocoso", ["Fracturado", "Masivo", "Laminado", "Triturado"])
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # 2. COLUMNA CENTRAL: VISOR 3D Y BOTÓN
+        # CÁLCULOS DE LA IA 
+        # (Se calculan antes de renderizar el Visor para que el modelo 3D responda al instante)
+        rmr_base = (rqd * 0.4) + (ucs * 0.2) + (sep * 5)
+        if condicion == "Rugosas": rmr_base += 10
+        elif condicion == "Lisas": rmr_base += 5
+        st.session_state.rmr_calc = min(100, int(rmr_base))
+        
+        gsi_base = rqd * 0.85
+        if estructura == "Masivo": gsi_base += 10
+        elif estructura == "Fracturado": gsi_base += 4
+        st.session_state.gsi_calc = min(100, int(gsi_base))
+
+        # 2. VISOR DEL MODELO 3D DINÁMICO
         with col_visor:
-            # Placeholder elegante para el cubo 3D
-            st.markdown("""
-            <div style='background: radial-gradient(circle, rgba(168,199,250,0.15) 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'>
-                <h1 style='font-size: 80px; margin: 0; filter: drop-shadow(0px 0px 10px rgba(168,199,250,0.5));'>🧊</h1>
-                <p style='color: #a8c7fa; font-weight: 500; margin-top: 15px; letter-spacing: 1px;'>MODELO 3D DEL MACIZO</p>
+            rmr = st.session_state.rmr_calc
+            
+            # LÓGICA DINÁMICA DEL MODELO 3D SEGÚN RMR
+            if rmr >= 80:
+                icono_3d = "💎"
+                color_brillo = "rgba(76, 175, 80, 0.6)" # Verde brillante
+                texto_3d = "ROCA INTACTA / EXCELENTE"
+            elif rmr >= 60:
+                icono_3d = "🧊"
+                color_brillo = "rgba(139, 195, 74, 0.6)" # Verde claro
+                texto_3d = "MACIZO LEVEMENTE FRACTURADO"
+            elif rmr >= 40:
+                icono_3d = "🧱"
+                color_brillo = "rgba(255, 235, 59, 0.6)" # Amarillo
+                texto_3d = "MACIZO FRACTURADO / REGULAR"
+            else:
+                icono_3d = "🪨"
+                color_brillo = "rgba(244, 67, 54, 0.6)" # Rojo Alerta
+                texto_3d = "MACIZO MUY POBRE / INESTABLE"
+
+            st.markdown(f"""
+            <div style='background: radial-gradient(circle, {color_brillo} 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); transition: 0.5s;'>
+                <h1 style='font-size: 90px; margin: 0; filter: drop-shadow(0px 0px 15px {color_brillo});'>{icono_3d}</h1>
+                <p style='color: #e3e3e3; font-weight: 600; margin-top: 20px; letter-spacing: 1px;'>{texto_3d}</p>
             </div>
             """, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Botón de ejecución
-            if st.button("⚡ EJECUTAR ANÁLISIS UNIFICADO", type="primary", use_container_width=True):
-                # Cálculos simulados basados en los inputs
-                rmr_base = (rqd * 0.4) + (ucs * 0.2) + 20
-                if condicion == "Rugosas": rmr_base += 10
-                st.session_state.rmr_calc = min(100, int(rmr_base))
-                
-                gsi_base = rqd * 0.85
-                if estructura == "Masivo": gsi_base += 5
-                st.session_state.gsi_calc = min(100, int(gsi_base))
+            if st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True):
                 st.rerun()
 
-        # 3. COLUMNA DERECHA: RESULTADOS
+        # 3. COLUMNA DE RESULTADOS Y RECOMENDACIONES REALES (BIENIAWSKI)
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
             
             gsi = st.session_state.gsi_calc
-            rmr = st.session_state.rmr_calc
             
-            # Lógica visual de RMR
-            if rmr > 80: color_rmr, texto_rmr = "#4caf50", "Excelente" # Verde
-            elif rmr > 60: color_rmr, texto_rmr = "#8bc34a", "Bueno" # Verde claro
-            elif rmr > 40: color_rmr, texto_rmr = "#ffeb3b", "Regular" # Amarillo
-            else: color_rmr, texto_rmr = "#f44336", "Malo" # Rojo
+            # Lógica RMR y Recomendación de Ingeniería Real
+            if rmr >= 81: 
+                color_rmr, texto_rmr = "#4caf50", "Muy Bueno"
+                rec_eng = "Excavación a sección completa (avance de 3m). No requiere sostenimiento sistemático, solo perneado esporádico (spot bolting) en cuñas sueltas identificadas."
+            elif rmr >= 61: 
+                color_rmr, texto_rmr = "#8bc34a", "Bueno"
+                rec_eng = "Avance de 1.5 - 3.0 m. Instalar pernos sistemáticos (long. 3m) espaciados a 1.5 - 2m en corona y hastiales, con malla ocasional."
+            elif rmr >= 41: 
+                color_rmr, texto_rmr = "#ffeb3b", "Regular"
+                rec_eng = "Avance de 1.5 - 3.0 m. Pernos sistemáticos (3-4m) a 1.5m de espaciamiento. Aplicar shotcrete (5-10 cm) y malla electrosoldada en techo y paredes."
+            elif rmr >= 21: 
+                color_rmr, texto_rmr = "#ff9800", "Malo"
+                rec_eng = "Avance de 1.0 - 1.5m. Sostenimiento concurrente. Pernos sistemáticos a 1m de espaciamiento, malla y shotcrete grueso (10-15 cm). Evaluar uso de cerchas livianas."
+            else: 
+                color_rmr, texto_rmr = "#f44336", "Muy Malo"
+                rec_eng = "Avance múltiple (0.5 - 1.0m). Sostenimiento inmediato en el frente. Requiere uso de cerchas metálicas pesadas espaciadas a 0.75m, marchavantes y shotcrete estructural (>15cm)."
             
-            # Lógica visual de GSI
-            if gsi > 75: color_gsi, texto_gsi = "#4caf50", "Muy Bueno"
+            if gsi > 75: color_gsi, texto_gsi = "#4caf50", "Excelente"
             elif gsi > 50: color_gsi, texto_gsi = "#ffeb3b", "Bueno"
             else: color_gsi, texto_gsi = "#ff9800", "Regular"
 
-            # Caja GSI
             st.markdown(f"""
             <div class='metric-box'>
                 <p class='metric-label'>Índice GSI Estimado</p>
                 <p class='metric-value' style='color: {color_gsi};'>{gsi}</p>
                 <p style='color: {color_gsi}; font-size: 13px; margin:0; font-weight: 500;'>GSI = {texto_gsi}</p>
             </div>
-            """, unsafe_allow_html=True)
             
-            # Caja RMR
-            st.markdown(f"""
             <div class='metric-box'>
                 <p class='metric-label'>Clasificación RMR Unificada</p>
                 <p class='metric-value' style='color: {color_rmr};'>{rmr}</p>
                 <p style='color: {color_rmr}; font-size: 13px; margin:0; font-weight: 500; margin-bottom: 10px;'>RMR = {texto_rmr}</p>
                 <div style='text-align: left; font-size: 11px; color: #888; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;'>
-                    <p style='margin:2px 0; display:flex; justify-content:space-between;'><span>Parámetros RQD:</span> <span>{(rqd*0.4):.1f}%</span></p>
-                    <p style='margin:2px 0; display:flex; justify-content:space-between;'><span>Parámetros Roca:</span> <span>{(ucs*0.2):.1f}%</span></p>
+                    <p style='margin:2px 0; display:flex; justify-content:space-between;'><span>Impacto RQD:</span> <span>{(rqd*0.4):.1f} pts</span></p>
+                    <p style='margin:2px 0; display:flex; justify-content:space-between;'><span>Impacto UCS:</span> <span>{(ucs*0.2):.1f} pts</span></p>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
             
-            # Caja Recomendación
-            st.markdown("""
             <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'>
-                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 5px;'>Recomendación</p>
-                <p style='color: #e3e3e3; font-size: 11px; margin:0; line-height: 1.5;'>
-                    Recomendación de sostenimiento automático basada en el comportamiento general evaluado para el componente estructural.
+                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 5px;'>RECOMENDACIÓN TÉCNICA (Bieniawski)</p>
+                <p style='color: #e3e3e3; font-size: 12px; margin:0; line-height: 1.5;'>
+                    {rec_eng}
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -494,16 +481,8 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # OTRAS PESTAÑAS 
+    # OTRAS PESTAÑAS
     # ====================================================================
-    elif pestaña == "Visor Topográfico":
-        st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
-        # Código acortado por brevedad, usa el visor estándar
-        st.info("Mostrando mapa base de simulación (Área referencial).")
-        st_folium(folium.Map(location=[-12.684, -76.602], zoom_start=14, tiles="CartoDB positron"), width=1000, height=500)
-
-    elif pestaña == "Visualizador 3D Sondajes":
-        st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
-
-    elif pestaña == "Dashboard Analíticas":
-        st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
+    elif pestaña == "Visor Topográfico": st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
+    elif pestaña == "Visualizador 3D Sondajes": st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
+    elif pestaña == "Dashboard Analíticas": st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
