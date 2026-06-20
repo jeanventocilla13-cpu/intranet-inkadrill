@@ -112,7 +112,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -253,7 +253,7 @@ if conexion_exitosa:
             condicion = st.selectbox("Condición de Discontinuidades (Columnas)", ["Buena", "Regular", "Mala", "Muy Mala"])
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- LA MATRIZ DE LOS 16 ESTADOS (CONECTADA A GITHUB) ---
+        # --- LA MATRIZ DE LOS 16 ESTADOS (CONECTADA A LA RAÍZ DE GITHUB) ---
         matriz_gsi = {
             "Levemente Fracturada": {
                 "Buena": ("LF/B", 85, "#4caf50", "1_LFB.png"), "Regular": ("LF/R", 70, "#8bc34a", "2_LFR.png"),
@@ -276,14 +276,14 @@ if conexion_exitosa:
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        # Enlace directo a tu repositorio para leer la imagen en tiempo real
-        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/rocas/{nombre_imagen}"
+        # Enlace corregido: apunta directamente a la raíz de tu repositorio sin la subcarpeta "rocas"
+        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
+
         with col_visor:
             st.markdown(f"""
             <div style='background: radial-gradient(circle, {color_hex}44 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); transition: 0.5s; position: relative; overflow: hidden;'>
                 
                 <div style="width: 170px; height: 170px; background-image: url('{url_github_imagen}'); background-size: contain; background-repeat: no-repeat; background-position: center; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9)); display: flex; align-items: center; justify-content: center; z-index: 2;">
-                    <span style="color: rgba(255,255,255,0.05); font-size: 55px; font-weight: 800; z-index: -1;">{codigo_gsi}</span>
                 </div>
 
                 <p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000; z-index: 2;'>{codigo_gsi}</p>
