@@ -16,7 +16,7 @@ import datetime
 import numpy as np
 from PIL import Image
 from pyproj import Transformer
-import base64  # <-- LIBRERÍA NUEVA PARA PROCESAR IMÁGENES
+import base64
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
@@ -113,7 +113,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -276,11 +276,9 @@ if conexion_exitosa:
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        # --- LECTURA LOCAL BLINDADA EN BASE64 ---
-        # Busca la imagen física y la inyecta como código, evitando bloqueos de red
+        # Base64 robusto
         rutas_posibles = [f"rocas/{nombre_imagen}", nombre_imagen]
         img_b64 = ""
-        
         for ruta in rutas_posibles:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f:
@@ -290,7 +288,6 @@ if conexion_exitosa:
         if img_b64:
             src_imagen = f"data:image/png;base64,{img_b64}"
         else:
-            # Píxel transparente si la imagen falla (para que no salga el ícono roto)
             src_imagen = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
@@ -304,11 +301,22 @@ if conexion_exitosa:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
             
-            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "Excavación a sección completa. No requiere sostenimiento sistemático, solo perneado esporádico en cuñas."
-            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "Avance de 1.5 - 3.0 m. Instalar pernos sistemáticos espaciados a 1.5 - 2m en corona y hastiales."
-            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "Pernos sistemáticos a 1.5m. Aplicar shotcrete (5-10 cm) y malla electrosoldada en techo y paredes."
-            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "Sostenimiento concurrente. Pernos a 1m, malla y shotcrete grueso (10-15 cm). Evaluar cerchas."
-            else: texto_rmr, rec_eng = "Muy Malo", "Avance múltiple (0.5 - 1m). Sostenimiento en el frente. Uso de cerchas pesadas, marchavantes y shotcrete estructural."
+            # --- NUEVA LÓGICA DE RECOMENDACIONES TÉCNICAS EXTENDIDAS ---
+            if rmr_final >= 81: 
+                texto_rmr = "Muy Bueno"
+                rec_eng = "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso (scaling manual o mecanizado) y perneado esporádico (spot bolting) con pernos de fricción en cuñas sueltas que hayan sido identificadas estructuralmente."
+            elif rmr_final >= 61: 
+                texto_rmr = "Bueno"
+                rec_eng = "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte debe instalarse a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
+            elif rmr_final >= 41: 
+                texto_rmr = "Regular"
+                rec_eng = "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
+            elif rmr_final >= 21: 
+                texto_rmr = "Malo"
+                rec_eng = "<b>Avance permitido:</b> 1.0 a 1.5 m. El sostenimiento debe ser concurrente a la excavación.<br><br><b>Soporte:</b> Perneado sistemático denso (1.0 m de espaciamiento), malla electrosoldada y shotcrete grueso (10 a 15 cm). Altamente recomendable evaluar el uso de cerchas metálicas cada 1.5 m."
+            else: 
+                texto_rmr = "Muy Malo"
+                rec_eng = "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
 
             st.markdown(f"""
             <div class='metric-box' style='border-color: {color_hex}66 !important;'>
@@ -323,8 +331,8 @@ if conexion_exitosa:
             </div>
             
             <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'>
-                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 5px;'>RECOMENDACIÓN TÉCNICA</p>
-                <p style='color: #e3e3e3; font-size: 12px; margin:0; line-height: 1.5;'>{rec_eng}</p>
+                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p>
+                <p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p>
             </div>
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
