@@ -16,6 +16,7 @@ import datetime
 import numpy as np
 from PIL import Image
 from pyproj import Transformer
+import base64  # <-- LIBRERÍA NUEVA PARA PROCESAR IMÁGENES
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
@@ -112,7 +113,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -275,11 +276,25 @@ if conexion_exitosa:
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
+        # --- LECTURA LOCAL BLINDADA EN BASE64 ---
+        # Busca la imagen física y la inyecta como código, evitando bloqueos de red
+        rutas_posibles = [f"rocas/{nombre_imagen}", nombre_imagen]
+        img_b64 = ""
+        
+        for ruta in rutas_posibles:
+            if os.path.exists(ruta):
+                with open(ruta, "rb") as f:
+                    img_b64 = base64.b64encode(f.read()).decode()
+                break
+                
+        if img_b64:
+            src_imagen = f"data:image/png;base64,{img_b64}"
+        else:
+            # Píxel transparente si la imagen falla (para que no salga el ícono roto)
+            src_imagen = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
-        # --- CORRECCIÓN: HTML COMPRIMIDO ABSOLUTO (SIN SALTOS NI COMENTARIOS) ---
         with col_visor:
-            html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{url_github_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
+            html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
@@ -320,4 +335,3 @@ if conexion_exitosa:
     elif pestaña == "Visor Topográfico": st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
     elif pestaña == "Visualizador 3D Sondajes": st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
     elif pestaña == "Dashboard Analíticas": st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
-        
