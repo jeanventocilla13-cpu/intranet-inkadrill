@@ -236,7 +236,7 @@ if conexion_exitosa:
                 except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS 
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -275,13 +275,16 @@ if conexion_exitosa:
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
+        # --- ESTRATEGIA DE DOBLE BÚSQUEDA (CARPETA ROCAS Y RAÍZ) CON ETIQUETA IMG ---
+        url_principal = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/rocas/{nombre_imagen}"
+        url_respaldo = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
 
-        # --- CORRECCIÓN: EL HTML COMPRIMIDO SIN SALTOS DE LÍNEA ---
         with col_visor:
             st.markdown(f"""
             <div style='background: radial-gradient(circle, {color_hex}44 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); transition: 0.5s; position: relative; overflow: hidden;'>
-                <div style="width: 170px; height: 170px; background-image: url('{url_github_imagen}'); background-size: contain; background-repeat: no-repeat; background-position: center; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9)); display: flex; align-items: center; justify-content: center; z-index: 2;"></div>
+                
+                <img src="{url_principal}" style="width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9)); z-index: 2;" onerror="this.onerror=null; this.src='{url_respaldo}';">
+                
                 <p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000; z-index: 2;'>{codigo_gsi}</p>
                 <p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase; z-index: 2;'>{estructura} / {condicion}</p>
             </div>
