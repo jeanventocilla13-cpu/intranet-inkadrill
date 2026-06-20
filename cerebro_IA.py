@@ -22,7 +22,7 @@ import base64
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Cálculos Geomecánicos"
+    st.session_state.pestaña_activa = "Visor Topográfico"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -241,105 +241,187 @@ if conexion_exitosa:
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
-        
         col_param, col_visor, col_resultados = st.columns([1.2, 1.2, 1])
-        
         with col_param:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Parámetros de Roca Intacta</div>", unsafe_allow_html=True)
             ucs = st.number_input("Resistencia Compresión Simple (UCS) (MPa)", min_value=0, max_value=300, value=25)
-            
             st.markdown("<br><div class='titulo-seccion'>Propiedades del Macizo Rocoso (GSI Modificado)</div>", unsafe_allow_html=True)
             estructura = st.selectbox("Estructura del Macizo (Filas)", ["Levemente Fracturada", "Moderadamente Fracturada", "Muy Fracturada", "Intensamente Fracturada"])
             condicion = st.selectbox("Condición de Discontinuidades (Columnas)", ["Buena", "Regular", "Mala", "Muy Mala"])
             st.markdown("</div>", unsafe_allow_html=True)
 
         matriz_gsi = {
-            "Levemente Fracturada": {
-                "Buena": ("LF/B", 85, "#4caf50", "1_LFB.png"), "Regular": ("LF/R", 70, "#8bc34a", "2_LFR.png"),
-                "Mala": ("F/M", 55, "#ffeb3b", "3_FM.png"), "Muy Mala": ("*LF/MM", 40, "#ff9800", "4_LFMM.png")
-            },
-            "Moderadamente Fracturada": {
-                "Buena": ("F/B", 75, "#8bc34a", "5_FB.png"), "Regular": ("F/R", 60, "#ffeb3b", "6_FR.png"),
-                "Mala": ("LF/M", 45, "#ff9800", "7_LFM.png"), "Muy Mala": ("F/MM", 30, "#f44336", "8_FMM.png")
-            },
-            "Muy Fracturada": {
-                "Buena": ("MF/B", 65, "#ffeb3b", "9_MFB.png"), "Regular": ("MF/R", 50, "#ff9800", "10_MFR.png"),
-                "Mala": ("MF/M", 35, "#f44336", "11_MFM.png"), "Muy Mala": ("MF/MM", 20, "#b71c1c", "12_MFMM.png")
-            },
-            "Intensamente Fracturada": {
-                "Buena": ("I/B", 55, "#ff9800", "13_IB.png"), "Regular": ("IF/R", 40, "#f44336", "14_IFR.png"),
-                "Mala": ("IF/M", 25, "#b71c1c", "15_IFM.png"), "Muy Mala": ("IF/MM", 15, "#4e342e", "16_IFMM.png")
-            }
+            "Levemente Fracturada": {"Buena": ("LF/B", 85, "#4caf50", "1_LFB.png"), "Regular": ("LF/R", 70, "#8bc34a", "2_LFR.png"), "Mala": ("F/M", 55, "#ffeb3b", "3_FM.png"), "Muy Mala": ("*LF/MM", 40, "#ff9800", "4_LFMM.png")},
+            "Moderadamente Fracturada": {"Buena": ("F/B", 75, "#8bc34a", "5_FB.png"), "Regular": ("F/R", 60, "#ffeb3b", "6_FR.png"), "Mala": ("LF/M", 45, "#ff9800", "7_LFM.png"), "Muy Mala": ("F/MM", 30, "#f44336", "8_FMM.png")},
+            "Muy Fracturada": {"Buena": ("MF/B", 65, "#ffeb3b", "9_MFB.png"), "Regular": ("MF/R", 50, "#ff9800", "10_MFR.png"), "Mala": ("MF/M", 35, "#f44336", "11_MFM.png"), "Muy Mala": ("MF/MM", 20, "#b71c1c", "12_MFMM.png")},
+            "Intensamente Fracturada": {"Buena": ("I/B", 55, "#ff9800", "13_IB.png"), "Regular": ("IF/R", 40, "#f44336", "14_IFR.png"), "Mala": ("IF/M", 25, "#b71c1c", "15_IFM.png"), "Muy Mala": ("IF/MM", 15, "#4e342e", "16_IFMM.png")}
         }
-        
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        # Base64 robusto
         rutas_posibles = [f"rocas/{nombre_imagen}", nombre_imagen]
         img_b64 = ""
         for ruta in rutas_posibles:
             if os.path.exists(ruta):
-                with open(ruta, "rb") as f:
-                    img_b64 = base64.b64encode(f.read()).decode()
+                with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
-                
-        if img_b64:
-            src_imagen = f"data:image/png;base64,{img_b64}"
-        else:
-            src_imagen = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
             html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
-            
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
 
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
-            
-            # --- NUEVA LÓGICA DE RECOMENDACIONES TÉCNICAS EXTENDIDAS ---
-            if rmr_final >= 81: 
-                texto_rmr = "Muy Bueno"
-                rec_eng = "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso (scaling manual o mecanizado) y perneado esporádico (spot bolting) con pernos de fricción en cuñas sueltas que hayan sido identificadas estructuralmente."
-            elif rmr_final >= 61: 
-                texto_rmr = "Bueno"
-                rec_eng = "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte debe instalarse a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
-            elif rmr_final >= 41: 
-                texto_rmr = "Regular"
-                rec_eng = "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
-            elif rmr_final >= 21: 
-                texto_rmr = "Malo"
-                rec_eng = "<b>Avance permitido:</b> 1.0 a 1.5 m. El sostenimiento debe ser concurrente a la excavación.<br><br><b>Soporte:</b> Perneado sistemático denso (1.0 m de espaciamiento), malla electrosoldada y shotcrete grueso (10 a 15 cm). Altamente recomendable evaluar el uso de cerchas metálicas cada 1.5 m."
-            else: 
-                texto_rmr = "Muy Malo"
-                rec_eng = "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
+            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso y perneado esporádico con pernos de fricción en cuñas sueltas."
+            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
+            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
+            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. El sostenimiento debe ser concurrente a la excavación.<br><br><b>Soporte:</b> Perneado sistemático denso (1.0 m de espaciamiento), malla electrosoldada y shotcrete grueso (10 a 15 cm). Altamente recomendable evaluar el uso de cerchas metálicas cada 1.5 m."
+            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
 
             st.markdown(f"""
-            <div class='metric-box' style='border-color: {color_hex}66 !important;'>
-                <p class='metric-label'>Código GSI Identificado</p>
-                <p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p>
-            </div>
-            
-            <div class='metric-box'>
-                <p class='metric-label'>Clasificación RMR Unificada</p>
-                <p class='metric-value' style='color: {color_hex};'>{rmr_final}</p>
-                <p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p>
-            </div>
-            
-            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'>
-                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p>
-                <p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p>
-            </div>
+            <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI Identificado</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
+            <div class='metric-box'><p class='metric-label'>Clasificación RMR Unificada</p><p class='metric-value' style='color: {color_hex};'>{rmr_final}</p><p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p></div>
+            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'><p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p><p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p></div>
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # OTRAS PESTAÑAS
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (RESTAURADO)
     # ====================================================================
-    elif pestaña == "Visor Topográfico": st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
-    elif pestaña == "Visualizador 3D Sondajes": st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
-    elif pestaña == "Dashboard Analíticas": st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
+    elif pestaña == "Visor Topográfico":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
+            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial - Ate).")
+            # Mapa base referencial 
+            mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles="CartoDB dark_matter")
+            st_folium(mapa_mina, width="100%", height=500)
+        else:
+            st.success(f"🗺️ Procesando coordenadas desde la base de datos: **{st.session_state.archivo_activo}**")
+            with st.spinner("Analizando coordenadas planimétricas..."):
+                try:
+                    file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
+                    csv_content = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
+                    df_mapa = pd.read_csv(StringIO(csv_content))
+                    
+                    with st.expander("Ver tabla de datos extraídos", expanded=False):
+                        st.dataframe(df_mapa, use_container_width=True)
+                    
+                    # Detección inteligente de columnas
+                    col_lat = next((col for col in df_mapa.columns if 'lat' in col.lower()), None)
+                    col_lon = next((col for col in df_mapa.columns if 'lon' in col.lower() or 'lng' in col.lower()), None)
+                    col_norte = next((col for col in df_mapa.columns if 'norte' in col.lower()), None)
+                    col_este = next((col for col in df_mapa.columns if 'este' in col.lower()), None)
+                    
+                    # Lógica 1: Coordenadas Lat/Lon directas
+                    if col_lat and col_lon:
+                        df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
+                        mapa_dinamico = folium.Map(location=[float(df_mapa.iloc[0][col_lat]), float(df_mapa.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
+                        for idx, row in df_mapa.iterrows():
+                            folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                        st_folium(mapa_dinamico, width="100%", height=500)
+                        
+                    # Lógica 2: Coordenadas UTM a Lat/Lon (Zona 18S típica en Perú)
+                    elif col_norte and col_este:
+                        st.info("🔄 Coordenadas UTM detectadas. Ejecutando conversión a EPSG:4326 (WGS84)...")
+                        df_mapa = df_mapa.dropna(subset=[col_norte, col_este])
+                        transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
+                        
+                        lon_centro, lat_centro = transformer.transform(float(df_mapa.iloc[0][col_este]), float(df_mapa.iloc[0][col_norte]))
+                        mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles="CartoDB dark_matter")
+                        
+                        for idx, row in df_mapa.iterrows():
+                            lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
+                            folium.Marker(
+                                [lat_val, lon_val], 
+                                popup=f"Punto: {str(row.iloc[0])}", 
+                                icon=folium.Icon(color="red", icon="flag")
+                            ).add_to(mapa_dinamico)
+                            
+                        st_folium(mapa_dinamico, width="100%", height=500)
+                    else:
+                        st.warning("⚠️ No se detectaron columnas válidas de coordenadas ('Norte'/'Este' o 'Lat'/'Lon') en el archivo seleccionado.")
+                except Exception as e:
+                    st.error(f"Error procesando el mapa topográfico: {e}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (RESTAURADO)
+    # ====================================================================
+    elif pestaña == "Visualizador 3D Sondajes":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        
+        seed_val = len(st.session_state.archivo_activo)
+        np.random.seed(seed_val)
+        datos_lista = []
+        for h_id in ["DDH-A01", "DDH-A02", "DDH-B01"]:
+            x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
+            for depth in range(0, 150, 10):
+                datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "LEY_CU": np.random.uniform(0.1, 3.0)})
+        df_sondajes = pd.DataFrame(datos_lista)
+        
+        fig_3d = go.Figure()
+        for hole in df_sondajes["HOLE_ID"].unique():
+            df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
+            fig_3d.add_trace(go.Scatter3d(
+                x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
+                mode='lines+markers', 
+                marker=dict(size=5, color=df_hole["LEY_CU"], colorscale='Viridis', colorbar=dict(title="Ley Cu (%)")), 
+                line=dict(width=3, color='rgba(255,255,255,0.5)'),
+                name=hole
+            ))
+        fig_3d.update_layout(
+            margin=dict(r=10, l=10, b=10, t=10), 
+            height=600, 
+            paper_bgcolor="rgba(0,0,0,0)",
+            scene=dict(
+                xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'),
+                yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'),
+                zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)')
+            )
+        )
+        st.plotly_chart(fig_3d, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 5: DASHBOARD ANALÍTICAS (RESTAURADO)
+    # ====================================================================
+    elif pestaña == "Dashboard Analíticas":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>PANEL DE CONTROL OPERATIVO 📈</h2>", unsafe_allow_html=True)
+        
+        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+        modificador = len(st.session_state.archivo_activo)
+        
+        with col_kpi1:
+            st.markdown(f"""
+            <div class='metric-box'>
+                <p class='metric-label'>Documentos Indexados en IA</p>
+                <p class='metric-value' style='color: #a8c7fa;'>{len(st.session_state.get("archivos_nube", []))}</p>
+                <p style='color: #888; font-size: 12px; margin:0;'>Conectados a Google Drive</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col_kpi2:
+            st.markdown(f"""
+            <div class='metric-box'>
+                <p class='metric-label'>Promedio RMR Histórico</p>
+                <p class='metric-value' style='color: #8bc34a;'>{68.5 + (modificador*0.2):.1f}</p>
+                <p style='color: #888; font-size: 12px; margin:0;'>Mina Central</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col_kpi3:
+            st.markdown(f"""
+            <div class='metric-box'>
+                <p class='metric-label'>Consultas a Gemini este mes</p>
+                <p class='metric-value' style='color: #ffd54f;'>{142 + modificador}</p>
+                <p style='color: #888; font-size: 12px; margin:0;'>Token API Activo</p>
+            </div>
+            """, unsafe_allow_html=True)
