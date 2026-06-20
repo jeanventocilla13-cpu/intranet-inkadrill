@@ -25,7 +25,6 @@ if "pestaña_activa" not in st.session_state:
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
-# --- FUNCIÓN INTELIGENTE PARA LOGOS DE ARCHIVOS ---
 def obtener_icono(nombre_archivo):
     nombre_lower = nombre_archivo.lower()
     if "simulación" in nombre_lower or "simulacion" in nombre_lower: return "⚙️"  
@@ -56,19 +55,11 @@ st.markdown("""
     }
 
     [data-testid="stSidebar"] button[kind="secondary"] {
-        padding-left: 10px !important; 
-        background-color: transparent !important;
-        border: none !important;
-        border-radius: 8px !important;
-        display: flex !important;
-        justify-content: flex-start !important;
+        padding-left: 10px !important; background-color: transparent !important; border: none !important;
+        border-radius: 8px !important; display: flex !important; justify-content: flex-start !important;
     }
-    [data-testid="stSidebar"] button[kind="secondary"] div {
-        display: flex !important; justify-content: flex-start !important; width: 100% !important;
-    }
-    [data-testid="stSidebar"] button[kind="secondary"] p {
-        text-align: left !important; color: #c4c7c5 !important; margin: 0 !important; font-size: 14px !important;
-    }
+    [data-testid="stSidebar"] button[kind="secondary"] div { display: flex !important; justify-content: flex-start !important; width: 100% !important; }
+    [data-testid="stSidebar"] button[kind="secondary"] p { text-align: left !important; color: #c4c7c5 !important; margin: 0 !important; font-size: 14px !important; }
     [data-testid="stSidebar"] button[kind="secondary"]:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
 
     [data-testid="stSidebar"] button[kind="primary"] {
@@ -82,10 +73,7 @@ st.markdown("""
     }
     div[role="radiogroup"] > label:hover { background-color: rgba(255, 255, 255, 0.05) !important; }
     div[role="radiogroup"] > label > div:first-of-type { display: none !important; }
-    
-    div[role="radiogroup"] > label:has(input:checked) {
-        background-color: rgba(255, 213, 79, 0.15) !important; border-left: 3px solid #ffd54f !important;
-    }
+    div[role="radiogroup"] > label:has(input:checked) { background-color: rgba(255, 213, 79, 0.15) !important; border-left: 3px solid #ffd54f !important; }
     div[role="radiogroup"] > label:has(input:checked) p { color: #ffd54f !important; font-weight: 600 !important; }
     div[role="radiogroup"] p { color: #c4c7c5 !important; font-size: 14.5px !important; margin: 0 !important; text-align: left !important; }
     
@@ -93,9 +81,8 @@ st.markdown("""
     .stChatFloatingInputContainer { background-color: transparent !important; }
 
     .stChatInputContainer {
-        border-radius: 30px !important; background-color: rgba(25, 26, 27, 0.85) !important; 
-        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        width: calc(100% - 65px) !important; margin-left: 65px !important; margin-bottom: 15px !important;
+        border-radius: 30px !important; background-color: rgba(25, 26, 27, 0.85) !important; backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important; width: calc(100% - 65px) !important; margin-left: 65px !important; margin-bottom: 15px !important;
     }
     .stChatInputContainer textarea { padding-left: 20px !important; color: #e3e3e3 !important; }
     
@@ -104,8 +91,7 @@ st.markdown("""
         width: 46px !important; height: 46px !important; min-width: 46px !important; max-width: 46px !important;
         border-radius: 50% !important; padding: 0 !important; margin: 0 !important; display: flex !important;
         align-items: center !important; justify-content: center !important; background-color: rgba(25, 26, 27, 0.85) !important;
-        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        color: #e3e3e3 !important; font-size: 24px !important; line-height: 0 !important; transition: 0.3s;
+        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #e3e3e3 !important; font-size: 24px !important; transition: 0.3s;
     }
     div[data-testid="stPopover"] > button:hover { background-color: rgba(255, 255, 255, 0.15) !important; color: #ffd54f !important; }
     div[data-testid="stPopover"] > button svg { display: none !important; width: 0 !important; height: 0 !important; }
@@ -250,79 +236,74 @@ if conexion_exitosa:
                 except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (MATRIZ GSI MILPO INTEGRADA)
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (CON MODELOS 3D FOTORREALISTAS)
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
         
         col_param, col_visor, col_resultados = st.columns([1.2, 1.2, 1])
         
-        # 1. PARÁMETROS DE ENTRADA (ACTUALIZADOS A LA TABLA MILPO)
         with col_param:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Parámetros de Roca Intacta</div>", unsafe_allow_html=True)
             ucs = st.number_input("Resistencia Compresión Simple (UCS) (MPa)", min_value=0, max_value=300, value=25)
             
             st.markdown("<br><div class='titulo-seccion'>Propiedades del Macizo Rocoso (GSI Modificado)</div>", unsafe_allow_html=True)
-            
-            # Selectores adaptados exactamente a tu imagen
             estructura = st.selectbox("Estructura del Macizo (Filas)", ["Levemente Fracturada", "Moderadamente Fracturada", "Muy Fracturada", "Intensamente Fracturada"])
             condicion = st.selectbox("Condición de Discontinuidades (Columnas)", ["Buena", "Regular", "Mala", "Muy Mala"])
-            
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- LÓGICA DE LA MATRIZ DE LOS 16 ESTADOS (EL CEREBRO) ---
-        # Definimos los valores base aproximados de RMR/GSI según el cuadrante para cálculos automáticos
+        # --- LA MATRIZ DE LOS 16 ESTADOS (CONECTADA A GITHUB) ---
         matriz_gsi = {
-            "Levemente Fracturada": {"Buena": ("LF/B", 85, "#4caf50", "🧊"), "Regular": ("LF/R", 70, "#8bc34a", "🪨"), "Mala": ("F/M", 55, "#ff9800", "🧱"), "Muy Mala": ("LF/MM", 40, "#f44336", "🏚️")},
-            "Moderadamente Fracturada": {"Buena": ("F/B", 75, "#8bc34a", "🧊"), "Regular": ("F/R", 60, "#ffeb3b", "🪨"), "Mala": ("LF/M", 45, "#ff9800", "🧱"), "Muy Mala": ("F/MM", 30, "#f44336", "🏚️")},
-            "Muy Fracturada": {"Buena": ("MF/B", 65, "#ffeb3b", "🪨"), "Regular": ("MF/R", 50, "#ff9800", "🧱"), "Mala": ("MF/M", 35, "#f44336", "🏚️"), "Muy Mala": ("MF/MM", 20, "#b71c1c", "🌋")},
-            "Intensamente Fracturada": {"Buena": ("I/B", 55, "#ff9800", "🧱"), "Regular": ("IF/R", 40, "#f44336", "🏚️"), "Mala": ("IF/M", 25, "#b71c1c", "🌋"), "Muy Mala": ("IF/MM", 15, "#4e342e", "🏜️")}
+            "Levemente Fracturada": {
+                "Buena": ("LF/B", 85, "#4caf50", "1_LFB.png"), "Regular": ("LF/R", 70, "#8bc34a", "2_LFR.png"),
+                "Mala": ("F/M", 55, "#ffeb3b", "3_FM.png"), "Muy Mala": ("*LF/MM", 40, "#ff9800", "4_LFMM.png")
+            },
+            "Moderadamente Fracturada": {
+                "Buena": ("F/B", 75, "#8bc34a", "5_FB.png"), "Regular": ("F/R", 60, "#ffeb3b", "6_FR.png"),
+                "Mala": ("LF/M", 45, "#ff9800", "7_LFM.png"), "Muy Mala": ("F/MM", 30, "#f44336", "8_FMM.png")
+            },
+            "Muy Fracturada": {
+                "Buena": ("MF/B", 65, "#ffeb3b", "9_MFB.png"), "Regular": ("MF/R", 50, "#ff9800", "10_MFR.png"),
+                "Mala": ("MF/M", 35, "#f44336", "11_MFM.png"), "Muy Mala": ("MF/MM", 20, "#b71c1c", "12_MFMM.png")
+            },
+            "Intensamente Fracturada": {
+                "Buena": ("I/B", 55, "#ff9800", "13_IB.png"), "Regular": ("IF/R", 40, "#f44336", "14_IFR.png"),
+                "Mala": ("IF/M", 25, "#b71c1c", "15_IFM.png"), "Muy Mala": ("IF/MM", 15, "#4e342e", "16_IFMM.png")
+            }
         }
         
-        # Extraemos los datos del cuadrante seleccionado
-        codigo_gsi, puntaje_base, color_hex, icono_roca = matriz_gsi[estructura][condicion]
-        
-        # Ajustamos ligeramente el puntaje con el UCS para darle uso a esa variable
+        codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
+        
+        # Enlace directo a tu repositorio para leer la imagen en tiempo real
+        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/rocas/{nombre_archivo}"
 
-        # 2. VISOR DEL MODELO 3D DINÁMICO (LOS 16 ESTADOS)
         with col_visor:
-            # Aquí está el truco: Si subes las imágenes a GitHub, podrías usar la URL abajo.
-            # Por ahora, usamos un bloque estilizado dinámico que cambia según los 16 estados.
-            
             st.markdown(f"""
-            <div style='background: radial-gradient(circle, {color_hex}44 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); transition: 0.5s;'>
-                <h1 style='font-size: 100px; margin: 0; filter: drop-shadow(0px 0px 15px {color_hex});'>{icono_roca}</h1>
-                <p style='color: {color_hex}; font-weight: 800; font-size: 24px; margin-top: 20px; letter-spacing: 2px; text-shadow: 1px 1px 2px #000;'>{codigo_gsi}</p>
-                <p style='color: #e3e3e3; font-weight: 500; font-size: 12px; margin-top: 5px; text-transform: uppercase;'>{estructura} / {condicion}</p>
+            <div style='background: radial-gradient(circle, {color_hex}44 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); transition: 0.5s; position: relative; overflow: hidden;'>
+                
+                <div style="width: 170px; height: 170px; background-image: url('{url_github_imagen}'); background-size: contain; background-repeat: no-repeat; background-position: center; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9)); display: flex; align-items: center; justify-content: center; z-index: 2;">
+                    <span style="color: rgba(255,255,255,0.05); font-size: 55px; font-weight: 800; z-index: -1;">{codigo_gsi}</span>
+                </div>
+
+                <p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000; z-index: 2;'>{codigo_gsi}</p>
+                <p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase; z-index: 2;'>{estructura} / {condicion}</p>
             </div>
             """, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
 
-        # 3. COLUMNA DE RESULTADOS Y RECOMENDACIONES (BIENIAWSKI)
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
             
-            # Lógica RMR y Recomendación de Ingeniería Real
-            if rmr_final >= 81: 
-                texto_rmr = "Muy Bueno"
-                rec_eng = "Excavación a sección completa. No requiere sostenimiento sistemático, solo perneado esporádico en cuñas."
-            elif rmr_final >= 61: 
-                texto_rmr = "Bueno"
-                rec_eng = "Avance de 1.5 - 3.0 m. Instalar pernos sistemáticos espaciados a 1.5 - 2m en corona y hastiales."
-            elif rmr_final >= 41: 
-                texto_rmr = "Regular"
-                rec_eng = "Pernos sistemáticos a 1.5m. Aplicar shotcrete (5-10 cm) y malla electrosoldada en techo y paredes."
-            elif rmr_final >= 21: 
-                texto_rmr = "Malo"
-                rec_eng = "Sostenimiento concurrente. Pernos a 1m, malla y shotcrete grueso (10-15 cm). Evaluar cerchas."
-            else: 
-                texto_rmr = "Muy Malo"
-                rec_eng = "Avance múltiple (0.5 - 1m). Sostenimiento en el frente. Uso de cerchas pesadas, marchavantes y shotcrete estructural."
+            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "Excavación a sección completa. No requiere sostenimiento sistemático, solo perneado esporádico en cuñas."
+            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "Avance de 1.5 - 3.0 m. Instalar pernos sistemáticos espaciados a 1.5 - 2m en corona y hastiales."
+            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "Pernos sistemáticos a 1.5m. Aplicar shotcrete (5-10 cm) y malla electrosoldada en techo y paredes."
+            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "Sostenimiento concurrente. Pernos a 1m, malla y shotcrete grueso (10-15 cm). Evaluar cerchas."
+            else: texto_rmr, rec_eng = "Muy Malo", "Avance múltiple (0.5 - 1m). Sostenimiento en el frente. Uso de cerchas pesadas, marchavantes y shotcrete estructural."
 
             st.markdown(f"""
             <div class='metric-box' style='border-color: {color_hex}66 !important;'>
@@ -338,12 +319,9 @@ if conexion_exitosa:
             
             <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'>
                 <p class='metric-label' style='color: #a8c7fa; margin-bottom: 5px;'>RECOMENDACIÓN TÉCNICA</p>
-                <p style='color: #e3e3e3; font-size: 12px; margin:0; line-height: 1.5;'>
-                    {rec_eng}
-                </p>
+                <p style='color: #e3e3e3; font-size: 12px; margin:0; line-height: 1.5;'>{rec_eng}</p>
             </div>
             """, unsafe_allow_html=True)
-            
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
