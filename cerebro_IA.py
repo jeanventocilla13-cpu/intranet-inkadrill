@@ -275,20 +275,12 @@ if conexion_exitosa:
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        # --- ESTRATEGIA DE DOBLE BÚSQUEDA (CARPETA ROCAS Y RAÍZ) CON ETIQUETA IMG ---
-        url_principal = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/rocas/{nombre_imagen}"
-        url_respaldo = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
+        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
 
+        # --- CORRECCIÓN: HTML COMPRIMIDO ABSOLUTO (SIN SALTOS NI COMENTARIOS) ---
         with col_visor:
-            st.markdown(f"""
-            <div style='background: radial-gradient(circle, {color_hex}44 0%, rgba(0,0,0,0) 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); transition: 0.5s; position: relative; overflow: hidden;'>
-                
-                <img src="{url_principal}" style="width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9)); z-index: 2;" onerror="this.onerror=null; this.src='{url_respaldo}';">
-                
-                <p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000; z-index: 2;'>{codigo_gsi}</p>
-                <p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase; z-index: 2;'>{estructura} / {condicion}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{url_github_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
+            st.markdown(html_visor, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
@@ -328,3 +320,4 @@ if conexion_exitosa:
     elif pestaña == "Visor Topográfico": st.markdown("<h1 style='color: white;'>Control Topográfico y Planos 🗺️</h1>", unsafe_allow_html=True)
     elif pestaña == "Visualizador 3D Sondajes": st.markdown("<h1 style='color: white;'>Modelamiento 3D 🛢️</h1>", unsafe_allow_html=True)
     elif pestaña == "Dashboard Analíticas": st.markdown("<h1 style='color: white;'>Analíticas 📈</h1>", unsafe_allow_html=True)
+        
