@@ -22,7 +22,7 @@ import base64
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visor Topográfico"
+    st.session_state.pestaña_activa = "Base de Datos"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -100,9 +100,29 @@ st.markdown("""
     
     .panel-geo { background-color: rgba(25, 26, 27, 0.6) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 12px; padding: 20px; height: 100%; }
     .titulo-seccion { color: #e3e3e3; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
-    .metric-box { background-color: rgba(19, 19, 20, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; }
-    .metric-value { font-size: 46px; font-weight: 700; margin: 5px 0; line-height: 1; }
-    .metric-label { color: #aaa; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+    
+    /* ESTILOS PARA LAS TARJETAS DE LA BASE DE DATOS */
+    .file-card {
+        background-color: rgba(30, 31, 32, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        transition: 0.3s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .file-card:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: #a8c7fa;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+    }
+    .file-icon { font-size: 34px; margin-right: 15px; }
+    .file-details { overflow: hidden; width: 100%; }
+    .file-name { color: #e3e3e3; font-weight: 600; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-id { color: #888; font-size: 11px; margin: 0; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
@@ -141,7 +161,8 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    opciones_nav = {"💬": "Chat Asistente Operativo", "🧮": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "📈": "Dashboard Analíticas"}
+    # ACTUALIZAMOS EL MENÚ DE NAVEGACIÓN
+    opciones_nav = {"💬": "Chat Asistente Operativo", "🧮": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "🗄️": "Base de Datos"}
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
     indice_nav_activo = 0
@@ -164,8 +185,9 @@ with st.sidebar:
     opciones_archivos = ["Base de datos general (Simulación)"]
     archivos_filtrados = []
     
+    # ACTUALIZAMOS EL FILTRO DE LA BARRA LATERAL PARA LA NUEVA PESTAÑA
     if "archivos_nube" in st.session_state:
-        if pestaña in ["Dashboard Analíticas", "Visualizador 3D Sondajes", "Visor Topográfico"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
+        if pestaña in ["Base de Datos", "Visualizador 3D Sondajes", "Visor Topográfico"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
         elif pestaña in ["Chat Asistente Operativo"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
     for f in archivos_filtrados: opciones_archivos.append(f['name'])
         
@@ -291,15 +313,13 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (RESTAURADO)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
-        
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         if st.session_state.archivo_activo == "Base de datos general (Simulación)":
             st.info("ℹ️ Mostrando mapa base de simulación (Área referencial - Ate).")
-            # Mapa base referencial 
             mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles="CartoDB dark_matter")
             st_folium(mapa_mina, width="100%", height=500)
         else:
@@ -309,50 +329,34 @@ if conexion_exitosa:
                     file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
                     csv_content = drive_service.files().get_media(fileId=file_id).execute().decode('utf-8')
                     df_mapa = pd.read_csv(StringIO(csv_content))
+                    with st.expander("Ver tabla de datos extraídos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
                     
-                    with st.expander("Ver tabla de datos extraídos", expanded=False):
-                        st.dataframe(df_mapa, use_container_width=True)
-                    
-                    # Detección inteligente de columnas
                     col_lat = next((col for col in df_mapa.columns if 'lat' in col.lower()), None)
                     col_lon = next((col for col in df_mapa.columns if 'lon' in col.lower() or 'lng' in col.lower()), None)
                     col_norte = next((col for col in df_mapa.columns if 'norte' in col.lower()), None)
                     col_este = next((col for col in df_mapa.columns if 'este' in col.lower()), None)
                     
-                    # Lógica 1: Coordenadas Lat/Lon directas
                     if col_lat and col_lon:
                         df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
                         mapa_dinamico = folium.Map(location=[float(df_mapa.iloc[0][col_lat]), float(df_mapa.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
-                        for idx, row in df_mapa.iterrows():
-                            folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                        for idx, row in df_mapa.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
                         st_folium(mapa_dinamico, width="100%", height=500)
-                        
-                    # Lógica 2: Coordenadas UTM a Lat/Lon (Zona 18S típica en Perú)
                     elif col_norte and col_este:
                         st.info("🔄 Coordenadas UTM detectadas. Ejecutando conversión a EPSG:4326 (WGS84)...")
                         df_mapa = df_mapa.dropna(subset=[col_norte, col_este])
                         transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
-                        
                         lon_centro, lat_centro = transformer.transform(float(df_mapa.iloc[0][col_este]), float(df_mapa.iloc[0][col_norte]))
                         mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles="CartoDB dark_matter")
-                        
                         for idx, row in df_mapa.iterrows():
                             lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
-                            folium.Marker(
-                                [lat_val, lon_val], 
-                                popup=f"Punto: {str(row.iloc[0])}", 
-                                icon=folium.Icon(color="red", icon="flag")
-                            ).add_to(mapa_dinamico)
-                            
+                            folium.Marker([lat_val, lon_val], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
                         st_folium(mapa_dinamico, width="100%", height=500)
-                    else:
-                        st.warning("⚠️ No se detectaron columnas válidas de coordenadas ('Norte'/'Este' o 'Lat'/'Lon') en el archivo seleccionado.")
-                except Exception as e:
-                    st.error(f"Error procesando el mapa topográfico: {e}")
+                    else: st.warning("⚠️ No se detectaron columnas válidas de coordenadas ('Norte'/'Este' o 'Lat'/'Lon') en el archivo seleccionado.")
+                except Exception as e: st.error(f"Error procesando el mapa topográfico: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (RESTAURADO)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES 
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -363,65 +367,69 @@ if conexion_exitosa:
         datos_lista = []
         for h_id in ["DDH-A01", "DDH-A02", "DDH-B01"]:
             x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
-            for depth in range(0, 150, 10):
-                datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "LEY_CU": np.random.uniform(0.1, 3.0)})
+            for depth in range(0, 150, 10): datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "LEY_CU": np.random.uniform(0.1, 3.0)})
         df_sondajes = pd.DataFrame(datos_lista)
         
         fig_3d = go.Figure()
         for hole in df_sondajes["HOLE_ID"].unique():
             df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
-            fig_3d.add_trace(go.Scatter3d(
-                x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
-                mode='lines+markers', 
-                marker=dict(size=5, color=df_hole["LEY_CU"], colorscale='Viridis', colorbar=dict(title="Ley Cu (%)")), 
-                line=dict(width=3, color='rgba(255,255,255,0.5)'),
-                name=hole
-            ))
-        fig_3d.update_layout(
-            margin=dict(r=10, l=10, b=10, t=10), 
-            height=600, 
-            paper_bgcolor="rgba(0,0,0,0)",
-            scene=dict(
-                xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'),
-                yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'),
-                zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)')
-            )
-        )
+            fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=5, color=df_hole["LEY_CU"], colorscale='Viridis', colorbar=dict(title="Ley Cu (%)")), line=dict(width=3, color='rgba(255,255,255,0.5)'), name=hole))
+        fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=600, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)')))
         st.plotly_chart(fig_3d, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 5: DASHBOARD ANALÍTICAS (RESTAURADO)
+    # PESTAÑA 5: BASE DE DATOS (NUEVA PESTAÑA CON BUSCADOR Y FILTROS)
     # ====================================================================
-    elif pestaña == "Dashboard Analíticas":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>PANEL DE CONTROL OPERATIVO 📈</h2>", unsafe_allow_html=True)
+    elif pestaña == "Base de Datos":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
         
-        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-        modificador = len(st.session_state.archivo_activo)
+        # --- BUSCADOR Y FILTRO ---
+        col_busqueda, col_filtro = st.columns([3, 1])
+        with col_busqueda:
+            texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
+        with col_filtro:
+            tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
+            
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        with col_kpi1:
-            st.markdown(f"""
-            <div class='metric-box'>
-                <p class='metric-label'>Documentos Indexados en IA</p>
-                <p class='metric-value' style='color: #a8c7fa;'>{len(st.session_state.get("archivos_nube", []))}</p>
-                <p style='color: #888; font-size: 12px; margin:0;'>Conectados a Google Drive</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # --- LÓGICA DE FILTRADO ---
+        archivos_mostrar = st.session_state.get("archivos_nube", [])
+        
+        # Filtro de búsqueda por nombre
+        if texto_busqueda:
+            archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
             
-        with col_kpi2:
-            st.markdown(f"""
-            <div class='metric-box'>
-                <p class='metric-label'>Promedio RMR Histórico</p>
-                <p class='metric-value' style='color: #8bc34a;'>{68.5 + (modificador*0.2):.1f}</p>
-                <p style='color: #888; font-size: 12px; margin:0;'>Mina Central</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # Filtro por tipo de extensión
+        if tipo_filtro == "CSV / Excel":
+            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+        elif tipo_filtro == "PDF":
+            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
+        elif tipo_filtro == "Imágenes":
+            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
+        elif tipo_filtro == "Texto":
+            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
             
-        with col_kpi3:
-            st.markdown(f"""
-            <div class='metric-box'>
-                <p class='metric-label'>Consultas a Gemini este mes</p>
-                <p class='metric-value' style='color: #ffd54f;'>{142 + modificador}</p>
-                <p style='color: #888; font-size: 12px; margin:0;'>Token API Activo</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # --- RENDERIZADO DE LAS TARJETAS (GRILLA 3x3) ---
+        if len(archivos_mostrar) == 0:
+            st.warning("No se encontraron documentos en Drive que coincidan con la búsqueda o filtro.")
+        else:
+            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
+            
+            columnas = st.columns(3)
+            for i, arch in enumerate(archivos_mostrar):
+                icono = obtener_icono(arch['name'])
+                nombre = arch['name']
+                id_corto = arch['id'][:10]
+                
+                # Diseño de Tarjeta estilo Dashboard
+                tarjeta_html = f"""
+                <div class='file-card'>
+                    <div class='file-icon'>{icono}</div>
+                    <div class='file-details'>
+                        <p class='file-name' title='{nombre}'>{nombre}</p>
+                        <p class='file-id'>ID DRIVE: {id_corto}...</p>
+                    </div>
+                </div>
+                """
+                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
