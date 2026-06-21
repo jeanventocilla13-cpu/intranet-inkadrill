@@ -245,7 +245,7 @@ if conexion_exitosa:
                 except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (IMAGEN HÍBRIDA)
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -269,14 +269,12 @@ if conexion_exitosa:
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
         img_b64 = ""
-        # 1. Intento Local
         rutas_locales = [nombre_imagen, f"rocas/{nombre_imagen}"]
         for ruta in rutas_locales:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
         
-        # 2. Intento de Respaldo por Web (Si lo local falla en la nube)
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
@@ -314,6 +312,7 @@ if conexion_exitosa:
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        
         if st.session_state.archivo_activo == "Base de datos general (Simulación)":
             st.info("ℹ️ Mostrando mapa base de simulación (Área referencial - Ate).")
             mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles="CartoDB dark_matter")
@@ -371,100 +370,131 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (EVITA CRUCE DE PROYECTOS)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (MAPEO MANUAL PROFESIONAL)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         
-        try:
-            with st.spinner("Descargando sondajes y ejecutando motor trigonométrico..."):
-                df_collar, df_survey, df_assay = None, None, None
-                archivos_cargados = []
+        # Obtenemos solo archivos CSV
+        csv_files = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.csv', '.txt'))]
+        
+        if len(csv_files) < 3:
+            st.warning("⚠️ Necesitas tener al menos 3 archivos CSV en tu Google Drive para modelar sondajes (Collar, Survey e Intervalos).")
+        else:
+            st.markdown("<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 10px;'>📌 Mapeo de Base de Datos (Selecciona los archivos del proyecto)</p>", unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                idx_c = next((i for i, f in enumerate(csv_files) if 'collar' in f.lower()), 0)
+                sel_collar = st.selectbox("Archivo COLLAR (Coordenadas X, Y, Z)", csv_files, index=idx_c)
+            with col2:
+                idx_s = next((i for i, f in enumerate(csv_files) if 'survey' in f.lower()), 0)
+                sel_survey = st.selectbox("Archivo SURVEY (Azimuth, Dip)", csv_files, index=idx_s)
+            with col3:
+                idx_a = next((i for i, f in enumerate(csv_files) if 'assay' in f.lower() or 'intervalo' in f.lower()), 0)
+                sel_assay = st.selectbox("Archivo ASSAY (Leyes Minerales)", csv_files, index=idx_a)
                 
-                # Se asigna solo el PRIMER archivo que coincida para evitar mezclar minas
-                for f in st.session_state.archivos_nube:
-                    nombre = f['name'].lower()
-                    if 'collar' in nombre and nombre.endswith('.csv') and df_collar is None:
-                        csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
-                        df_collar = pd.read_csv(StringIO(csv_content))
-                        archivos_cargados.append(f['name'])
-                    elif 'survey' in nombre and nombre.endswith('.csv') and df_survey is None:
-                        csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
-                        df_survey = pd.read_csv(StringIO(csv_content))
-                        archivos_cargados.append(f['name'])
-                    elif ('assay' in nombre or 'intervalo' in nombre) and nombre.endswith('.csv') and df_assay is None:
-                        csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
-                        df_assay = pd.read_csv(StringIO(csv_content))
-                        archivos_cargados.append(f['name'])
-                
-                if df_collar is not None and df_survey is not None and df_assay is not None:
-                    st.success(f"✅ Modelando 3D usando: {', '.join(archivos_cargados)}")
-                    
-                    def buscar_columna(df, palabras_clave):
-                        for col in df.columns:
-                            for p in palabras_clave:
-                                if p.upper() in str(col).upper(): return col
-                        return df.columns[0]
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if st.button("🚀 GENERAR MODELO 3D", type="primary", use_container_width=True):
+                try:
+                    with st.spinner(f"Descargando archivos y ejecutando motor trigonométrico..."):
                         
-                    id_c = buscar_columna(df_collar, ['BHID', 'HOLE', 'ID', 'TALADRO'])
-                    id_s = buscar_columna(df_survey, ['BHID', 'HOLE', 'ID', 'TALADRO'])
-                    id_a = buscar_columna(df_assay, ['BHID', 'HOLE', 'ID', 'TALADRO'])
-                    
-                    c_x = buscar_columna(df_collar, ['X', 'ESTE', 'EAST'])
-                    c_y = buscar_columna(df_collar, ['Y', 'NORTE', 'NORTH'])
-                    c_z = buscar_columna(df_collar, ['Z', 'ELEV', 'RL', 'COTA'])
-                    
-                    s_at = buscar_columna(df_survey, ['AT', 'DEPTH', 'PROF'])
-                    s_az = buscar_columna(df_survey, ['AZIMUTH', 'AZ', 'AZM'])
-                    s_dip = buscar_columna(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
-                    
-                    a_from = buscar_columna(df_assay, ['FROM', 'DESDE'])
-                    a_to = buscar_columna(df_assay, ['TO', 'HASTA'])
-                    col_ley = buscar_columna(df_assay, ['CU', 'AU', 'AG', 'LEY', 'GRADE'])
-                    
-                    df_assay[col_ley] = pd.to_numeric(df_assay[col_ley], errors='coerce').fillna(0)
-                    resultados = []
-                    
-                    for bhid in df_assay[id_a].unique():
-                        c_data = df_collar[df_collar[id_c] == bhid]
-                        if c_data.empty: continue
-                        x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
+                        id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
+                        id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
+                        id_assay = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_assay)
                         
-                        s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
-                        a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
+                        c_csv = drive_service.files().get_media(fileId=id_collar).execute().decode('utf-8')
+                        s_csv = drive_service.files().get_media(fileId=id_survey).execute().decode('utf-8')
+                        a_csv = drive_service.files().get_media(fileId=id_assay).execute().decode('utf-8')
                         
-                        for _, row in a_data.iterrows():
-                            mid_depth = (row[a_from] + row[a_to]) / 2
-                            s_valido = s_data[s_data[s_at] <= mid_depth]
-                            s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
+                        df_collar = pd.read_csv(StringIO(c_csv))
+                        df_survey = pd.read_csv(StringIO(s_csv))
+                        df_assay = pd.read_csv(StringIO(a_csv))
+                        
+                        def buscar_columna(df, palabras_clave):
+                            for col in df.columns:
+                                for p in palabras_clave:
+                                    if p.upper() in str(col).upper(): return col
+                            return df.columns[0]
+                            
+                        id_c = buscar_columna(df_collar, ['BHID', 'HOLE', 'ID', 'TALADRO'])
+                        id_s = buscar_columna(df_survey, ['BHID', 'HOLE', 'ID', 'TALADRO'])
+                        id_a = buscar_columna(df_assay, ['BHID', 'HOLE', 'ID', 'TALADRO'])
+                        
+                        c_x = buscar_columna(df_collar, ['X', 'ESTE', 'EAST'])
+                        c_y = buscar_columna(df_collar, ['Y', 'NORTE', 'NORTH'])
+                        c_z = buscar_columna(df_collar, ['Z', 'ELEV', 'RL', 'COTA'])
+                        
+                        s_at = buscar_columna(df_survey, ['AT', 'DEPTH', 'PROF'])
+                        s_az = buscar_columna(df_survey, ['AZIMUTH', 'AZ', 'AZM'])
+                        s_dip = buscar_columna(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
+                        
+                        a_from = buscar_columna(df_assay, ['FROM', 'DESDE'])
+                        a_to = buscar_columna(df_assay, ['TO', 'HASTA'])
+                        col_ley = buscar_columna(df_assay, ['CU', 'AU', 'AG', 'LEY', 'GRADE'])
+                        
+                        df_assay[col_ley] = pd.to_numeric(df_assay[col_ley], errors='coerce').fillna(0)
+                        resultados = []
+                        
+                        for bhid in df_assay[id_a].unique():
+                            c_data = df_collar[df_collar[id_c] == bhid]
+                            if c_data.empty: continue
+                            
+                            x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
+                            
+                            s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
+                            a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
+                            
+                            for _, row in a_data.iterrows():
+                                mid_depth = (row[a_from] + row[a_to]) / 2
+                                s_valido = s_data[s_data[s_at] <= mid_depth]
+                                s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
+                                    
+                                dip_rad = np.radians(s_row[s_dip])
+                                az_rad = np.radians(s_row[s_az])
                                 
-                            dip_rad = np.radians(s_row[s_dip])
-                            az_rad = np.radians(s_row[s_az])
-                            
-                            dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
-                            dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
-                            dz = mid_depth * np.sin(dip_rad)
-                            
-                            resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
-                            
-                    df_3d = pd.DataFrame(resultados)
-                    fig_3d = go.Figure()
-                    cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
-                    
-                    for hole in df_3d["BHID"].unique():
-                        df_hole = df_3d[df_3d["BHID"] == hole]
-                        fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley ({col_ley})", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), line=dict(width=2, color='rgba(255,255,255,0.3)'), name=str(hole)))
+                                dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
+                                dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
+                                dz = mid_depth * np.sin(dip_rad)
+                                
+                                resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
+                                
+                        df_3d = pd.DataFrame(resultados)
                         
-                    fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)"), legend=dict(font=dict(color="white")))
-                    st.plotly_chart(fig_3d, use_container_width=True)
-                else:
-                    faltantes = []
-                    if df_collar is None: faltantes.append("Collar")
-                    if df_survey is None: faltantes.append("Survey")
-                    if df_assay is None: faltantes.append("Intervalos")
-                    st.warning(f"⚠️ Para renderizar el modelo 3D te faltan los siguientes archivos en Drive: **{', '.join(faltantes)}**.")
-        except Exception as e: st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
+                        if df_3d.empty:
+                            st.error("❌ Se leyeron los archivos, pero no se encontraron sondajes (IDs) que coincidan entre sí. Revisa que pertenezcan a la misma campaña.")
+                        else:
+                            fig_3d = go.Figure()
+                            cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
+                            
+                            for hole in df_3d["BHID"].unique():
+                                df_hole = df_3d[df_3d["BHID"] == hole]
+                                fig_3d.add_trace(go.Scatter3d(
+                                    x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
+                                    mode='lines+markers', 
+                                    marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley ({col_ley})", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                    line=dict(width=2, color='rgba(255,255,255,0.3)'), 
+                                    name=str(hole)
+                                ))
+                                
+                            fig_3d.update_layout(
+                                margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
+                                scene=dict(
+                                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
+                                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
+                                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
+                                    bgcolor="rgba(0,0,0,0)"
+                                ), 
+                                legend=dict(font=dict(color="white"))
+                            )
+                            st.plotly_chart(fig_3d, use_container_width=True)
+                            st.success(f"✅ Modelo generado exitosamente con **{len(df_3d['BHID'].unique())}** sondajes.")
+                            
+                except Exception as e: 
+                    st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
+                    
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
