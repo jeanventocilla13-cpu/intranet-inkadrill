@@ -8,7 +8,7 @@ import folium
 import plotly.graph_objects as go
 import plotly.express as px
 from streamlit_folium import st_folium
-from io import BytesIO, StringIO  # <-- AQUÍ ESTÁ LA HERRAMIENTA QUE FALTABA
+from io import BytesIO, StringIO
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -23,7 +23,7 @@ import requests
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visor Topográfico"
+    st.session_state.pestaña_activa = "Visualizador 3D Sondajes"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -245,7 +245,7 @@ if conexion_exitosa:
                 except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS 
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (IMAGEN HÍBRIDA)
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -269,11 +269,20 @@ if conexion_exitosa:
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
         img_b64 = ""
-        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
-        try:
-            respuesta = requests.get(url_github_imagen, timeout=5)
-            if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
-        except Exception: pass
+        # 1. Intento Local
+        rutas_locales = [nombre_imagen, f"rocas/{nombre_imagen}"]
+        for ruta in rutas_locales:
+            if os.path.exists(ruta):
+                with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
+                break
+        
+        # 2. Intento de Respaldo por Web (Si lo local falla en la nube)
+        if not img_b64:
+            try:
+                url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
+                respuesta = requests.get(url_github, timeout=3)
+                if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
+            except: pass
 
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
@@ -300,12 +309,11 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (BLINDADO)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-        
         if st.session_state.archivo_activo == "Base de datos general (Simulación)":
             st.info("ℹ️ Mostrando mapa base de simulación (Área referencial - Ate).")
             mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles="CartoDB dark_matter")
@@ -320,9 +328,7 @@ if conexion_exitosa:
                     else:
                         csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
                         df_mapa = pd.read_csv(StringIO(csv_content))
-                        
-                        with st.expander("Ver tabla de datos", expanded=False):
-                            st.dataframe(df_mapa, use_container_width=True)
+                        with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
                         
                         def detectar_col(df, keywords):
                             for col in df.columns:
@@ -338,22 +344,18 @@ if conexion_exitosa:
                         col_norte = detectar_col(df_mapa, ['NORTE', 'NORTH', 'Y'])
                         col_este = detectar_col(df_mapa, ['ESTE', 'EAST', 'X'])
                         
-                        if df_mapa.empty:
-                            st.warning("⚠️ El archivo está vacío.")
+                        if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
                         elif col_lat and col_lon and ('NORTE' not in str(col_lat).upper()) and ('ESTE' not in str(col_lon).upper()):
                             df_clean = df_mapa.dropna(subset=[col_lat, col_lon])
-                            if df_clean.empty:
-                                st.warning("⚠️ Hay columnas de coordenadas, pero no tienen datos válidos.")
+                            if df_clean.empty: st.warning("⚠️ Hay coordenadas vacías.")
                             else:
                                 mapa_dinamico = folium.Map(location=[float(df_clean.iloc[0][col_lat]), float(df_clean.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
-                                for idx, row in df_clean.iterrows():
-                                    folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                                for idx, row in df_clean.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
                                 st_folium(mapa_dinamico, width="100%", height=500)
                         elif col_norte and col_este:
-                            st.info(f"🔄 Coordenadas UTM detectadas (Columnas: {col_este} / {col_norte}). Convirtiendo a WGS84...")
+                            st.info(f"🔄 Coordenadas UTM detectadas. Convirtiendo a WGS84...")
                             df_clean = df_mapa.dropna(subset=[col_norte, col_este])
-                            if df_clean.empty:
-                                st.warning("⚠️ Las columnas UTM están vacías.")
+                            if df_clean.empty: st.warning("⚠️ Las columnas UTM están vacías.")
                             else:
                                 transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
                                 lon_centro, lat_centro = transformer.transform(float(df_clean.iloc[0][col_este]), float(df_clean.iloc[0][col_norte]))
@@ -364,36 +366,41 @@ if conexion_exitosa:
                                         folium.Marker([lat_val, lon_val], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
                                     except: pass
                                 st_folium(mapa_dinamico, width="100%", height=500)
-                        else:
-                            st.warning("🗺️ **Aviso Geológico:** El archivo que seleccionaste no contiene coordenadas topográficas (Este/Norte o Lat/Lon). Selecciona un archivo de Topografía en la barra lateral.")
-                except Exception as e:
-                    st.error(f"Error procesando el mapa topográfico. Detalle: {e}")
+                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas.")
+                except Exception as e: st.error(f"Error procesando el mapa topográfico.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (DETECTOR UNIVERSAL)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (EVITA CRUCE DE PROYECTOS)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         
         try:
-            with st.spinner("Descargando sondajes y ejecutando detección universal de variables..."):
+            with st.spinner("Descargando sondajes y ejecutando motor trigonométrico..."):
                 df_collar, df_survey, df_assay = None, None, None
+                archivos_cargados = []
                 
+                # Se asigna solo el PRIMER archivo que coincida para evitar mezclar minas
                 for f in st.session_state.archivos_nube:
                     nombre = f['name'].lower()
-                    if 'collar' in nombre and nombre.endswith('.csv'):
+                    if 'collar' in nombre and nombre.endswith('.csv') and df_collar is None:
                         csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
                         df_collar = pd.read_csv(StringIO(csv_content))
-                    elif 'survey' in nombre and nombre.endswith('.csv'):
+                        archivos_cargados.append(f['name'])
+                    elif 'survey' in nombre and nombre.endswith('.csv') and df_survey is None:
                         csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
                         df_survey = pd.read_csv(StringIO(csv_content))
-                    elif ('assay' in nombre or 'intervalo' in nombre) and nombre.endswith('.csv'):
+                        archivos_cargados.append(f['name'])
+                    elif ('assay' in nombre or 'intervalo' in nombre) and nombre.endswith('.csv') and df_assay is None:
                         csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
                         df_assay = pd.read_csv(StringIO(csv_content))
+                        archivos_cargados.append(f['name'])
                 
                 if df_collar is not None and df_survey is not None and df_assay is not None:
+                    st.success(f"✅ Modelando 3D usando: {', '.join(archivos_cargados)}")
+                    
                     def buscar_columna(df, palabras_clave):
                         for col in df.columns:
                             for p in palabras_clave:
@@ -452,32 +459,8 @@ if conexion_exitosa:
                     fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)"), legend=dict(font=dict(color="white")))
                     st.plotly_chart(fig_3d, use_container_width=True)
                 else:
-                    st.warning("⚠️ Faltan archivos de perforación. Asegúrate de tener un archivo 'Collar', uno 'Survey' y uno de 'Intervalos' en tu Base de Datos.")
-        except Exception as e: st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # ====================================================================
-    # PESTAÑA 5: BASE DE DATOS
-    # ====================================================================
-    elif pestaña == "Base de Datos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
-        col_busqueda, col_filtro = st.columns([3, 1])
-        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
-        with col_filtro: tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        archivos_mostrar = st.session_state.get("archivos_nube", [])
-        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
-        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
-        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
-        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
-        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
-            
-        if len(archivos_mostrar) == 0: st.warning("No se encontraron documentos en Drive.")
-        else:
-            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
-            columnas = st.columns(3)
-            for i, arch in enumerate(archivos_mostrar):
-                icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
-                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID DRIVE: {id_corto}...</p></div></div>"
-                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
+                    faltantes = []
+                    if df_collar is None: faltantes.append("Collar")
+                    if df_survey is None: faltantes.append("Survey")
+                    if df_assay is None: faltantes.append("Intervalos")
+                    st.warning(f"⚠️ Para renderizar el modelo 3D te faltan los siguientes archivos en Drive: **{', '.join(falt
