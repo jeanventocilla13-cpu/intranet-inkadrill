@@ -17,12 +17,13 @@ import numpy as np
 from PIL import Image
 from pyproj import Transformer
 import base64
+import requests # <-- NUEVA LIBRERÍA PARA DESCARGAR IMÁGENES SIN FALLOS
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Base de Datos"
+    st.session_state.pestaña_activa = "Cálculos Geomecánicos"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -100,25 +101,13 @@ st.markdown("""
     
     .panel-geo { background-color: rgba(25, 26, 27, 0.6) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 12px; padding: 20px; height: 100%; }
     .titulo-seccion { color: #e3e3e3; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+    .metric-box { background-color: rgba(19, 19, 20, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; }
+    .metric-value { font-size: 46px; font-weight: 700; margin: 5px 0; line-height: 1; }
+    .metric-label { color: #aaa; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
     
-    /* ESTILOS PARA LAS TARJETAS DE LA BASE DE DATOS */
-    .file-card {
-        background-color: rgba(30, 31, 32, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        transition: 0.3s;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .file-card:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        border-color: #a8c7fa;
-        transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.5);
-    }
+    /* TARJETAS DE BASE DE DATOS */
+    .file-card { background-color: rgba(30, 31, 32, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .file-card:hover { background-color: rgba(255, 255, 255, 0.05); border-color: #a8c7fa; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
     .file-icon { font-size: 34px; margin-right: 15px; }
     .file-details { overflow: hidden; width: 100%; }
     .file-name { color: #e3e3e3; font-weight: 600; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -133,7 +122,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -161,7 +150,6 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    # ACTUALIZAMOS EL MENÚ DE NAVEGACIÓN
     opciones_nav = {"💬": "Chat Asistente Operativo", "🧮": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "🗄️": "Base de Datos"}
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
@@ -185,7 +173,6 @@ with st.sidebar:
     opciones_archivos = ["Base de datos general (Simulación)"]
     archivos_filtrados = []
     
-    # ACTUALIZAMOS EL FILTRO DE LA BARRA LATERAL PARA LA NUEVA PESTAÑA
     if "archivos_nube" in st.session_state:
         if pestaña in ["Base de Datos", "Visualizador 3D Sondajes", "Visor Topográfico"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
         elif pestaña in ["Chat Asistente Operativo"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
@@ -259,18 +246,15 @@ if conexion_exitosa:
                 except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS 
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (CON LECTURA REQUESTS PARA GITHUB)
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
-        
         col_param, col_visor, col_resultados = st.columns([1.2, 1.2, 1])
-        
         with col_param:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Parámetros de Roca Intacta</div>", unsafe_allow_html=True)
             ucs = st.number_input("Resistencia Compresión Simple (UCS) (MPa)", min_value=0, max_value=300, value=25)
-            
             st.markdown("<br><div class='titulo-seccion'>Propiedades del Macizo Rocoso (GSI Modificado)</div>", unsafe_allow_html=True)
             estructura = st.selectbox("Estructura del Macizo (Filas)", ["Levemente Fracturada", "Moderadamente Fracturada", "Muy Fracturada", "Intensamente Fracturada"])
             condicion = st.selectbox("Condición de Discontinuidades (Columnas)", ["Buena", "Regular", "Mala", "Muy Mala"])
@@ -282,31 +266,30 @@ if conexion_exitosa:
             "Muy Fracturada": {"Buena": ("MF/B", 65, "#ffeb3b", "9_MFB.png"), "Regular": ("MF/R", 50, "#ff9800", "10_MFR.png"), "Mala": ("MF/M", 35, "#f44336", "11_MFM.png"), "Muy Mala": ("MF/MM", 20, "#b71c1c", "12_MFMM.png")},
             "Intensamente Fracturada": {"Buena": ("I/B", 55, "#ff9800", "13_IB.png"), "Regular": ("IF/R", 40, "#f44336", "14_IFR.png"), "Mala": ("IF/M", 25, "#b71c1c", "15_IFM.png"), "Muy Mala": ("IF/MM", 15, "#4e342e", "16_IFMM.png")}
         }
-        
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        # --- LECTURA LOCAL DIRECTA DESDE LA RAÍZ ---
+        # --- DESCARGA DIRECTA Y BLINDADA DESDE GITHUB USANDO REQUESTS ---
         img_b64 = ""
-        # Busca directamente el nombre de la imagen en la misma carpeta que tu código
-        if os.path.exists(nombre_imagen):
-            with open(nombre_imagen, "rb") as f: 
-                img_b64 = base64.b64encode(f.read()).decode()
-                
-        # Si encuentra la imagen, la inyecta. Si no, inyecta un píxel transparente.
+        url_github_imagen = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
+        try:
+            respuesta = requests.get(url_github_imagen, timeout=5)
+            if respuesta.status_code == 200:
+                img_b64 = base64.b64encode(respuesta.content).decode()
+        except Exception:
+            pass
+
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
             html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
-            
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
 
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
-            
             if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso y perneado esporádico con pernos de fricción en cuñas sueltas."
             elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
             elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
@@ -314,21 +297,9 @@ if conexion_exitosa:
             else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
 
             st.markdown(f"""
-            <div class='metric-box' style='border-color: {color_hex}66 !important;'>
-                <p class='metric-label'>Código GSI Identificado</p>
-                <p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p>
-            </div>
-            
-            <div class='metric-box'>
-                <p class='metric-label'>Clasificación RMR Unificada</p>
-                <p class='metric-value' style='color: {color_hex};'>{rmr_final}</p>
-                <p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p>
-            </div>
-            
-            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'>
-                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p>
-                <p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p>
-            </div>
+            <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI Identificado</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
+            <div class='metric-box'><p class='metric-label'>Clasificación RMR Unificada</p><p class='metric-value' style='color: {color_hex};'>{rmr_final}</p><p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p></div>
+            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'><p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p><p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p></div>
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -388,7 +359,6 @@ if conexion_exitosa:
                 df_survey = None
                 df_assay = None
                 
-                # 1. Búsqueda inteligente en los archivos de Drive indexados
                 for f in st.session_state.archivos_nube:
                     nombre = f['name'].lower()
                     if 'collar' in nombre and nombre.endswith('.csv'):
@@ -401,17 +371,14 @@ if conexion_exitosa:
                         csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
                         df_assay = pd.read_csv(StringIO(csv_content))
                 
-                # 2. Motor de Desurveying con DETECTOR INTELIGENTE
                 if df_collar is not None and df_survey is not None and df_assay is not None:
                     
-                    # Función que busca variaciones de nombres de columnas
                     def buscar_columna(df, palabras_clave):
                         for col in df.columns:
                             for p in palabras_clave:
                                 if p.upper() in str(col).upper(): return col
-                        return df.columns[0] # Fallback a la primera columna si no encuentra nada
+                        return df.columns[0]
                         
-                    # Detección dinámica (Soporta BHID, HOLE_ID, HoleID, TALADRO, etc.)
                     id_c = buscar_columna(df_collar, ['BHID', 'HOLE', 'ID', 'TALADRO'])
                     id_s = buscar_columna(df_survey, ['BHID', 'HOLE', 'ID', 'TALADRO'])
                     id_a = buscar_columna(df_assay, ['BHID', 'HOLE', 'ID', 'TALADRO'])
@@ -427,14 +394,11 @@ if conexion_exitosa:
                     a_from = buscar_columna(df_assay, ['FROM', 'DESDE'])
                     a_to = buscar_columna(df_assay, ['TO', 'HASTA'])
                     
-                    # Detecta cobre, oro, plata o la palabra genérica "ley"
                     col_ley = buscar_columna(df_assay, ['CU', 'AU', 'AG', 'LEY', 'GRADE'])
-                    
                     df_assay[col_ley] = pd.to_numeric(df_assay[col_ley], errors='coerce').fillna(0)
                     
                     resultados = []
                     
-                    # Cálculo trigonométrico basado en las columnas detectadas
                     for bhid in df_assay[id_a].unique():
                         c_data = df_collar[df_collar[id_c] == bhid]
                         if c_data.empty: continue
@@ -463,7 +427,6 @@ if conexion_exitosa:
                             
                     df_3d = pd.DataFrame(resultados)
                     
-                    # 3. Renderizado Gráfico 3D Real
                     fig_3d = go.Figure()
                     cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                     
@@ -495,13 +458,13 @@ if conexion_exitosa:
             st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
             
         st.markdown("</div>", unsafe_allow_html=True)
+
     # ====================================================================
     # PESTAÑA 5: BASE DE DATOS (NUEVA PESTAÑA CON BUSCADOR Y FILTROS)
     # ====================================================================
     elif pestaña == "Base de Datos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
         
-        # --- BUSCADOR Y FILTRO ---
         col_busqueda, col_filtro = st.columns([3, 1])
         with col_busqueda:
             texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
@@ -510,24 +473,15 @@ if conexion_exitosa:
             
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- LÓGICA DE FILTRADO ---
         archivos_mostrar = st.session_state.get("archivos_nube", [])
         
-        # Filtro de búsqueda por nombre
-        if texto_busqueda:
-            archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
+        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
             
-        # Filtro por tipo de extensión
-        if tipo_filtro == "CSV / Excel":
-            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
-        elif tipo_filtro == "PDF":
-            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
-        elif tipo_filtro == "Imágenes":
-            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
-        elif tipo_filtro == "Texto":
-            archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
+        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
+        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
+        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
             
-        # --- RENDERIZADO DE LAS TARJETAS (GRILLA 3x3) ---
         if len(archivos_mostrar) == 0:
             st.warning("No se encontraron documentos en Drive que coincidan con la búsqueda o filtro.")
         else:
@@ -539,7 +493,6 @@ if conexion_exitosa:
                 nombre = arch['name']
                 id_corto = arch['id'][:10]
                 
-                # Diseño de Tarjeta estilo Dashboard
                 tarjeta_html = f"""
                 <div class='file-card'>
                     <div class='file-icon'>{icono}</div>
