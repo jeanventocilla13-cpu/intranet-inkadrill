@@ -356,14 +356,14 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CONECTADO A GOOGLE DRIVE)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (DETECTOR UNIVERSAL DE COLUMNAS)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         
         try:
-            with st.spinner("Descargando sondajes desde Google Drive y calculando trayectoria espacial..."):
+            with st.spinner("Descargando sondajes y ejecutando detección universal de variables..."):
                 df_collar = None
                 df_survey = None
                 df_assay = None
@@ -381,33 +381,56 @@ if conexion_exitosa:
                         csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
                         df_assay = pd.read_csv(StringIO(csv_content))
                 
-                # 2. Motor de Desurveying
+                # 2. Motor de Desurveying con DETECTOR INTELIGENTE
                 if df_collar is not None and df_survey is not None and df_assay is not None:
-                    resultados = []
                     
-                    # Detectar automáticamente la columna de ley mineral (Au, Cu, etc.)
-                    col_ley = next((col for col in df_assay.columns if 'au' in col.lower() or 'cu' in col.lower() or 'ley' in col.lower()), df_assay.columns[-1])
+                    # Función que busca variaciones de nombres de columnas
+                    def buscar_columna(df, palabras_clave):
+                        for col in df.columns:
+                            for p in palabras_clave:
+                                if p.upper() in str(col).upper(): return col
+                        return df.columns[0] # Fallback a la primera columna si no encuentra nada
+                        
+                    # Detección dinámica (Soporta BHID, HOLE_ID, HoleID, TALADRO, etc.)
+                    id_c = buscar_columna(df_collar, ['BHID', 'HOLE', 'ID', 'TALADRO'])
+                    id_s = buscar_columna(df_survey, ['BHID', 'HOLE', 'ID', 'TALADRO'])
+                    id_a = buscar_columna(df_assay, ['BHID', 'HOLE', 'ID', 'TALADRO'])
                     
-                    # 🛠️ EL FILTRO PURIFICADOR: Forzar a numérico y convertir errores/textos en 0
+                    c_x = buscar_columna(df_collar, ['X', 'ESTE', 'EAST'])
+                    c_y = buscar_columna(df_collar, ['Y', 'NORTE', 'NORTH'])
+                    c_z = buscar_columna(df_collar, ['Z', 'ELEV', 'RL', 'COTA'])
+                    
+                    s_at = buscar_columna(df_survey, ['AT', 'DEPTH', 'PROF'])
+                    s_az = buscar_columna(df_survey, ['AZIMUTH', 'AZ', 'AZM'])
+                    s_dip = buscar_columna(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
+                    
+                    a_from = buscar_columna(df_assay, ['FROM', 'DESDE'])
+                    a_to = buscar_columna(df_assay, ['TO', 'HASTA'])
+                    
+                    # Detecta cobre, oro, plata o la palabra genérica "ley"
+                    col_ley = buscar_columna(df_assay, ['CU', 'AU', 'AG', 'LEY', 'GRADE'])
+                    
                     df_assay[col_ley] = pd.to_numeric(df_assay[col_ley], errors='coerce').fillna(0)
                     
-                    for bhid in df_assay['BHID'].unique():
-                        c_data = df_collar[df_collar['BHID'] == bhid]
+                    resultados = []
+                    
+                    # Cálculo trigonométrico basado en las columnas detectadas
+                    for bhid in df_assay[id_a].unique():
+                        c_data = df_collar[df_collar[id_c] == bhid]
                         if c_data.empty: continue
-                        x0, y0, z0 = c_data.iloc[0]['X'], c_data.iloc[0]['Y'], c_data.iloc[0]['Z']
+                        x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
                         
-                        s_data = df_survey[df_survey['BHID'] == bhid].sort_values('AT')
-                        a_data = df_assay[df_assay['BHID'] == bhid].sort_values('FROM')
+                        s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
+                        a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
                         
                         for _, row in a_data.iterrows():
-                            mid_depth = (row['FROM'] + row['TO']) / 2
-                            s_valido = s_data[s_data['AT'] <= mid_depth]
+                            mid_depth = (row[a_from] + row[a_to]) / 2
+                            s_valido = s_data[s_data[s_at] <= mid_depth]
                             s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
                                 
-                            dip_rad = np.radians(s_row['DIP'])
-                            az_rad = np.radians(s_row['AZ'])
+                            dip_rad = np.radians(s_row[s_dip])
+                            az_rad = np.radians(s_row[s_az])
                             
-                            # Cálculo trigonométrico espacial de la desviación
                             dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
                             dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
                             dz = mid_depth * np.sin(dip_rad)
@@ -422,8 +445,6 @@ if conexion_exitosa:
                     
                     # 3. Renderizado Gráfico 3D Real
                     fig_3d = go.Figure()
-                    
-                    # Protección extra por si todas las leyes son 0 para que no colapse el color cmax
                     cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                     
                     for hole in df_3d["BHID"].unique():
@@ -431,22 +452,24 @@ if conexion_exitosa:
                         fig_3d.add_trace(go.Scatter3d(
                             x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
                             mode='lines+markers', 
-                            marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                            marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley ({col_ley})", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
                             line=dict(width=2, color='rgba(255,255,255,0.3)'),
-                            name=hole
+                            name=str(hole)
                         ))
                         
                     fig_3d.update_layout(
                         margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)",
                         scene=dict(
-                            xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)"),
-                            yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)"),
-                            zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)")
-                        )
+                            xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"),
+                            yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"),
+                            zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"),
+                            bgcolor="rgba(0,0,0,0)"
+                        ),
+                        legend=dict(font=dict(color="white"))
                     )
                     st.plotly_chart(fig_3d, use_container_width=True)
                 else:
-                    st.warning("⚠️ No se detectaron los 3 archivos requeridos (Collar, Survey, Intervalos) en tu Base de Datos. Asegúrate de que estén en Drive.")
+                    st.warning("⚠️ No se detectaron los 3 archivos requeridos (Collar, Survey, Intervalos) en tu Base de Datos.")
                     
         except Exception as e:
             st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
