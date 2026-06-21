@@ -263,11 +263,14 @@ if conexion_exitosa:
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
+        
         col_param, col_visor, col_resultados = st.columns([1.2, 1.2, 1])
+        
         with col_param:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Parámetros de Roca Intacta</div>", unsafe_allow_html=True)
             ucs = st.number_input("Resistencia Compresión Simple (UCS) (MPa)", min_value=0, max_value=300, value=25)
+            
             st.markdown("<br><div class='titulo-seccion'>Propiedades del Macizo Rocoso (GSI Modificado)</div>", unsafe_allow_html=True)
             estructura = st.selectbox("Estructura del Macizo (Filas)", ["Levemente Fracturada", "Moderadamente Fracturada", "Muy Fracturada", "Intensamente Fracturada"])
             condicion = st.selectbox("Condición de Discontinuidades (Columnas)", ["Buena", "Regular", "Mala", "Muy Mala"])
@@ -279,26 +282,31 @@ if conexion_exitosa:
             "Muy Fracturada": {"Buena": ("MF/B", 65, "#ffeb3b", "9_MFB.png"), "Regular": ("MF/R", 50, "#ff9800", "10_MFR.png"), "Mala": ("MF/M", 35, "#f44336", "11_MFM.png"), "Muy Mala": ("MF/MM", 20, "#b71c1c", "12_MFMM.png")},
             "Intensamente Fracturada": {"Buena": ("I/B", 55, "#ff9800", "13_IB.png"), "Regular": ("IF/R", 40, "#f44336", "14_IFR.png"), "Mala": ("IF/M", 25, "#b71c1c", "15_IFM.png"), "Muy Mala": ("IF/MM", 15, "#4e342e", "16_IFMM.png")}
         }
+        
         codigo_gsi, puntaje_base, color_hex, nombre_imagen = matriz_gsi[estructura][condicion]
         rmr_final = min(100, int(puntaje_base + (ucs * 0.1)))
         
-        rutas_posibles = [f"rocas/{nombre_imagen}", nombre_imagen]
+        # --- LECTURA LOCAL DIRECTA DESDE LA RAÍZ ---
         img_b64 = ""
-        for ruta in rutas_posibles:
-            if os.path.exists(ruta):
-                with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
-                break
+        # Busca directamente el nombre de la imagen en la misma carpeta que tu código
+        if os.path.exists(nombre_imagen):
+            with open(nombre_imagen, "rb") as f: 
+                img_b64 = base64.b64encode(f.read()).decode()
+                
+        # Si encuentra la imagen, la inyecta. Si no, inyecta un píxel transparente.
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
             html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
+            
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
 
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
+            
             if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso y perneado esporádico con pernos de fricción en cuñas sueltas."
             elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
             elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
@@ -306,9 +314,21 @@ if conexion_exitosa:
             else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
 
             st.markdown(f"""
-            <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI Identificado</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
-            <div class='metric-box'><p class='metric-label'>Clasificación RMR Unificada</p><p class='metric-value' style='color: {color_hex};'>{rmr_final}</p><p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p></div>
-            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'><p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p><p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p></div>
+            <div class='metric-box' style='border-color: {color_hex}66 !important;'>
+                <p class='metric-label'>Código GSI Identificado</p>
+                <p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p>
+            </div>
+            
+            <div class='metric-box'>
+                <p class='metric-label'>Clasificación RMR Unificada</p>
+                <p class='metric-value' style='color: {color_hex};'>{rmr_final}</p>
+                <p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p>
+            </div>
+            
+            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'>
+                <p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p>
+                <p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p>
+            </div>
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
