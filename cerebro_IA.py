@@ -356,28 +356,95 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES 
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (MOTOR MATEMÁTICO REAL)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         
-        seed_val = len(st.session_state.archivo_activo)
-        np.random.seed(seed_val)
-        datos_lista = []
-        for h_id in ["DDH-A01", "DDH-A02", "DDH-B01"]:
-            x_start, y_start, z_start = np.random.randint(100, 200), np.random.randint(100, 200), 500
-            for depth in range(0, 150, 10): datos_lista.append({"HOLE_ID": h_id, "X": x_start + (depth * 0.2), "Y": y_start + (depth * 0.1), "Z": z_start - depth, "LEY_CU": np.random.uniform(0.1, 3.0)})
-        df_sondajes = pd.DataFrame(datos_lista)
-        
-        fig_3d = go.Figure()
-        for hole in df_sondajes["HOLE_ID"].unique():
-            df_hole = df_sondajes[df_sondajes["HOLE_ID"] == hole]
-            fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=5, color=df_hole["LEY_CU"], colorscale='Viridis', colorbar=dict(title="Ley Cu (%)")), line=dict(width=3, color='rgba(255,255,255,0.5)'), name=hole))
-        fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=600, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)'), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)')))
-        st.plotly_chart(fig_3d, use_container_width=True)
+        try:
+            with st.spinner("Procesando algoritmos de trayectoria 3D (Collar, Survey, Assay)..."):
+                
+                # 1. Leer los archivos reales del proyecto
+                df_collar = pd.read_csv('collar.csv')
+                df_survey = pd.read_csv('survey.csv')
+                df_assay = pd.read_csv('assay.csv')
+                
+                # 2. Desurveying (Motor de Cálculo Matemático)
+                resultados = []
+                for bhid in df_assay['BHID'].unique():
+                    # Coordenadas de inicio
+                    c_data = df_collar[df_collar['BHID'] == bhid]
+                    if c_data.empty: continue
+                    x0, y0, z0 = c_data.iloc[0]['X'], c_data.iloc[0]['Y'], c_data.iloc[0]['Z']
+                    
+                    s_data = df_survey[df_survey['BHID'] == bhid].sort_values('AT')
+                    a_data = df_assay[df_assay['BHID'] == bhid].sort_values('FROM')
+                    
+                    # Calcular el punto X, Y, Z por cada muestra de laboratorio
+                    for _, row in a_data.iterrows():
+                        mid_depth = (row['FROM'] + row['TO']) / 2
+                        
+                        s_valido = s_data[s_data['AT'] <= mid_depth]
+                        if s_valido.empty: s_row = s_data.iloc[0]
+                        else: s_row = s_valido.iloc[-1]
+                            
+                        dip_rad = np.radians(s_row['DIP'])
+                        az_rad = np.radians(s_row['AZ'])
+                        
+                        # Trigonometría espacial
+                        dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
+                        dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
+                        dz = mid_depth * np.sin(dip_rad)
+                        
+                        resultados.append({
+                            'BHID': bhid,
+                            'X': x0 + dx,
+                            'Y': y0 + dy,
+                            'Z': z0 + dz,
+                            'AU_GPT': row['AU_GPT']
+                        })
+                        
+                df_3d = pd.DataFrame(resultados)
+                
+                # 3. Renderizado Gráfico en Plotly
+                fig_3d = go.Figure()
+                
+                # Filtramos atípicos extremos para que los colores se distribuyan mejor
+                cmax_val = df_3d['AU_GPT'].quantile(0.98) 
+                
+                for hole in df_3d["BHID"].unique():
+                    df_hole = df_3d[df_3d["BHID"] == hole]
+                    fig_3d.add_trace(go.Scatter3d(
+                        x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
+                        mode='lines+markers', 
+                        marker=dict(
+                            size=4, 
+                            color=df_hole["AU_GPT"], 
+                            colorscale='Viridis', 
+                            colorbar=dict(title="Ley Au (g/t)", tickfont=dict(color='white')), 
+                            cmin=0, cmax=cmax_val
+                        ), 
+                        line=dict(width=2, color='rgba(255,255,255,0.3)'),
+                        name=hole
+                    ))
+                    
+                fig_3d.update_layout(
+                    margin=dict(r=10, l=10, b=10, t=10), 
+                    height=700, 
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    scene=dict(
+                        xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)"),
+                        yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)"),
+                        zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)")
+                    )
+                )
+                st.plotly_chart(fig_3d, use_container_width=True)
+                
+        except Exception as e:
+            st.error("⚠️ Para visualizar el modelo 3D, asegúrate de que los archivos 'collar.csv', 'survey.csv' y 'assay.csv' se encuentren cargados en el sistema.")
+            
         st.markdown("</div>", unsafe_allow_html=True)
-
     # ====================================================================
     # PESTAÑA 5: BASE DE DATOS (NUEVA PESTAÑA CON BUSCADOR Y FILTROS)
     # ====================================================================
