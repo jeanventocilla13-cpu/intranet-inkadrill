@@ -463,4 +463,32 @@ if conexion_exitosa:
                     if df_collar is None: faltantes.append("Collar")
                     if df_survey is None: faltantes.append("Survey")
                     if df_assay is None: faltantes.append("Intervalos")
-                    st.warning(f"⚠️ Para renderizar el modelo 3D te faltan los siguientes archivos en Drive: **{', '.join(falt
+                    st.warning(f"⚠️ Para renderizar el modelo 3D te faltan los siguientes archivos en Drive: **{', '.join(faltantes)}**.")
+        except Exception as e: st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 5: BASE DE DATOS
+    # ====================================================================
+    elif pestaña == "Base de Datos":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
+        col_busqueda, col_filtro = st.columns([3, 1])
+        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
+        with col_filtro: tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        archivos_mostrar = st.session_state.get("archivos_nube", [])
+        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
+        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
+        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
+        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
+            
+        if len(archivos_mostrar) == 0: st.warning("No se encontraron documentos en Drive.")
+        else:
+            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
+            columnas = st.columns(3)
+            for i, arch in enumerate(archivos_mostrar):
+                icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
+                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID DRIVE: {id_corto}...</p></div></div>"
+                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
