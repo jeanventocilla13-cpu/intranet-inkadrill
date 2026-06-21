@@ -388,6 +388,9 @@ if conexion_exitosa:
                     # Detectar automáticamente la columna de ley mineral (Au, Cu, etc.)
                     col_ley = next((col for col in df_assay.columns if 'au' in col.lower() or 'cu' in col.lower() or 'ley' in col.lower()), df_assay.columns[-1])
                     
+                    # 🛠️ EL FILTRO PURIFICADOR: Forzar a numérico y convertir errores/textos en 0
+                    df_assay[col_ley] = pd.to_numeric(df_assay[col_ley], errors='coerce').fillna(0)
+                    
                     for bhid in df_assay['BHID'].unique():
                         c_data = df_collar[df_collar['BHID'] == bhid]
                         if c_data.empty: continue
@@ -419,7 +422,9 @@ if conexion_exitosa:
                     
                     # 3. Renderizado Gráfico 3D Real
                     fig_3d = go.Figure()
-                    cmax_val = df_3d['LEY'].quantile(0.98) # Limita valores atípicos para mejor visualización
+                    
+                    # Protección extra por si todas las leyes son 0 para que no colapse el color cmax
+                    cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                     
                     for hole in df_3d["BHID"].unique():
                         df_hole = df_3d[df_3d["BHID"] == hole]
