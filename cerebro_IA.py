@@ -356,93 +356,95 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (MOTOR MATEMÁTICO REAL)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CONECTADO A GOOGLE DRIVE)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         
         try:
-            with st.spinner("Procesando algoritmos de trayectoria 3D (Collar, Survey, Assay)..."):
+            with st.spinner("Descargando sondajes desde Google Drive y calculando trayectoria espacial..."):
+                df_collar = None
+                df_survey = None
+                df_assay = None
                 
-                # 1. Leer los archivos reales del proyecto
-                df_collar = pd.read_csv('collar.csv')
-                df_survey = pd.read_csv('survey.csv')
-                df_assay = pd.read_csv('assay.csv')
+                # 1. Búsqueda inteligente en los archivos de Drive indexados
+                for f in st.session_state.archivos_nube:
+                    nombre = f['name'].lower()
+                    if 'collar' in nombre and nombre.endswith('.csv'):
+                        csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
+                        df_collar = pd.read_csv(StringIO(csv_content))
+                    elif 'survey' in nombre and nombre.endswith('.csv'):
+                        csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
+                        df_survey = pd.read_csv(StringIO(csv_content))
+                    elif ('assay' in nombre or 'intervalo' in nombre) and nombre.endswith('.csv'):
+                        csv_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
+                        df_assay = pd.read_csv(StringIO(csv_content))
                 
-                # 2. Desurveying (Motor de Cálculo Matemático)
-                resultados = []
-                for bhid in df_assay['BHID'].unique():
-                    # Coordenadas de inicio
-                    c_data = df_collar[df_collar['BHID'] == bhid]
-                    if c_data.empty: continue
-                    x0, y0, z0 = c_data.iloc[0]['X'], c_data.iloc[0]['Y'], c_data.iloc[0]['Z']
+                # 2. Motor de Desurveying
+                if df_collar is not None and df_survey is not None and df_assay is not None:
+                    resultados = []
                     
-                    s_data = df_survey[df_survey['BHID'] == bhid].sort_values('AT')
-                    a_data = df_assay[df_assay['BHID'] == bhid].sort_values('FROM')
+                    # Detectar automáticamente la columna de ley mineral (Au, Cu, etc.)
+                    col_ley = next((col for col in df_assay.columns if 'au' in col.lower() or 'cu' in col.lower() or 'ley' in col.lower()), df_assay.columns[-1])
                     
-                    # Calcular el punto X, Y, Z por cada muestra de laboratorio
-                    for _, row in a_data.iterrows():
-                        mid_depth = (row['FROM'] + row['TO']) / 2
+                    for bhid in df_assay['BHID'].unique():
+                        c_data = df_collar[df_collar['BHID'] == bhid]
+                        if c_data.empty: continue
+                        x0, y0, z0 = c_data.iloc[0]['X'], c_data.iloc[0]['Y'], c_data.iloc[0]['Z']
                         
-                        s_valido = s_data[s_data['AT'] <= mid_depth]
-                        if s_valido.empty: s_row = s_data.iloc[0]
-                        else: s_row = s_valido.iloc[-1]
+                        s_data = df_survey[df_survey['BHID'] == bhid].sort_values('AT')
+                        a_data = df_assay[df_assay['BHID'] == bhid].sort_values('FROM')
+                        
+                        for _, row in a_data.iterrows():
+                            mid_depth = (row['FROM'] + row['TO']) / 2
+                            s_valido = s_data[s_data['AT'] <= mid_depth]
+                            s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
+                                
+                            dip_rad = np.radians(s_row['DIP'])
+                            az_rad = np.radians(s_row['AZ'])
                             
-                        dip_rad = np.radians(s_row['DIP'])
-                        az_rad = np.radians(s_row['AZ'])
-                        
-                        # Trigonometría espacial
-                        dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
-                        dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
-                        dz = mid_depth * np.sin(dip_rad)
-                        
-                        resultados.append({
-                            'BHID': bhid,
-                            'X': x0 + dx,
-                            'Y': y0 + dy,
-                            'Z': z0 + dz,
-                            'AU_GPT': row['AU_GPT']
-                        })
-                        
-                df_3d = pd.DataFrame(resultados)
-                
-                # 3. Renderizado Gráfico en Plotly
-                fig_3d = go.Figure()
-                
-                # Filtramos atípicos extremos para que los colores se distribuyan mejor
-                cmax_val = df_3d['AU_GPT'].quantile(0.98) 
-                
-                for hole in df_3d["BHID"].unique():
-                    df_hole = df_3d[df_3d["BHID"] == hole]
-                    fig_3d.add_trace(go.Scatter3d(
-                        x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
-                        mode='lines+markers', 
-                        marker=dict(
-                            size=4, 
-                            color=df_hole["AU_GPT"], 
-                            colorscale='Viridis', 
-                            colorbar=dict(title="Ley Au (g/t)", tickfont=dict(color='white')), 
-                            cmin=0, cmax=cmax_val
-                        ), 
-                        line=dict(width=2, color='rgba(255,255,255,0.3)'),
-                        name=hole
-                    ))
+                            # Cálculo trigonométrico espacial de la desviación
+                            dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
+                            dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
+                            dz = mid_depth * np.sin(dip_rad)
+                            
+                            resultados.append({
+                                'BHID': bhid,
+                                'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz,
+                                'LEY': row[col_ley]
+                            })
+                            
+                    df_3d = pd.DataFrame(resultados)
                     
-                fig_3d.update_layout(
-                    margin=dict(r=10, l=10, b=10, t=10), 
-                    height=700, 
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    scene=dict(
-                        xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)"),
-                        yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)"),
-                        zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)")
+                    # 3. Renderizado Gráfico 3D Real
+                    fig_3d = go.Figure()
+                    cmax_val = df_3d['LEY'].quantile(0.98) # Limita valores atípicos para mejor visualización
+                    
+                    for hole in df_3d["BHID"].unique():
+                        df_hole = df_3d[df_3d["BHID"] == hole]
+                        fig_3d.add_trace(go.Scatter3d(
+                            x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
+                            mode='lines+markers', 
+                            marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                            line=dict(width=2, color='rgba(255,255,255,0.3)'),
+                            name=hole
+                        ))
+                        
+                    fig_3d.update_layout(
+                        margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)",
+                        scene=dict(
+                            xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)"),
+                            yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)"),
+                            zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)")
+                        )
                     )
-                )
-                st.plotly_chart(fig_3d, use_container_width=True)
-                
+                    st.plotly_chart(fig_3d, use_container_width=True)
+                else:
+                    st.warning("⚠️ No se detectaron los 3 archivos requeridos (Collar, Survey, Intervalos) en tu Base de Datos. Asegúrate de que estén en Drive.")
+                    
         except Exception as e:
-            st.error("⚠️ Para visualizar el modelo 3D, asegúrate de que los archivos 'collar.csv', 'survey.csv' y 'assay.csv' se encuentren cargados en el sistema.")
+            st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
             
         st.markdown("</div>", unsafe_allow_html=True)
     # ====================================================================
