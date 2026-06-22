@@ -307,7 +307,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (BLINDADO CONTRA SERIES)
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
@@ -329,29 +329,14 @@ if conexion_exitosa:
                         df_mapa = pd.read_csv(StringIO(csv_content))
                         with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
                         
-                        def detectar_col(df, keywords):
-                            for col in df.columns:
-                                for kw in keywords:
-                                    if kw.upper() == str(col).upper() or f"{kw.upper()}_" in str(col).upper() or f"_{kw.upper()}" in str(col).upper(): return col
-                            for col in df.columns:
-                                for kw in keywords:
-                                    if kw.upper() in str(col).upper(): return col
-                            return None
-                            
-                        col_lat = detectar_col(df_mapa, ['LAT', 'LATITUD', 'Y'])
-                        col_lon = detectar_col(df_mapa, ['LON', 'LNG', 'LONGITUD', 'X'])
-                        col_norte = detectar_col(df_mapa, ['NORTE', 'NORTH', 'Y'])
-                        col_este = detectar_col(df_mapa, ['ESTE', 'EAST', 'X'])
+                        # --- ESCÁNER EXACTO DE COLUMNAS (A prueba de fallos) ---
+                        col_lat = next((c for c in df_mapa.columns if 'LAT' in str(c).upper()), None)
+                        col_lon = next((c for c in df_mapa.columns if 'LON' in str(c).upper()), None)
+                        col_norte = next((c for c in df_mapa.columns if str(c).upper() in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
+                        col_este = next((c for c in df_mapa.columns if str(c).upper() in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
                         
                         if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
-                        elif col_lat and col_lon and ('NORTE' not in str(col_lat).upper()) and ('ESTE' not in str(col_lon).upper()):
-                            df_clean = df_mapa.dropna(subset=[col_lat, col_lon])
-                            if df_clean.empty: st.warning("⚠️ Hay coordenadas vacías.")
-                            else:
-                                mapa_dinamico = folium.Map(location=[float(df_clean.iloc[0][col_lat]), float(df_clean.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
-                                for idx, row in df_clean.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
-                                st_folium(mapa_dinamico, width="100%", height=500)
-                        elif col_norte and col_este:
+                        elif col_norte is not None and col_este is not None:
                             st.info(f"🔄 Coordenadas UTM detectadas. Convirtiendo a WGS84...")
                             df_clean = df_mapa.dropna(subset=[col_norte, col_este])
                             if df_clean.empty: st.warning("⚠️ Las columnas UTM están vacías.")
@@ -365,42 +350,46 @@ if conexion_exitosa:
                                         folium.Marker([lat_val, lon_val], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
                                     except: pass
                                 st_folium(mapa_dinamico, width="100%", height=500)
-                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas.")
+                        elif col_lat is not None and col_lon is not None:
+                            df_clean = df_mapa.dropna(subset=[col_lat, col_lon])
+                            if df_clean.empty: st.warning("⚠️ Hay coordenadas vacías.")
+                            else:
+                                mapa_dinamico = folium.Map(location=[float(df_clean.iloc[0][col_lat]), float(df_clean.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
+                                for idx, row in df_clean.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                                st_folium(mapa_dinamico, width="100%", height=500)
+                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas (Lat/Lon o UTM Norte/Este).")
                 except Exception as e: st.error(f"Error procesando el mapa topográfico.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (MAPEO MANUAL PROFESIONAL)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (AUTO-RENDER Y DETECTOR EXACTO)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
         st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         
-        # Obtenemos solo archivos CSV
         csv_files = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.csv', '.txt'))]
         
         if len(csv_files) < 3:
             st.warning("⚠️ Necesitas tener al menos 3 archivos CSV en tu Google Drive para modelar sondajes (Collar, Survey e Intervalos).")
         else:
             st.markdown("<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 10px;'>📌 Mapeo de Base de Datos (Selecciona los archivos del proyecto)</p>", unsafe_allow_html=True)
-            
             col1, col2, col3 = st.columns(3)
             with col1:
                 idx_c = next((i for i, f in enumerate(csv_files) if 'collar' in f.lower()), 0)
-                sel_collar = st.selectbox("Archivo COLLAR (Coordenadas X, Y, Z)", csv_files, index=idx_c)
+                sel_collar = st.selectbox("Archivo COLLAR (X, Y, Z)", csv_files, index=idx_c)
             with col2:
                 idx_s = next((i for i, f in enumerate(csv_files) if 'survey' in f.lower()), 0)
                 sel_survey = st.selectbox("Archivo SURVEY (Azimuth, Dip)", csv_files, index=idx_s)
             with col3:
                 idx_a = next((i for i, f in enumerate(csv_files) if 'assay' in f.lower() or 'intervalo' in f.lower()), 0)
-                sel_assay = st.selectbox("Archivo ASSAY (Leyes Minerales)", csv_files, index=idx_a)
+                sel_assay = st.selectbox("Archivo ASSAY (Leyes)", csv_files, index=idx_a)
                 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            if st.button("🚀 GENERAR MODELO 3D", type="primary", use_container_width=True):
-                try:
-                    with st.spinner(f"Descargando archivos y ejecutando motor trigonométrico..."):
-                        
+            if sel_collar and sel_survey and sel_assay:
+                with st.spinner(f"Procesando modelo 3D en tiempo real..."):
+                    try:
                         id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
                         id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
                         id_assay = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_assay)
@@ -413,27 +402,32 @@ if conexion_exitosa:
                         df_survey = pd.read_csv(StringIO(s_csv))
                         df_assay = pd.read_csv(StringIO(a_csv))
                         
-                        def buscar_columna(df, palabras_clave):
+                        # --- ESCÁNER DE COLUMNAS EXACTO (NO MÁS CONFUSIONES ENTRE 'Y' Y 'LEY') ---
+                        def buscar_columna_exacta(df, palabras_clave):
+                            # Prioridad 1: Que la columna sea exactamente la palabra (ej: 'Y')
+                            for col in df.columns:
+                                if str(col).upper().strip() in [p.upper() for p in palabras_clave]: return col
+                            # Prioridad 2: Que la palabra esté contenida (ej: 'HOLE_ID')
                             for col in df.columns:
                                 for p in palabras_clave:
                                     if p.upper() in str(col).upper(): return col
                             return df.columns[0]
                             
-                        id_c = buscar_columna(df_collar, ['BHID', 'HOLE', 'ID', 'TALADRO'])
-                        id_s = buscar_columna(df_survey, ['BHID', 'HOLE', 'ID', 'TALADRO'])
-                        id_a = buscar_columna(df_assay, ['BHID', 'HOLE', 'ID', 'TALADRO'])
+                        id_c = buscar_columna_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        id_s = buscar_columna_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        id_a = buscar_columna_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
                         
-                        c_x = buscar_columna(df_collar, ['X', 'ESTE', 'EAST'])
-                        c_y = buscar_columna(df_collar, ['Y', 'NORTE', 'NORTH'])
-                        c_z = buscar_columna(df_collar, ['Z', 'ELEV', 'RL', 'COTA'])
+                        c_x = buscar_columna_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
+                        c_y = buscar_columna_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
+                        c_z = buscar_columna_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
                         
-                        s_at = buscar_columna(df_survey, ['AT', 'DEPTH', 'PROF'])
-                        s_az = buscar_columna(df_survey, ['AZIMUTH', 'AZ', 'AZM'])
-                        s_dip = buscar_columna(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
+                        s_at = buscar_columna_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
+                        s_az = buscar_columna_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
+                        s_dip = buscar_columna_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
                         
-                        a_from = buscar_columna(df_assay, ['FROM', 'DESDE'])
-                        a_to = buscar_columna(df_assay, ['TO', 'HASTA'])
-                        col_ley = buscar_columna(df_assay, ['CU', 'AU', 'AG', 'LEY', 'GRADE'])
+                        a_from = buscar_columna_exacta(df_assay, ['FROM', 'DESDE'])
+                        a_to = buscar_columna_exacta(df_assay, ['TO', 'HASTA'])
+                        col_ley = buscar_columna_exacta(df_assay, ['AU_GPT', 'CU_PCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE'])
                         
                         df_assay[col_ley] = pd.to_numeric(df_assay[col_ley], errors='coerce').fillna(0)
                         resultados = []
@@ -464,7 +458,7 @@ if conexion_exitosa:
                         df_3d = pd.DataFrame(resultados)
                         
                         if df_3d.empty:
-                            st.error("❌ Se leyeron los archivos, pero no se encontraron sondajes (IDs) que coincidan entre sí. Revisa que pertenezcan a la misma campaña.")
+                            st.error("❌ Se leyeron los archivos, pero no se encontraron sondajes válidos. Verifica las columnas de tu Excel.")
                         else:
                             fig_3d = go.Figure()
                             cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
@@ -474,7 +468,7 @@ if conexion_exitosa:
                                 fig_3d.add_trace(go.Scatter3d(
                                     x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
                                     mode='lines+markers', 
-                                    marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley ({col_ley})", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                    marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
                                     line=dict(width=2, color='rgba(255,255,255,0.3)'), 
                                     name=str(hole)
                                 ))
@@ -490,11 +484,11 @@ if conexion_exitosa:
                                 legend=dict(font=dict(color="white"))
                             )
                             st.plotly_chart(fig_3d, use_container_width=True)
-                            st.success(f"✅ Modelo generado exitosamente con **{len(df_3d['BHID'].unique())}** sondajes.")
+                            st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes.")
                             
-                except Exception as e: 
-                    st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
-                    
+                    except Exception as e: 
+                        st.error(f"⚠️ Error procesando la topología de sondajes: {e}")
+                        
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
