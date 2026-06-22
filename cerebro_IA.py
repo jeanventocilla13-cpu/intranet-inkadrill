@@ -25,7 +25,7 @@ import math
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Ventilación Minera"
+    st.session_state.pestaña_activa = "Visor Topográfico"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -95,7 +95,7 @@ st.markdown("""
         width: 46px !important; height: 46px !important; min-width: 46px !important; max-width: 46px !important;
         border-radius: 50% !important; padding: 0 !important; margin: 0 !important; display: flex !important;
         align-items: center !important; justify-content: center !important; background-color: rgba(25, 26, 27, 0.85) !important;
-        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; color: #e3e3e3 !important; font-size: 24px !important; transition: 0.3s;
+        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #e3e3e3 !important; font-size: 24px !important; transition: 0.3s;
     }
     div[data-testid="stPopover"] > button:hover { background-color: rgba(255, 255, 255, 0.15) !important; color: #ffd54f !important; }
     div[data-testid="stPopover"] > button svg { display: none !important; width: 0 !important; height: 0 !important; }
@@ -157,7 +157,7 @@ with st.sidebar:
         "🗺️": "Visor Topográfico", 
         "🛢️": "Visualizador 3D Sondajes", 
         "🧨": "Diseño de Voladura", 
-        "⛑️": "Ventilación Minera", # Nueva Opción
+        "⛑️": "Ventilación Minera", 
         "🗄️": "Base de Datos"
     }
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
@@ -317,58 +317,118 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (DISEÑO CORPORATIVO INTEGRADO)
     # ====================================================================
     elif pestaña == "Visor Topográfico":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y MAPAS GEOESPACIALES 🗺️</h2>", unsafe_allow_html=True)
         
-        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
-            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial - Ate).")
-            mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles="CartoDB dark_matter")
-            st_folium(mapa_mina, width="100%", height=500)
-        else:
-            st.success(f"🗺️ Procesando base de datos: **{st.session_state.archivo_activo}**")
-            with st.spinner("Buscando coordenadas planimétricas..."):
-                try:
-                    archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo), None)
-                    if not archivo_encontrado:
-                        st.error("⚠️ Archivo no encontrado en la memoria de Drive.")
-                    else:
-                        csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
-                        df_mapa = pd.read_csv(StringIO(csv_content))
-                        with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
-                        
-                        col_lat = next((c for c in df_mapa.columns if 'LAT' in str(c).upper()), None)
-                        col_lon = next((c for c in df_mapa.columns if 'LON' in str(c).upper()), None)
-                        col_norte = next((c for c in df_mapa.columns if str(c).upper() in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
-                        col_este = next((c for c in df_mapa.columns if str(c).upper() in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
-                        
-                        if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
-                        elif col_norte is not None and col_este is not None:
-                            st.info(f"🔄 Coordenadas UTM detectadas. Convirtiendo a WGS84...")
-                            df_clean = df_mapa.dropna(subset=[col_norte, col_este])
-                            if df_clean.empty: st.warning("⚠️ Las columnas UTM están vacías.")
-                            else:
+        col_inputs, col_visor = st.columns([1.2, 2])
+        
+        # Inicialización de variables de reporte
+        total_puntos_mapeados = 0
+        sistema_coords_detectado = "Ninguno"
+        centroide_elevacion_str = "0.0 m"
+        df_mapa_global = None
+        
+        with col_inputs:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>Control Documental de Obra</div>", unsafe_allow_html=True)
+            
+            if st.session_state.archivo_activo == "Base de datos general (Simulación)":
+                st.info("ℹ️ Ejecutando en Modo de Simulación de Superficie.")
+                sistema_coords_detectado = "Geográficas (WGS84)"
+                total_puntos_mapeados = 1
+                centroide_elevacion_str = "-12.025, -76.908"
+            else:
+                st.success(f"🌐 Conectado a Drive: **{st.session_state.archivo_activo}**")
+                
+            capa_base = st.selectbox("Seleccionar Capa Base de Terreno", ["CartoDB dark_matter", "OpenStreetMap", "CartoDB positron"])
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col_visor:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            
+            if st.session_state.archivo_activo == "Base de datos general (Simulación)":
+                mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles=capa_base)
+                st_folium(mapa_mina, width="100%", height=450)
+            else:
+                with st.spinner("Decodificando planimetría UTM/Geográfica..."):
+                    try:
+                        archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo), None)
+                        if not archivo_encontrado:
+                            st.error("⚠️ Archivo no encontrado en el índice de Google Drive.")
+                        else:
+                            csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
+                            df_mapa_global = pd.read_csv(StringIO(csv_content))
+                            
+                            # Limpieza estricta de encabezados contra caracteres invisibles de Excel
+                            df_mapa_global.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_mapa_global.columns]
+                            
+                            col_lat = next((c for c in df_mapa_global.columns if 'LAT' in str(c)), None)
+                            col_lon = next((c for c in df_mapa_global.columns if 'LON' in str(c) or 'LNG' in str(c)), None)
+                            col_norte = next((c for c in df_mapa_global.columns if str(c) in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
+                            col_este = next((c for c in df_mapa_global.columns if str(c) in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
+                            col_z = next((c for c in df_mapa_global.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL']), None)
+                            
+                            if df_mapa_global.empty:
+                                st.warning("⚠️ El archivo cargado no contiene registros.")
+                            elif col_norte is not None and col_este is not None:
+                                sistema_coords_detectado = "UTM WGS84 Z-18S"
+                                df_clean = df_mapa_global.dropna(subset=[col_norte, col_este])
+                                total_puntos_mapeados = len(df_clean)
+                                
                                 transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
-                                lon_centro, lat_centro = transformer.transform(float(df_clean.iloc[0][col_este]), float(df_clean.iloc[0][col_norte]))
-                                mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles="CartoDB dark_matter")
+                                lon_centro, lat_centro = transformer.transform(float(df_clean[col_este].mean()), float(df_clean[col_norte].mean()))
+                                
+                                if col_z is not None:
+                                    centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m"
+                                else:
+                                    centroide_elevacion_str = f"{lat_centro:,.4f}°"
+                                
+                                mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles=capa_base)
                                 for idx, row in df_clean.iterrows():
                                     try:
-                                        lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
-                                        folium.Marker([lat_val, lon_val], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
+                                        l_v, la_v = transformer.transform(float(str(row[col_este]).replace(',','.')), float(str(row[col_norte]).replace(',','.')))
+                                        folium.Marker([la_v, l_v], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
                                     except: pass
-                                st_folium(mapa_dinamico, width="100%", height=500)
-                        elif col_lat is not None and col_lon is not None:
-                            df_clean = df_mapa.dropna(subset=[col_lat, col_lon])
-                            if df_clean.empty: st.warning("⚠️ Hay coordenadas vacías.")
+                                st_folium(mapa_dinamico, width="100%", height=450)
+                                
+                            elif col_lat is not None and col_lon is not None:
+                                sistema_coords_detectado = "Geográficas WGS84"
+                                df_clean = df_mapa_global.dropna(subset=[col_lat, col_lon])
+                                total_puntos_mapeados = len(df_clean)
+                                
+                                lat_m = df_clean[col_lat].apply(lambda x: float(str(x).replace(',','.'))).mean()
+                                lon_m = df_clean[col_lon].apply(lambda x: float(str(x).replace(',','.'))).mean()
+                                
+                                if col_z is not None:
+                                    centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m"
+                                else:
+                                    centroide_elevacion_str = f"{lat_m:,.4f}°"
+                                    
+                                mapa_dinamico = folium.Map(location=[lat_m, lon_m], zoom_start=14, tiles=capa_base)
+                                for idx, row in df_clean.iterrows():
+                                    try:
+                                        folium.Marker([float(str(row[col_lat]).replace(',','.')), float(str(row[col_lon]).replace(',','.'))], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                                    except: pass
+                                st_folium(mapa_dinamico, width="100%", height=450)
                             else:
-                                mapa_dinamico = folium.Map(location=[float(df_clean.iloc[0][col_lat]), float(df_clean.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
-                                for idx, row in df_clean.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
-                                st_folium(mapa_dinamico, width="100%", height=500)
-                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas.")
-                except Exception as e: st.error(f"Error procesando el mapa topográfico.")
-        st.markdown("</div>", unsafe_allow_html=True)
+                                st.warning("🗺️ El documento no posee columnas planimétricas válidas (Norte/Este o Lat/Lon).")
+                    except Exception as e:
+                        st.error(f"Error crítico en el renderizado planimétrico.")
+                        
+            # --- PANEL DE METRICAS (Estilo Tajo Abierto/Subterráneo) ---
+            st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor</div>", unsafe_allow_html=True)
+            col_m1, col_m2, col_m3 = st.columns(3)
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Puntos Totales Coincidentes</p><p class='metric-value' style='color: #4af4ff; font-size:32px;'>{total_puntos_mapeados}</p><p style='color:#aaa; font-size:12px; margin:0;'>Estaciones Levantadas</p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Sistema de Referencia</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{sistema_coords_detectado}</p><p style='color:#aaa; font-size:12px; margin:0;'>Detección de Encabezado</p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Promedio / Centroide</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{centroide_elevacion_str}</p><p style='color:#aaa; font-size:12px; margin:0;'>Datum del Plano</p></div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with col_inputs:
+            if df_mapa_global is not None:
+                with st.expander("🔎 Inspeccionar base de datos de topografía", expanded=False):
+                    st.dataframe(df_mapa_global, use_container_width=True)
 
     # ====================================================================
     # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
@@ -643,178 +703,85 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 6: VENTILACIÓN MINERA (¡NUEVO SISTEMA INTEGRADO!)
+    # PESTAÑA 6: VENTILACIÓN MINERA
     # ====================================================================
     elif pestaña == "Ventilación Minera":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SISTEMA OPERATIVO DE VENTILACIÓN MINERA ⛑️</h2>", unsafe_allow_html=True)
-        
         col_inputs, col_3d_visor = st.columns([1.3, 2])
         
         with col_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>1. Parámetros de Caudal Requerido (Q)</div>", unsafe_allow_html=True)
-            
-            # Sub-sección: Personal
             col_p1, col_p2 = st.columns(2)
             n_personal = col_p1.number_input("Número de Personal (Turno Crítico)", min_value=1, value=45)
             q_personal = col_p2.slider("Norma de Aire por Persona (m³/min)", 3.0, 6.0, 4.0, step=0.5)
-            
-            # Sub-sección: Equipos Diésel
             col_d1, col_d2 = st.columns(2)
             hp_diesel = col_d1.number_input("Potencia Diésel Efectiva Total (HP)", min_value=0, value=280)
             q_diesel = col_d2.slider("Factor por HP (m³/min per HP)", 2.8, 4.0, 3.0, step=0.1)
             dispo_diesel = st.slider("Factor de Disponibilidad Mecánica", 0.1, 1.0, 0.85, step=0.05)
-            
-            # Sub-sección: Gases
             st.markdown("<p style='font-size:13px; color:#aaa; font-weight:600; margin-bottom:2px;'>Dilución de Gases de Voladura / Desmonte</p>", unsafe_allow_html=True)
             col_g1, col_g2, col_g3 = st.columns(3)
             v_gas = col_g1.number_input("Volumen Gas (m³/min)", min_value=0.0, value=0.12, step=0.01)
-            c_lim = col_g2.number_input("Límite L.M.P (ppm)", min_value=1, value=25) / 1000000 # Convierte a decimal decimal
+            c_lim = col_g2.number_input("Límite L.M.P (ppm)", min_value=1, value=25) / 1000000
             c_o = col_g3.number_input("Gas en Ingreso (ppm)", min_value=0, value=0) / 1000000
-            
             st.markdown("<br><div class='titulo-seccion'>2. Geometría del Circuito y Fricción (Atkinson)</div>", unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2)
             longitud_ducto = col_g1.number_input("Longitud de Labor / Galería (m)", min_value=1, value=350)
             k_atkinson = col_g2.number_input("Factor de Fricción k (kg/m³)", min_value=0.0001, max_value=0.05, value=0.0120, format="%.4f")
-            
             col_dim1, col_dim2 = st.columns(2)
             ancho_gal = col_dim1.number_input("Ancho Galería (m)", min_value=1.0, value=3.0, step=0.5)
             alto_gal = col_dim2.number_input("Alto Galería (m)", min_value=1.0, value=3.0, step=0.5)
-            
             st.markdown("<br><div class='titulo-seccion'>3. Parámetro Mecánico</div>", unsafe_allow_html=True)
             eficiencia_vent = st.slider("Eficiencia del Ventilador (η)", 0.50, 0.95, 0.75, step=0.05)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_3d_visor:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            
-            # --- MOTOR DE CÁLCULO DE CAUDAL TOTAL ---
             Q_p = n_personal * q_personal
             Q_d = (hp_diesel * q_diesel) * dispo_diesel
-            
             denominador_gases = c_lim - c_o
             if denominador_gases <= 0: denominador_gases = 0.00001
             Q_g = v_gas / denominador_gases
-            
-            # Caudal crítico en m3/min
             Q_total_min = max(Q_p, Q_d, Q_g)
-            # Conversión crítica a m3/s para usar Atkinson
             Q_m3s = Q_total_min / 60.0
-            
-            # Perímetro y Área de la galería
             area_transversal = ancho_gal * alto_gal
             perimetro_transversal = 2 * (ancho_gal + alto_gal)
-            
-            # Resistencia Estructural (R)
             R_atkinson = (k_atkinson * perimetro_transversal * longitud_ducto) / (area_transversal ** 3)
-            
-            # Caída de Presión (Delta P)
             delta_P = R_atkinson * (Q_m3s ** 2)
-            
-            # Potencia Mecánica (kW)
             potencia_kW = (delta_P * Q_m3s) / (1000.0 * eficiencia_vent)
             
-            # --- MODELAMIENTO AERODINÁMICO 3D ---
-            # Construcción de una galería minera tridimensional con flujos vectoriales (Cones)
             fig_vent = go.Figure()
-            
-            # Generar el trayecto de la galería principal
             y_line = np.linspace(0, longitud_ducto, 30)
-            x_line = np.zeros_like(y_line)
-            z_line = np.full_like(y_line, alto_gal / 2.0)
-            
-            # Añadir vectores de dirección y velocidad del aire usando Cones de Plotly
-            # Escalamos el tamaño del vector por la velocidad real (v = Q / A)
             velocidad_aire = Q_m3s / area_transversal
-            
             y_cones = np.linspace(20, longitud_ducto - 20, 12)
             x_cones = np.zeros_like(y_cones)
             z_cones = np.full_like(y_cones, alto_gal / 2.0)
-            
-            # Direcciones vectoriales (U, V, W) -> Fluye a lo largo del eje Y (Avance de la mina)
             u = np.zeros_like(y_cones)
             v = np.ones_like(y_cones) * velocidad_aire
             w = np.zeros_like(y_cones)
             
-            fig_vent.add_trace(go.Cone(
-                x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w,
-                colorscale='Cividis', sizemode='scaled', sizeref=1.5,
-                colorbar=dict(title=dict(text="Velocidad (m/s)", font=dict(color='white')), tickfont=dict(color='white')),
-                name='Flujo de Aire'
-            ))
-            
-            # Dibujar las paredes virtuales de la galería de roca para darle profundidad
+            fig_vent.add_trace(go.Cone(x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w, colorscale='Cividis', sizemode='scaled', sizeref=1.5, colorbar=dict(title=dict(text="Velocidad (m/s)", font=dict(color='white')), tickfont=dict(color='white')), name='Flujo de Aire'))
             box_x = [-ancho_gal/2, ancho_gal/2, ancho_gal/2, -ancho_gal/2, -ancho_gal/2]
             box_z = [0, 0, alto_gal, alto_gal, 0]
-            
             for y_wall in [0, longitud_ducto / 2, longitud_ducto]:
-                fig_vent.add_trace(go.Scatter3d(
-                    x=box_x, y=[y_wall]*5, z=box_z, mode='lines',
-                    line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'
-                ))
-                
-            # Líneas del perimetro de avance de túnel
-            fig_vent.add_trace(go.Scatter3d(
-                x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
-            ))
-            fig_vent.add_trace(go.Scatter3d(
-                x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
-            ))
-            fig_vent.add_trace(go.Scatter3d(
-                x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
-            ))
-            fig_vent.add_trace(go.Scatter3d(
-                x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
-            ))
+                fig_vent.add_trace(go.Scatter3d(x=box_x, y=[y_wall]*5, z=box_z, mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'))
+            fig_vent.add_trace(go.Scatter3d(x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
+            fig_vent.add_trace(go.Scatter3d(x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
+            fig_vent.add_trace(go.Scatter3d(x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
+            fig_vent.add_trace(go.Scatter3d(x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
             
-            fig_vent.update_layout(
-                margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)",
-                scene=dict(
-                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"),
-                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"),
-                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"),
-                    bgcolor="rgba(0,0,0,0)"
-                )
-            )
+            fig_vent.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"), bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig_vent, use_container_width=True)
             
-            # --- PANEL DE METRICAS DEL CIRCUITO ---
             st.markdown("<div class='titulo-seccion'>Resultados del Balance de Ventilación Dinámica</div>", unsafe_allow_html=True)
-            
             col_m1, col_m2, col_m3 = st.columns(3)
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal Crítico (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p><p style='color:#aaa; font-size:11px; margin:0;'>Pers: {Q_p:,.0f} | Diésel: {Q_d:,.0f} | Gas: {Q_g:,.0f}</p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Caída de Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p><p style='color:#aaa; font-size:11px; margin:0;'>Resistencia R: {R_atkinson:,.5f} kg/m⁷</p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Potencia Mecánica</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p><p style='color:#aaa; font-size:11px; margin:0;'>Velocidad del Aire: {velocidad_aire:,.2f} m/s</p></div>", unsafe_allow_html=True)
             
-            # Card 1: Caudal Requerido Crítico
-            col_m1.markdown(f"""
-            <div class='metric-box'>
-                <p class='metric-label'>Caudal Crítico (Q_t)</p>
-                <p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p>
-                <p style='color:#aaa; font-size:11px; margin:0;'>Pers: {Q_p:,.0f} | Diésel: {Q_d:,.0f} | Gas: {Q_g:,.0f}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Card 2: Caída de Presión Atkinson
-            col_m2.markdown(f"""
-            <div class='metric-box'>
-                <p class='metric-label'>Caída de Presión (ΔP)</p>
-                <p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p>
-                <p style='color:#aaa; font-size:11px; margin:0;'>Resistencia R: {R_atkinson:,.5f} kg/m⁷</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Card 3: Potencia del Ventilador
-            col_m3.markdown(f"""
-            <div class='metric-box'>
-                <p class='metric-label'>Potencia Mecánica</p>
-                <p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p>
-                <p style='color:#aaa; font-size:11px; margin:0;'>Velocidad del Aire: {velocidad_aire:,.2f} m/s</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Mensaje de validación de velocidad según normativa DS-024-2016-EM
             if velocidad_aire < 0.3: st.warning("⚠️ Alerta Normativa: La velocidad del aire es menor a 0.3 m/s. Riesgo de acumulación de gases de escape.")
             elif velocidad_aire > 6.0: st.error("⚠️ Alerta de Confort: La velocidad supera los 6.0 m/s. Fricción y ruido excesivo en las paredes del túnel.")
             else: st.success("✅ Flujo de aire óptimo y reglamentario para labores subterráneas.")
-            
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
