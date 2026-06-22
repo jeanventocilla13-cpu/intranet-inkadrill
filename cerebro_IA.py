@@ -18,6 +18,7 @@ from PIL import Image
 from pyproj import Transformer
 import base64
 import requests
+import re # <-- Importante para limpieza extrema
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
@@ -361,7 +362,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CON CONVERTIDOR NUMÉRICO NATIVO)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (PURIFICACIÓN TOTAL)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -386,132 +387,133 @@ if conexion_exitosa:
                 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            if sel_collar and sel_survey and sel_assay:
-                with st.spinner(f"Procesando modelo 3D en tiempo real..."):
-                    try:
-                        id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
-                        id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
-                        id_assay = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_assay)
-                        
-                        c_csv = drive_service.files().get_media(fileId=id_collar).execute().decode('utf-8')
-                        s_csv = drive_service.files().get_media(fileId=id_survey).execute().decode('utf-8')
-                        a_csv = drive_service.files().get_media(fileId=id_assay).execute().decode('utf-8')
-                        
-                        df_collar = pd.read_csv(StringIO(c_csv), sep=None, engine='python')
-                        df_survey = pd.read_csv(StringIO(s_csv), sep=None, engine='python')
-                        df_assay = pd.read_csv(StringIO(a_csv), sep=None, engine='python')
-                        
-                        df_collar.columns = df_collar.columns.str.strip().str.replace('\ufeff', '').str.replace('"', '')
-                        df_survey.columns = df_survey.columns.str.strip().str.replace('\ufeff', '').str.replace('"', '')
-                        df_assay.columns = df_assay.columns.str.strip().str.replace('\ufeff', '').str.replace('"', '')
-                        
-                        def buscar_col_exacta(df, palabras_clave):
-                            for col in df.columns:
-                                if str(col).upper() in [p.upper() for p in palabras_clave]: return col
-                            for col in df.columns:
-                                for p in palabras_clave:
-                                    if p.upper() in str(col).upper(): return col
-                            return df.columns[0]
+            if st.button("🚀 GENERAR MODELO 3D", type="primary", use_container_width=True):
+                if sel_collar and sel_survey and sel_assay:
+                    with st.spinner(f"Procesando modelo 3D en tiempo real..."):
+                        try:
+                            id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
+                            id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
+                            id_assay = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_assay)
                             
-                        id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                        id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                        id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                        
-                        c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
-                        c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
-                        c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
-                        
-                        s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
-                        s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
-                        s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
-                        
-                        a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
-                        a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
-                        col_ley = buscar_col_exacta(df_assay, ['AU_GPT', 'CU_PCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
-                        
-                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
-                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
-                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
-                        
-                        # --- EL PURIFICADOR NUMÉRICO NATIVO ---
-                        # Esta función ignora a Pandas y usa Python puro para evadir errores de servidor
-                        def force_numeric(val):
-                            try:
-                                return float(str(val).replace(',', '.').strip())
-                            except:
-                                return 0.0
+                            c_csv = drive_service.files().get_media(fileId=id_collar).execute().decode('utf-8')
+                            s_csv = drive_service.files().get_media(fileId=id_survey).execute().decode('utf-8')
+                            a_csv = drive_service.files().get_media(fileId=id_assay).execute().decode('utf-8')
+                            
+                            df_collar = pd.read_csv(StringIO(c_csv), sep=None, engine='python')
+                            df_survey = pd.read_csv(StringIO(s_csv), sep=None, engine='python')
+                            df_assay = pd.read_csv(StringIO(a_csv), sep=None, engine='python')
+                            
+                            # --- LIMPIEZA EXTREMA DE ENCABEZADOS Y DATOS ---
+                            # Eliminar espacios en blanco, comillas, caracteres invisibles (BOM) y signos raros
+                            df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
+                            df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
+                            df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
+                            
+                            def buscar_col_exacta(df, palabras_clave):
+                                for col in df.columns:
+                                    if col in [p.upper() for p in palabras_clave]: return col
+                                for col in df.columns:
+                                    for p in palabras_clave:
+                                        if p.upper() in col: return col
+                                return df.columns[0]
                                 
-                        df_collar[c_x] = df_collar[c_x].apply(force_numeric)
-                        df_collar[c_y] = df_collar[c_y].apply(force_numeric)
-                        df_collar[c_z] = df_collar[c_z].apply(force_numeric)
-                        
-                        df_survey[s_at] = df_survey[s_at].apply(force_numeric)
-                        df_survey[s_az] = df_survey[s_az].apply(force_numeric)
-                        df_survey[s_dip] = df_survey[s_dip].apply(force_numeric)
-                        
-                        df_assay[a_from] = df_assay[a_from].apply(force_numeric)
-                        df_assay[a_to] = df_assay[a_to].apply(force_numeric)
-                        df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
-                        
-                        resultados = []
-                        
-                        for bhid in df_assay[id_a].unique():
-                            c_data = df_collar[df_collar[id_c] == bhid]
-                            if c_data.empty: continue
+                            id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                            id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                            id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
                             
-                            x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
+                            c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
+                            c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
+                            c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
                             
-                            s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
-                            a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
+                            s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
+                            s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
+                            s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
                             
-                            for _, row in a_data.iterrows():
-                                mid_depth = (row[a_from] + row[a_to]) / 2
-                                s_valido = s_data[s_data[s_at] <= mid_depth]
-                                s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
+                            a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
+                            a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
+                            col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
+                            
+                            df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
+                            df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
+                            df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
+                            
+                            def force_numeric(val):
+                                try:
+                                    return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
+                                except:
+                                    return 0.0
                                     
-                                dip_rad = np.radians(s_row[s_dip])
-                                az_rad = np.radians(s_row[s_az])
-                                
-                                dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
-                                dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
-                                dz = mid_depth * np.sin(dip_rad)
-                                
-                                resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
-                                
-                        df_3d = pd.DataFrame(resultados)
-                        
-                        if df_3d.empty:
-                            st.error("❌ Los archivos se leyeron perfectamente, pero los nombres de los taladros (BHID) no coinciden entre sí.")
-                        else:
-                            fig_3d = go.Figure()
-                            cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
+                            df_collar[c_x] = df_collar[c_x].apply(force_numeric)
+                            df_collar[c_y] = df_collar[c_y].apply(force_numeric)
+                            df_collar[c_z] = df_collar[c_z].apply(force_numeric)
                             
-                            for hole in df_3d["BHID"].unique():
-                                df_hole = df_3d[df_3d["BHID"] == hole]
-                                fig_3d.add_trace(go.Scatter3d(
-                                    x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
-                                    mode='lines+markers', 
-                                    marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
-                                    line=dict(width=2, color='rgba(255,255,255,0.3)'), 
-                                    name=str(hole)
-                                ))
-                                
-                            fig_3d.update_layout(
-                                margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
-                                scene=dict(
-                                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
-                                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
-                                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
-                                    bgcolor="rgba(0,0,0,0)"
-                                ), 
-                                legend=dict(font=dict(color="white"))
-                            )
-                            st.plotly_chart(fig_3d, use_container_width=True)
-                            st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales.")
+                            df_survey[s_at] = df_survey[s_at].apply(force_numeric)
+                            df_survey[s_az] = df_survey[s_az].apply(force_numeric)
+                            df_survey[s_dip] = df_survey[s_dip].apply(force_numeric)
                             
-                    except Exception as e: 
-                        st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
-                        
+                            df_assay[a_from] = df_assay[a_from].apply(force_numeric)
+                            df_assay[a_to] = df_assay[a_to].apply(force_numeric)
+                            df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
+                            
+                            resultados = []
+                            
+                            for bhid in df_assay[id_a].unique():
+                                c_data = df_collar[df_collar[id_c] == bhid]
+                                if c_data.empty: continue
+                                
+                                x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
+                                
+                                s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
+                                a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
+                                
+                                for _, row in a_data.iterrows():
+                                    mid_depth = (row[a_from] + row[a_to]) / 2
+                                    s_valido = s_data[s_data[s_at] <= mid_depth]
+                                    s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
+                                        
+                                    dip_rad = np.radians(s_row[s_dip])
+                                    az_rad = np.radians(s_row[s_az])
+                                    
+                                    dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
+                                    dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
+                                    dz = mid_depth * np.sin(dip_rad)
+                                    
+                                    resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
+                                    
+                            df_3d = pd.DataFrame(resultados)
+                            
+                            if df_3d.empty:
+                                st.error("❌ Los archivos se leyeron perfectamente, pero los nombres de los taladros (BHID) no coinciden entre sí.")
+                            else:
+                                fig_3d = go.Figure()
+                                cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
+                                
+                                for hole in df_3d["BHID"].unique():
+                                    df_hole = df_3d[df_3d["BHID"] == hole]
+                                    fig_3d.add_trace(go.Scatter3d(
+                                        x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
+                                        mode='lines+markers', 
+                                        marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                        line=dict(width=2, color='rgba(255,255,255,0.3)'), 
+                                        name=str(hole)
+                                    ))
+                                    
+                                fig_3d.update_layout(
+                                    margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
+                                    scene=dict(
+                                        xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
+                                        yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
+                                        zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
+                                        bgcolor="rgba(0,0,0,0)"
+                                    ), 
+                                    legend=dict(font=dict(color="white"))
+                                )
+                                st.plotly_chart(fig_3d, use_container_width=True)
+                                st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales.")
+                                
+                        except Exception as e: 
+                            st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
+                            
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
