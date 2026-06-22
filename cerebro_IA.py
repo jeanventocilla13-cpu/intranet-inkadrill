@@ -25,7 +25,7 @@ import math
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visor Topográfico"
+    st.session_state.pestaña_activa = "Visualizador 3D Sondajes"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -89,17 +89,6 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.15) !important; width: calc(100% - 65px) !important; margin-left: 65px !important; margin-bottom: 15px !important;
     }
     .stChatInputContainer textarea { padding-left: 20px !important; color: #e3e3e3 !important; }
-    
-    div[data-testid="stPopover"] { position: fixed !important; bottom: 27px !important; left: auto !important; width: 46px !important; height: 46px !important; z-index: 999999 !important; }
-    div[data-testid="stPopover"] > button {
-        width: 46px !important; height: 46px !important; min-width: 46px !important; max-width: 46px !important;
-        border-radius: 50% !important; padding: 0 !important; margin: 0 !important; display: flex !important;
-        align-items: center !important; justify-content: center !important; background-color: rgba(25, 26, 27, 0.85) !important;
-        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #e3e3e3 !important; font-size: 24px !important; transition: 0.3s;
-    }
-    div[data-testid="stPopover"] > button:hover { background-color: rgba(255, 255, 255, 0.15) !important; color: #ffd54f !important; }
-    div[data-testid="stPopover"] > button svg { display: none !important; width: 0 !important; height: 0 !important; }
-    div[data-testid="stPopover"] > button p, div[data-testid="stPopover"] > button span { margin: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; }
     
     .panel-geo { background-color: rgba(25, 26, 27, 0.6) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 12px; padding: 20px; height: 100%; }
     .titulo-seccion { color: #e3e3e3; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
@@ -317,37 +306,27 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (DISEÑO CORPORATIVO INTEGRADO)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y MAPAS GEOESPACIALES 🗺️</h2>", unsafe_allow_html=True)
-        
         col_inputs, col_visor = st.columns([1.2, 2])
-        
-        # Inicialización de variables de reporte
-        total_puntos_mapeados = 0
-        sistema_coords_detectado = "Ninguno"
-        centroide_elevacion_str = "0.0 m"
-        df_mapa_global = None
+        total_puntos_mapeados, sistema_coords_detectado, centroide_elevacion_str, df_mapa_global = 0, "Ninguno", "0.0 m", None
         
         with col_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Control Documental de Obra</div>", unsafe_allow_html=True)
-            
             if st.session_state.archivo_activo == "Base de datos general (Simulación)":
                 st.info("ℹ️ Ejecutando en Modo de Simulación de Superficie.")
                 sistema_coords_detectado = "Geográficas (WGS84)"
                 total_puntos_mapeados = 1
                 centroide_elevacion_str = "-12.025, -76.908"
-            else:
-                st.success(f"🌐 Conectado a Drive: **{st.session_state.archivo_activo}**")
-                
+            else: st.success(f"🌐 Conectado a Drive: **{st.session_state.archivo_activo}**")
             capa_base = st.selectbox("Seleccionar Capa Base de Terreno", ["CartoDB dark_matter", "OpenStreetMap", "CartoDB positron"])
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_visor:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            
             if st.session_state.archivo_activo == "Base de datos general (Simulación)":
                 mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles=capa_base)
                 st_folium(mapa_mina, width="100%", height=450)
@@ -355,36 +334,25 @@ if conexion_exitosa:
                 with st.spinner("Decodificando planimetría UTM/Geográfica..."):
                     try:
                         archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo), None)
-                        if not archivo_encontrado:
-                            st.error("⚠️ Archivo no encontrado en el índice de Google Drive.")
+                        if not archivo_encontrado: st.error("⚠️ Archivo no encontrado.")
                         else:
                             csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
                             df_mapa_global = pd.read_csv(StringIO(csv_content))
-                            
-                            # Limpieza estricta de encabezados contra caracteres invisibles de Excel
                             df_mapa_global.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_mapa_global.columns]
-                            
                             col_lat = next((c for c in df_mapa_global.columns if 'LAT' in str(c)), None)
                             col_lon = next((c for c in df_mapa_global.columns if 'LON' in str(c) or 'LNG' in str(c)), None)
                             col_norte = next((c for c in df_mapa_global.columns if str(c) in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
                             col_este = next((c for c in df_mapa_global.columns if str(c) in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
                             col_z = next((c for c in df_mapa_global.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL']), None)
                             
-                            if df_mapa_global.empty:
-                                st.warning("⚠️ El archivo cargado no contiene registros.")
+                            if df_mapa_global.empty: st.warning("⚠️ Archivo vacío.")
                             elif col_norte is not None and col_este is not None:
                                 sistema_coords_detectado = "UTM WGS84 Z-18S"
                                 df_clean = df_mapa_global.dropna(subset=[col_norte, col_este])
                                 total_puntos_mapeados = len(df_clean)
-                                
                                 transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
                                 lon_centro, lat_centro = transformer.transform(float(df_clean[col_este].mean()), float(df_clean[col_norte].mean()))
-                                
-                                if col_z is not None:
-                                    centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m"
-                                else:
-                                    centroide_elevacion_str = f"{lat_centro:,.4f}°"
-                                
+                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_centro:,.4f}°"
                                 mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles=capa_base)
                                 for idx, row in df_clean.iterrows():
                                     try:
@@ -392,220 +360,193 @@ if conexion_exitosa:
                                         folium.Marker([la_v, l_v], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
                                     except: pass
                                 st_folium(mapa_dinamico, width="100%", height=450)
-                                
                             elif col_lat is not None and col_lon is not None:
                                 sistema_coords_detectado = "Geográficas WGS84"
                                 df_clean = df_mapa_global.dropna(subset=[col_lat, col_lon])
                                 total_puntos_mapeados = len(df_clean)
-                                
-                                lat_m = df_clean[col_lat].apply(lambda x: float(str(x).replace(',','.'))).mean()
-                                lon_m = df_clean[col_lon].apply(lambda x: float(str(x).replace(',','.'))).mean()
-                                
-                                if col_z is not None:
-                                    centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m"
-                                else:
-                                    centroide_elevacion_str = f"{lat_m:,.4f}°"
-                                    
+                                lat_m, lon_m = df_clean[col_lat].apply(lambda x: float(str(x).replace(',','.'))).mean(), df_clean[col_lon].apply(lambda x: float(str(x).replace(',','.'))).mean()
+                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_m:,.4f}°"
                                 mapa_dinamico = folium.Map(location=[lat_m, lon_m], zoom_start=14, tiles=capa_base)
                                 for idx, row in df_clean.iterrows():
-                                    try:
-                                        folium.Marker([float(str(row[col_lat]).replace(',','.')), float(str(row[col_lon]).replace(',','.'))], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                                    try: folium.Marker([float(str(row[col_lat]).replace(',','.')), float(str(row[col_lon]).replace(',','.'))], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
                                     except: pass
                                 st_folium(mapa_dinamico, width="100%", height=450)
-                            else:
-                                st.warning("🗺️ El documento no posee columnas planimétricas válidas (Norte/Este o Lat/Lon).")
-                    except Exception as e:
-                        st.error(f"Error crítico en el renderizado planimétrico.")
-                        
-            # --- PANEL DE METRICAS (Estilo Tajo Abierto/Subterráneo) ---
+                    except: st.error("Error crítico en el renderizado.")
             st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor</div>", unsafe_allow_html=True)
             col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Puntos Totales Coincidentes</p><p class='metric-value' style='color: #4af4ff; font-size:32px;'>{total_puntos_mapeados}</p><p style='color:#aaa; font-size:12px; margin:0;'>Estaciones Levantadas</p></div>", unsafe_allow_html=True)
-            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Sistema de Referencia</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{sistema_coords_detectado}</p><p style='color:#aaa; font-size:12px; margin:0;'>Detección de Encabezado</p></div>", unsafe_allow_html=True)
-            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Promedio / Centroide</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{centroide_elevacion_str}</p><p style='color:#aaa; font-size:12px; margin:0;'>Datum del Plano</p></div>", unsafe_allow_html=True)
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Puntos Totales</p><p class='metric-value' style='color: #4af4ff; font-size:32px;'>{total_puntos_mapeados}</p><p style='color:#aaa; font-size:12px; margin:0;'>Estaciones Levantadas</p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Sistema de Referencia</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{sistema_coords_detectado}</p><p style='color:#aaa; font-size:12px; margin:0;'>Detección Digital</p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota / Centroide</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{centroide_elevacion_str}</p><p style='color:#aaa; font-size:12px; margin:0;'>Datum del Plano</p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
-            
         with col_inputs:
             if df_mapa_global is not None:
-                with st.expander("🔎 Inspeccionar base de datos de topografía", expanded=False):
-                    st.dataframe(df_mapa_global, use_container_width=True)
+                with st.expander("🔎 Ver Base de Datos Estructural", expanded=False): st.dataframe(df_mapa_global, use_container_width=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (100% INDEPENDIENTE Y MANUAL)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
         
-        csv_files = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.csv', '.txt'))]
+        col_manual_inputs, col_3d_render = st.columns([1.3, 2])
         
-        if len(csv_files) < 3:
-            st.warning("⚠️ Necesitas tener al menos 3 archivos CSV en tu Google Drive para modelar sondajes (Collar, Survey e Intervalos).")
-        else:
-            st.markdown("<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 10px;'>📌 Mapeo de Base de Datos (Selecciona los archivos del proyecto)</p>", unsafe_allow_html=True)
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                idx_c = next((i for i, f in enumerate(csv_files) if 'collar' in f.lower()), 0)
-                sel_collar = st.selectbox("Archivo COLLAR (X, Y, Z)", csv_files, index=idx_c)
-            with col2:
-                idx_s = next((i for i, f in enumerate(csv_files) if 'survey' in f.lower()), 0)
-                sel_survey = st.selectbox("Archivo SURVEY (Azimuth, Dip)", csv_files, index=idx_s)
-            with col3:
-                idx_a = next((i for i, f in enumerate(csv_files) if 'assay' in f.lower() or 'intervalo' in f.lower()), 0)
-                sel_assay = st.selectbox("Archivo ASSAY (Leyes)", csv_files, index=idx_a)
-                
-            st.markdown("<br>", unsafe_allow_html=True)
+        with col_manual_inputs:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>⚙️ Configuración Visual e Inputs Manuales</div>", unsafe_allow_html=True)
             
-            if st.button("🚀 GENERAR MODELO 3D", type="primary", use_container_width=True):
-                if sel_collar and sel_survey and sel_assay:
-                    with st.spinner(f"Calculando interpolación espacial de la topografía..."):
-                        try:
-                            id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
-                            id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
-                            id_assay = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_assay)
+            # NUEVO SELECTOR DE COLOR INTERACTIVO
+            escala_color = st.selectbox("🎨 Escala Gráfica de Leyes (Gama Cromática)", ["Viridis (Azul-Verde-Amarillo)", "Plasma (Violeta-Rojo-Amarillo)", "Hot (Negro-Rojo-Amarillo-Blanco)"])
+            escala_map = {"Viridis (Azul-Verde-Amarillo)": "Viridis", "Plasma (Violeta-Rojo-Amarillo)": "Plasma", "Hot (Negro-Rojo-Amarillo-Blanco)": "Hot"}
+            
+            st.markdown("<p style='font-size: 13px; color: #aaa; margin-bottom: 5px;'>Copia y pega las tablas CSV directamente desde Excel o un bloc de notas:</p>", unsafe_allow_html=True)
+            
+            # Datos por defecto (Mina de Oro de Jean) para que la app nunca abra vacía
+            default_collar = "BHID,X,Y,Z,DEPTH\nDDH-001,100,100,250,120\nDDH-002,140,110,245,130\nDDH-003,120,150,252,110"
+            default_survey = "BHID,AT,AZ,DIP\nDDH-001,0,150,-60\nDDH-001,60,152,-58\nDDH-002,0,220,-55\nDDH-002,70,218,-54\nDDH-003,0,45,-70"
+            default_assay = "BHID,FROM,TO,AU_GPT\nDDH-001,0,40,0.35\nDDH-001,40,80,2.15\nDDH-001,80,120,4.80\nDDH-002,0,50,0.10\nDDH-002,50,100,1.85\nDDH-002,100,130,3.90\nDDH-003,0,60,0.90\nDDH-003,60,110,5.20"
+            
+            txt_collar = st.text_area("📋 Tabla 1: COLLAR (Boca de pozo: BHID, X, Y, Z, DEPTH)", default_collar, height=120)
+            txt_survey = st.text_area("📋 Tabla 2: SURVEY (Trayectoria: BHID, AT, AZ, DIP)", default_survey, height=120)
+            txt_assay = st.text_area("📋 Tabla 3: ASSAY (Intervalos y Leyes: BHID, FROM, TO, LEY)", default_assay, height=120)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with col_3d_render:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            
+            if txt_collar and txt_survey and txt_assay:
+                with st.spinner("Procesando matriz trigonométrica independiente..."):
+                    try:
+                        # Lectura directa desde los cuadros de texto
+                        df_collar = pd.read_csv(StringIO(txt_collar), sep=None, engine='python')
+                        df_survey = pd.read_csv(StringIO(txt_survey), sep=None, engine='python')
+                        df_assay = pd.read_csv(StringIO(txt_assay), sep=None, engine='python')
+                        
+                        # Limpieza extrema de caracteres ocultos
+                        df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
+                        df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
+                        df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
+                        
+                        def buscar_col_exacta(df, palabras_clave):
+                            for col in df.columns:
+                                if col in [p.upper() for p in palabras_clave]: return col
+                            for col in df.columns:
+                                for p in palabras_clave:
+                                    if p.upper() in col: return col
+                            return df.columns[0]
                             
-                            c_csv = drive_service.files().get_media(fileId=id_collar).execute().decode('utf-8')
-                            s_csv = drive_service.files().get_media(fileId=id_survey).execute().decode('utf-8')
-                            a_csv = drive_service.files().get_media(fileId=id_assay).execute().decode('utf-8')
-                            
-                            df_collar = pd.read_csv(StringIO(c_csv), sep=None, engine='python')
-                            df_survey = pd.read_csv(StringIO(s_csv), sep=None, engine='python')
-                            df_assay = pd.read_csv(StringIO(a_csv), sep=None, engine='python')
-                            
-                            df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
-                            df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
-                            df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
-                            
-                            def buscar_col_exacta(df, palabras_clave):
-                                for col in df.columns:
-                                    if col in [p.upper() for p in palabras_clave]: return col
-                                for col in df.columns:
-                                    for p in palabras_clave:
-                                        if p.upper() in col: return col
-                                return df.columns[0]
+                        id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        
+                        c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
+                        c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
+                        c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
+                        
+                        s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
+                        s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
+                        s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
+                        
+                        a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
+                        a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
+                        col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
+                        
+                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
+                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
+                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
+                        
+                        def force_numeric(val):
+                            try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
+                            except: return 0.0
                                 
-                            id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                            id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                            id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        df_collar[c_x] = df_collar[c_x].apply(force_numeric)
+                        df_collar[c_y] = df_collar[c_y].apply(force_numeric)
+                        df_collar[c_z] = df_collar[c_z].apply(force_numeric)
+                        df_survey[s_at] = df_survey[s_at].apply(force_numeric)
+                        df_survey[s_az] = df_survey[s_az].apply(force_numeric)
+                        df_survey[s_dip] = df_survey[s_dip].apply(force_numeric)
+                        df_assay[a_from] = df_assay[a_from].apply(force_numeric)
+                        df_assay[a_to] = df_assay[a_to].apply(force_numeric)
+                        df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
+                        
+                        resultados = []
+                        for bhid in df_assay[id_a].unique():
+                            c_data = df_collar[df_collar[id_c] == bhid]
+                            if c_data.empty: continue
+                            x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
+                            s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
+                            a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
                             
-                            c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
-                            c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
-                            c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
-                            
-                            s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
-                            s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
-                            s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
-                            
-                            a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
-                            a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
-                            col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
-                            
-                            df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
-                            df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
-                            df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
-                            
-                            def force_numeric(val):
-                                try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
-                                except: return 0.0
+                            for _, row in a_data.iterrows():
+                                mid_depth = (row[a_from] + row[a_to]) / 2
+                                s_valido = s_data[s_data[s_at] <= mid_depth]
+                                s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
                                     
-                            df_collar[c_x] = df_collar[c_x].apply(force_numeric)
-                            df_collar[c_y] = df_collar[c_y].apply(force_numeric)
-                            df_collar[c_z] = df_collar[c_z].apply(force_numeric)
-                            df_survey[s_at] = df_survey[s_at].apply(force_numeric)
-                            df_survey[s_az] = df_survey[s_az].apply(force_numeric)
-                            df_survey[s_dip] = df_survey[s_dip].apply(force_numeric)
-                            df_assay[a_from] = df_assay[a_from].apply(force_numeric)
-                            df_assay[a_to] = df_assay[a_to].apply(force_numeric)
-                            df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
+                                dip_rad = np.radians(s_row[s_dip])
+                                az_rad = np.radians(s_row[s_az])
+                                dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
+                                dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
+                                dz = mid_depth * np.sin(dip_rad)
+                                resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
+                                
+                        df_3d = pd.DataFrame(resultados)
+                        
+                        if df_3d.empty: st.error("❌ Los códigos de taladros no coinciden entre sí.")
+                        else:
+                            fig_3d = go.Figure()
+                            cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                             
-                            resultados = []
-                            for bhid in df_assay[id_a].unique():
-                                c_data = df_collar[df_collar[id_c] == bhid]
-                                if c_data.empty: continue
-                                x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
-                                s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
-                                a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
-                                
-                                for _, row in a_data.iterrows():
-                                    mid_depth = (row[a_from] + row[a_to]) / 2
-                                    s_valido = s_data[s_data[s_at] <= mid_depth]
-                                    s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
-                                        
-                                    dip_rad = np.radians(s_row[s_dip])
-                                    az_rad = np.radians(s_row[s_az])
-                                    dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
-                                    dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
-                                    dz = mid_depth * np.sin(dip_rad)
-                                    resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
-                                    
-                            df_3d = pd.DataFrame(resultados)
+                            # 1. Dibujado de Sondajes tridimensionales
+                            for hole in df_3d["BHID"].unique():
+                                df_hole = df_3d[df_3d["BHID"] == hole]
+                                fig_3d.add_trace(go.Scatter3d(
+                                    x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', 
+                                    marker=dict(size=4, color=df_hole["LEY"], colorscale=escala_map[escala_color], colorbar=dict(title=dict(text=f"Ley ({col_ley})", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                    line=dict(width=3, color='rgba(255,255,255,0.4)'), name=str(hole)
+                                ))
                             
-                            if df_3d.empty:
-                                st.error("❌ Los archivos se leyeron perfectamente, pero los nombres de los taladros (BHID) no coinciden entre sí.")
-                            else:
-                                fig_3d = go.Figure()
-                                cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
+                            # 2. Generación del Relieve Topográfico Panorámico Continuo (Margen Extendido 100%)
+                            x_col, y_col, z_col = df_collar[c_x].values, df_collar[c_y].values, df_collar[c_z].values
+                            if len(x_col) > 2:
+                                x_min, x_max = x_col.min(), x_col.max()
+                                y_min, y_max = y_col.min(), y_col.max()
+                                margen_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
+                                margen_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
                                 
-                                for hole in df_3d["BHID"].unique():
-                                    df_hole = df_3d[df_3d["BHID"] == hole]
-                                    fig_3d.add_trace(go.Scatter3d(
-                                        x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
-                                        mode='lines+markers', 
-                                        marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=dict(text=f"Ley Mineral", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
-                                        line=dict(width=2, color='rgba(255,255,255,0.3)'), 
-                                        name=str(hole)
-                                    ))
+                                grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 60)
+                                grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 60)
+                                X_mesh, Y_mesh = np.meshgrid(grid_x, grid_y)
+                                X_flat, Y_flat = X_mesh.flatten(), Y_mesh.flatten()
                                 
-                                try:
-                                    x_col = df_collar[c_x].values
-                                    y_col = df_collar[c_y].values
-                                    z_col = df_collar[c_z].values
-                                    
-                                    if len(x_col) > 2:
-                                        x_min, x_max = x_col.min(), x_col.max()
-                                        y_min, y_max = y_col.min(), y_col.max()
-                                        
-                                        margen_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
-                                        margen_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
-                                        
-                                        grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 60)
-                                        grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 60)
-                                        X_mesh, Y_mesh = np.meshgrid(grid_x, grid_y)
-                                        
-                                        X_flat = X_mesh.flatten()
-                                        Y_flat = Y_mesh.flatten()
-                                        
-                                        dist = np.sqrt((x_col[:, np.newaxis] - X_flat)**2 + (y_col[:, np.newaxis] - Y_flat)**2)
-                                        dist = np.where(dist == 0, 1e-10, dist)
-                                        weights = 1.0 / (dist ** 2)
-                                        Z_flat = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
-                                        Z_mesh = Z_flat.reshape(X_mesh.shape)
-                                        
-                                        fig_3d.add_trace(go.Surface(
-                                            x=X_mesh, y=Y_mesh, z=Z_mesh,
-                                            opacity=0.65, 
-                                            colorscale=[[0, '#3e2723'], [0.6, '#5d4037'], [1, '#2e7d32']], 
-                                            showscale=False,
-                                            name='Terreno Interpolado',
-                                            hoverinfo='skip'
-                                        ))
-                                except Exception as e: pass 
+                                dist = np.sqrt((x_col[:, np.newaxis] - X_flat)**2 + (y_col[:, np.newaxis] - Y_flat)**2)
+                                dist = np.where(dist == 0, 1e-10, dist)
+                                weights = 1.0 / (dist ** 2)
+                                Z_flat = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
+                                Z_mesh = Z_flat.reshape(X_mesh.shape)
+                                
+                                fig_3d.add_trace(go.Surface(
+                                    x=X_mesh, y=Y_mesh, z=Z_mesh, opacity=0.6, 
+                                    colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'
+                                ))
 
-                                fig_3d.update_layout(
-                                    margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
-                                    scene=dict(
-                                        xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
-                                        yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
-                                        zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
-                                        bgcolor="rgba(0,0,0,0)",
-                                        aspectmode='data' 
-                                    ), 
-                                    legend=dict(font=dict(color="white"))
-                                )
-                                st.plotly_chart(fig_3d, use_container_width=True)
-                                st.success(f"✅ Modelo 3D generado con **{len(df_3d['BHID'].unique())}** sondajes y Topografía Espacial Extendida.")
-                        except Exception as e: st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
-        st.markdown("</div>", unsafe_allow_html=True)
+                            fig_3d.update_layout(
+                                margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", 
+                                scene=dict(
+                                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
+                                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
+                                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
+                                    bgcolor="rgba(0,0,0,0)", aspectmode='data'
+                                ), legend=dict(font=dict(color="white"))
+                            )
+                            st.plotly_chart(fig_3d, use_container_width=True)
+                            
+                            # Reporte de Control de Datos Manuales
+                            st.markdown("<div class='titulo-seccion'>Análisis de Consistencia de Datos Levantados</div>", unsafe_allow_html=True)
+                            col_md1, col_md2, col_md3 = st.columns(3)
+                            col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
+                            col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
+                            col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
+                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
     # PESTAÑA 5: DISEÑO DE VOLADURA
@@ -613,12 +554,10 @@ if conexion_exitosa:
     elif pestaña == "Diseño de Voladura":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>DISEÑO DE MALLA DE PERFORACIÓN Y VOLADURA 🧨</h2>", unsafe_allow_html=True)
         col_parametros, col_visor = st.columns([1.2, 2])
-        
         with col_parametros:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Plantilla de Perforación</div>", unsafe_allow_html=True)
             tipo_malla = st.selectbox("Seleccionar Plantilla Geometría", ["Malla Cuadrada (Tajo Abierto)", "Malla Tresbolillo (Tajo Abierto)", "Frente de Túnel (Galería 3x3m)"])
-            
             if "Tajo" in tipo_malla:
                 col_b, col_s = st.columns(2)
                 burden = col_b.number_input("Burden (m)", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
@@ -633,7 +572,6 @@ if conexion_exitosa:
                 profundidad = st.number_input("Longitud de Avance (m)", min_value=1.0, max_value=5.0, value=3.0, step=0.5)
                 diametro_mm = st.number_input("Diámetro de Taladro (mm)", min_value=32.0, max_value=64.0, value=45.0, step=1.0)
                 burden, espaciamiento, filas, columnas = 1, 1, 1, 1
-                
             st.markdown("<br><div class='titulo-seccion'>Parámetros de Voladura</div>", unsafe_allow_html=True)
             densidad_roca = st.number_input("Densidad de la Roca (ton/m³)", min_value=1.0, max_value=5.0, value=2.7, step=0.1)
             factor_potencia = st.number_input("Factor de Potencia Deseado (kg/ton)", min_value=0.1, max_value=2.0, value=0.45, step=0.05)
@@ -642,7 +580,6 @@ if conexion_exitosa:
         with col_visor:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             taladros = []
-            
             if tipo_malla == "Malla Cuadrada (Tajo Abierto)":
                 for f in range(filas):
                     for c in range(columnas): taladros.append({"ID": f"T-{f}-{c}", "X": c * espaciamiento, "Y": f * burden, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
@@ -681,12 +618,7 @@ if conexion_exitosa:
             
             st.markdown("<div class='titulo-seccion'>Reporte de Carga y Factor de Potencia</div>", unsafe_allow_html=True)
             num_taladros = len(df_malla)
-            
-            if "Tajo" in tipo_malla:
-                volumen_total = (burden * espaciamiento * profundidad) * num_taladros
-            else:
-                volumen_total = 9 * profundidad
-                
+            volumen_total = (burden * espaciamiento * profundidad) * num_taladros if "Tajo" in tipo_malla else 9 * profundidad
             tonelaje_total = volumen_total * densidad_roca
             anfo_total = tonelaje_total * factor_potencia
             anfo_por_taladro = anfo_total / num_taladros
@@ -708,7 +640,6 @@ if conexion_exitosa:
     elif pestaña == "Ventilación Minera":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SISTEMA OPERATIVO DE VENTILACIÓN MINERA ⛑️</h2>", unsafe_allow_html=True)
         col_inputs, col_3d_visor = st.columns([1.3, 2])
-        
         with col_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>1. Parámetros de Caudal Requerido (Q)</div>", unsafe_allow_html=True)
@@ -751,37 +682,24 @@ if conexion_exitosa:
             potencia_kW = (delta_P * Q_m3s) / (1000.0 * eficiencia_vent)
             
             fig_vent = go.Figure()
-            y_line = np.linspace(0, longitud_ducto, 30)
             velocidad_aire = Q_m3s / area_transversal
             y_cones = np.linspace(20, longitud_ducto - 20, 12)
-            x_cones = np.zeros_like(y_cones)
-            z_cones = np.full_like(y_cones, alto_gal / 2.0)
-            u = np.zeros_like(y_cones)
-            v = np.ones_like(y_cones) * velocidad_aire
-            w = np.zeros_like(y_cones)
+            x_cones, z_cones = np.zeros_like(y_cones), np.full_like(y_cones, alto_gal / 2.0)
+            u, v, w = np.zeros_like(y_cones), np.ones_like(y_cones) * velocidad_aire, np.zeros_like(y_cones)
             
             fig_vent.add_trace(go.Cone(x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w, colorscale='Cividis', sizemode='scaled', sizeref=1.5, colorbar=dict(title=dict(text="Velocidad (m/s)", font=dict(color='white')), tickfont=dict(color='white')), name='Flujo de Aire'))
-            box_x = [-ancho_gal/2, ancho_gal/2, ancho_gal/2, -ancho_gal/2, -ancho_gal/2]
-            box_z = [0, 0, alto_gal, alto_gal, 0]
+            box_x, box_z = [-ancho_gal/2, ancho_gal/2, ancho_gal/2, -ancho_gal/2, -ancho_gal/2], [0, 0, alto_gal, alto_gal, 0]
             for y_wall in [0, longitud_ducto / 2, longitud_ducto]:
                 fig_vent.add_trace(go.Scatter3d(x=box_x, y=[y_wall]*5, z=box_z, mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'))
-            fig_vent.add_trace(go.Scatter3d(x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
-            fig_vent.add_trace(go.Scatter3d(x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
-            fig_vent.add_trace(go.Scatter3d(x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
-            fig_vent.add_trace(go.Scatter3d(x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False))
             
             fig_vent.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"), bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig_vent, use_container_width=True)
             
             st.markdown("<div class='titulo-seccion'>Resultados del Balance de Ventilación Dinámica</div>", unsafe_allow_html=True)
             col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal Crítico (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p><p style='color:#aaa; font-size:11px; margin:0;'>Pers: {Q_p:,.0f} | Diésel: {Q_d:,.0f} | Gas: {Q_g:,.0f}</p></div>", unsafe_allow_html=True)
-            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Caída de Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p><p style='color:#aaa; font-size:11px; margin:0;'>Resistencia R: {R_atkinson:,.5f} kg/m⁷</p></div>", unsafe_allow_html=True)
-            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Potencia Mecánica</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p><p style='color:#aaa; font-size:11px; margin:0;'>Velocidad del Aire: {velocidad_aire:,.2f} m/s</p></div>", unsafe_allow_html=True)
-            
-            if velocidad_aire < 0.3: st.warning("⚠️ Alerta Normativa: La velocidad del aire es menor a 0.3 m/s. Riesgo de acumulación de gases de escape.")
-            elif velocidad_aire > 6.0: st.error("⚠️ Alerta de Confort: La velocidad supera los 6.0 m/s. Fricción y ruido excesivo en las paredes del túnel.")
-            else: st.success("✅ Flujo de aire óptimo y reglamentario para labores subterráneas.")
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal Crítico (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Caída de Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Potencia Mecánica</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
