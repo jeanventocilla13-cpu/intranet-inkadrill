@@ -362,7 +362,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (SINTAXIS PLOTLY ACTUALIZADA)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CON SUPERFICIE TOPOGRÁFICA)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -389,7 +389,7 @@ if conexion_exitosa:
             
             if st.button("🚀 GENERAR MODELO 3D", type="primary", use_container_width=True):
                 if sel_collar and sel_survey and sel_assay:
-                    with st.spinner(f"Procesando modelo 3D en tiempo real..."):
+                    with st.spinner(f"Procesando modelo 3D y superficie topográfica en tiempo real..."):
                         try:
                             id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
                             id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
@@ -486,19 +486,36 @@ if conexion_exitosa:
                                 fig_3d = go.Figure()
                                 cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                                 
+                                # 1. Renderizado de los Sondajes (Líneas)
                                 for hole in df_3d["BHID"].unique():
                                     df_hole = df_3d[df_3d["BHID"] == hole]
                                     fig_3d.add_trace(go.Scatter3d(
                                         x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
                                         mode='lines+markers', 
-                                        # --- SINTAXIS PLOTLY ACTUALIZADA (title=dict(...)) ---
-                                        marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', 
-                                                    colorbar=dict(title=dict(text=f"Ley Mineral", font=dict(color='white')), tickfont=dict(color='white')), 
-                                                    cmin=0, cmax=cmax_val), 
+                                        marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=dict(text=f"Ley Mineral", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
                                         line=dict(width=2, color='rgba(255,255,255,0.3)'), 
                                         name=str(hole)
                                     ))
-                                    
+                                
+                                # 2. --- NUEVA SUPERFICIE TOPOGRÁFICA ---
+                                try:
+                                    # Intento Principal: Malla real de terreno basada en los puntos del Collar
+                                    fig_3d.add_trace(go.Mesh3d(
+                                        x=df_collar[c_x], y=df_collar[c_y], z=df_collar[c_z],
+                                        opacity=0.35, color='#5D4037', delaunayaxis='z', name='Superficie Terreno'
+                                    ))
+                                except:
+                                    # Plan de Contingencia: Plano referencial de cristal plano si la triangulación falla
+                                    x_min, x_max = float(df_collar[c_x].min()), float(df_collar[c_x].max())
+                                    y_min, y_max = float(df_collar[c_y].min()), float(df_collar[c_y].max())
+                                    z_mean = float(df_collar[c_z].mean())
+                                    fig_3d.add_trace(go.Surface(
+                                        x=[[x_min, x_max], [x_min, x_max]],
+                                        y=[[y_min, y_min], [y_max, y_max]],
+                                        z=[[z_mean, z_mean], [z_mean, z_mean]],
+                                        opacity=0.3, colorscale=[[0, '#5D4037'], [1, '#5D4037']], showscale=False, name='Nivel 0 (Referencia)'
+                                    ))
+
                                 fig_3d.update_layout(
                                     margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
                                     scene=dict(
@@ -510,7 +527,7 @@ if conexion_exitosa:
                                     legend=dict(font=dict(color="white"))
                                 )
                                 st.plotly_chart(fig_3d, use_container_width=True)
-                                st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales.")
+                                st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales y Superficie Referencial.")
                                 
                         except Exception as e: 
                             st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
