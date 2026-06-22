@@ -19,12 +19,13 @@ from pyproj import Transformer
 import base64
 import requests
 import re
+import math
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visualizador 3D Sondajes"
+    st.session_state.pestaña_activa = "Diseño de Voladura" # Cambiado para que lo veas al entrar
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -150,7 +151,8 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    opciones_nav = {"💬": "Chat Asistente Operativo", "🧮": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "🗄️": "Base de Datos"}
+    # ¡AQUÍ AGREGAMOS LA NUEVA PESTAÑA A LA BARRA LATERAL!
+    opciones_nav = {"💬": "Chat Asistente Operativo", "🪨": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "🧨": "Diseño de Voladura", "🗄️": "Base de Datos"}
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
     indice_nav_activo = 0
@@ -328,7 +330,6 @@ if conexion_exitosa:
                     else:
                         csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
                         df_mapa = pd.read_csv(StringIO(csv_content))
-                        with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
                         
                         def detectar_col(df, keywords):
                             for col in df.columns:
@@ -345,7 +346,6 @@ if conexion_exitosa:
                         
                         if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
                         elif col_norte is not None and col_este is not None:
-                            st.info(f"🔄 Coordenadas UTM detectadas. Convirtiendo a WGS84...")
                             df_clean = df_mapa.dropna(subset=[col_norte, col_este])
                             if df_clean.empty: st.warning("⚠️ Las columnas UTM están vacías.")
                             else:
@@ -365,12 +365,12 @@ if conexion_exitosa:
                                 mapa_dinamico = folium.Map(location=[float(df_clean.iloc[0][col_lat]), float(df_clean.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
                                 for idx, row in df_clean.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
                                 st_folium(mapa_dinamico, width="100%", height=500)
-                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas (Lat/Lon o UTM Norte/Este).")
+                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas.")
                 except Exception as e: st.error(f"Error procesando el mapa topográfico.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (TOPOGRAFÍA EXPANDIDA)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES 
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -444,19 +444,15 @@ if conexion_exitosa:
                             df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
                             
                             def force_numeric(val):
-                                try:
-                                    return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
-                                except:
-                                    return 0.0
+                                try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
+                                except: return 0.0
                                     
                             df_collar[c_x] = df_collar[c_x].apply(force_numeric)
                             df_collar[c_y] = df_collar[c_y].apply(force_numeric)
                             df_collar[c_z] = df_collar[c_z].apply(force_numeric)
-                            
                             df_survey[s_at] = df_survey[s_at].apply(force_numeric)
                             df_survey[s_az] = df_survey[s_az].apply(force_numeric)
                             df_survey[s_dip] = df_survey[s_dip].apply(force_numeric)
-                            
                             df_assay[a_from] = df_assay[a_from].apply(force_numeric)
                             df_assay[a_to] = df_assay[a_to].apply(force_numeric)
                             df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
@@ -476,7 +472,6 @@ if conexion_exitosa:
                                         
                                     dip_rad = np.radians(s_row[s_dip])
                                     az_rad = np.radians(s_row[s_az])
-                                    
                                     dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
                                     dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
                                     dz = mid_depth * np.sin(dip_rad)
@@ -490,7 +485,6 @@ if conexion_exitosa:
                                 fig_3d = go.Figure()
                                 cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                                 
-                                # 1. TRAZADO DE SONDAJES
                                 for hole in df_3d["BHID"].unique():
                                     df_hole = df_3d[df_3d["BHID"] == hole]
                                     fig_3d.add_trace(go.Scatter3d(
@@ -501,7 +495,6 @@ if conexion_exitosa:
                                         name=str(hole)
                                     ))
                                 
-                                # 2. MOTOR TOPOGRÁFICO EXTENDIDO
                                 try:
                                     x_col = df_collar[c_x].values
                                     y_col = df_collar[c_y].values
@@ -511,12 +504,9 @@ if conexion_exitosa:
                                         x_min, x_max = x_col.min(), x_col.max()
                                         y_min, y_max = y_col.min(), y_col.max()
                                         
-                                        # --- EXPANSIÓN DE MÁRGENES AL 100% ---
-                                        # Ampliamos la malla el doble hacia los laterales para cubrir toda el área visual
                                         margen_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
                                         margen_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
                                         
-                                        # Aumentamos la resolución a 60x60 para que no pierda suavidad al estirarse
                                         grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 60)
                                         grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 60)
                                         X_mesh, Y_mesh = np.meshgrid(grid_x, grid_y)
@@ -524,7 +514,6 @@ if conexion_exitosa:
                                         X_flat = X_mesh.flatten()
                                         Y_flat = Y_mesh.flatten()
                                         
-                                        # Interpolación espacial matemática
                                         dist = np.sqrt((x_col[:, np.newaxis] - X_flat)**2 + (y_col[:, np.newaxis] - Y_flat)**2)
                                         dist = np.where(dist == 0, 1e-10, dist)
                                         weights = 1.0 / (dist ** 2)
@@ -539,8 +528,7 @@ if conexion_exitosa:
                                             name='Terreno Interpolado',
                                             hoverinfo='skip'
                                         ))
-                                except Exception as e:
-                                    pass 
+                                except Exception as e: pass 
 
                                 fig_3d.update_layout(
                                     margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
@@ -555,14 +543,171 @@ if conexion_exitosa:
                                 )
                                 st.plotly_chart(fig_3d, use_container_width=True)
                                 st.success(f"✅ Modelo 3D generado con **{len(df_3d['BHID'].unique())}** sondajes y Topografía Espacial Extendida.")
-                                
-                        except Exception as e: 
-                            st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
-                            
+                        except Exception as e: st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 5: BASE DE DATOS
+    # PESTAÑA 5: DISEÑO DE VOLADURA (¡LA NUEVA PESTAÑA!)
+    # ====================================================================
+    elif pestaña == "Diseño de Voladura":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>DISEÑO DE MALLA DE PERFORACIÓN Y VOLADURA 🧨</h2>", unsafe_allow_html=True)
+        
+        col_parametros, col_visor = st.columns([1.2, 2])
+        
+        with col_parametros:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>Plantilla de Perforación</div>", unsafe_allow_html=True)
+            
+            tipo_malla = st.selectbox("Seleccionar Plantilla Geometría", ["Malla Cuadrada (Tajo Abierto)", "Malla Tresbolillo (Tajo Abierto)", "Frente de Túnel (Galería 3x3m)"])
+            
+            if "Tajo" in tipo_malla:
+                col_b, col_s = st.columns(2)
+                burden = col_b.number_input("Burden (m)", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
+                espaciamiento = col_s.number_input("Espaciamiento (m)", min_value=1.0, max_value=10.0, value=3.5, step=0.5)
+                
+                col_l, col_d = st.columns(2)
+                profundidad = col_l.number_input("Longitud Taladro (m)", min_value=1.0, max_value=20.0, value=10.0, step=1.0)
+                diametro_mm = col_d.number_input("Diámetro (mm)", min_value=45.0, max_value=311.0, value=165.0, step=1.0)
+                
+                filas = st.slider("Número de Filas", 2, 10, 4)
+                columnas = st.slider("Taladros por Fila", 2, 20, 8)
+                tacos = 0.0 # No aplica directamente a la forma en galería simple
+                
+            else: # Túnel
+                st.info("ℹ️ Parámetros estandarizados para una sección de galería de 3x3 metros.")
+                profundidad = st.number_input("Longitud de Avance (m)", min_value=1.0, max_value=5.0, value=3.0, step=0.5)
+                diametro_mm = st.number_input("Diámetro de Taladro (mm)", min_value=32.0, max_value=64.0, value=45.0, step=1.0)
+                burden, espaciamiento, filas, columnas = 1, 1, 1, 1 # Valores fijos para cálculo interno
+                
+            st.markdown("<br><div class='titulo-seccion'>Parámetros de Voladura</div>", unsafe_allow_html=True)
+            densidad_roca = st.number_input("Densidad de la Roca (ton/m³)", min_value=1.0, max_value=5.0, value=2.7, step=0.1)
+            factor_potencia = st.number_input("Factor de Potencia Deseado (kg/ton)", min_value=0.1, max_value=2.0, value=0.45, step=0.05)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with col_visor:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            
+            # --- MOTOR GENERADOR DE MALLAS ---
+            taladros = []
+            
+            if tipo_malla == "Malla Cuadrada (Tajo Abierto)":
+                for f in range(filas):
+                    for c in range(columnas):
+                        x = c * espaciamiento
+                        y = f * burden
+                        taladros.append({"ID": f"T-{f}-{c}", "X": x, "Y": y, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
+                        
+            elif tipo_malla == "Malla Tresbolillo (Tajo Abierto)":
+                for f in range(filas):
+                    offset = (espaciamiento / 2) if f % 2 != 0 else 0
+                    for c in range(columnas):
+                        x = (c * espaciamiento) + offset
+                        y = f * burden
+                        taladros.append({"ID": f"T-{f}-{c}", "X": x, "Y": y, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
+                        
+            elif tipo_malla == "Frente de Túnel (Galería 3x3m)":
+                # Arranque (Cut) - Centro
+                taladros.append({"ID": "A1", "X": 1.5, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A2", "X": 1.3, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A3", "X": 1.7, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A4", "X": 1.5, "Y": 1.3, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A5", "X": 1.5, "Y": 1.7, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                
+                # Ayudas (Relievers)
+                for x in [1.0, 2.0]:
+                    for y in [1.0, 2.0]:
+                        taladros.append({"ID": f"Ay-{x}-{y}", "X": x, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Ayudas"})
+                        
+                # Cuadradores y Arrastre
+                for x in [0.2, 0.8, 1.5, 2.2, 2.8]:
+                    taladros.append({"ID": f"Ar-{x}", "X": x, "Y": 0.2, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arrastre"})
+                for y in [0.8, 1.5, 2.2]:
+                    taladros.append({"ID": f"C1-{y}", "X": 0.2, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Cuadradores"})
+                    taladros.append({"ID": f"C2-{y}", "X": 2.8, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Cuadradores"})
+                
+                # Corona (Roof)
+                for x in [0.2, 0.8, 1.5, 2.2, 2.8]:
+                    taladros.append({"ID": f"Co-{x}", "X": x, "Y": 2.8, "Z_start": 0, "Z_end": profundidad, "Tipo": "Corona"})
+
+            df_malla = pd.DataFrame(taladros)
+            
+            # --- RENDERIZADO 3D DE LA MALLA ---
+            fig_malla = go.Figure()
+            
+            colores = {"Producción": "#f44336", "Arranque": "#ffeb3b", "Ayudas": "#ff9800", "Cuadradores": "#2196f3", "Arrastre": "#4caf50", "Corona": "#9c27b0"}
+            
+            for _, row in df_malla.iterrows():
+                # Dibujamos las líneas de los taladros
+                if "Tajo" in tipo_malla:
+                    fig_malla.add_trace(go.Scatter3d(
+                        x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]],
+                        mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), name=row["ID"], showlegend=False
+                    ))
+                    # Puntos en superficie
+                    fig_malla.add_trace(go.Scatter3d(
+                        x=[row["X"]], y=[row["Y"]], z=[row["Z_start"]],
+                        mode='markers', marker=dict(size=5, color='white'), showlegend=False
+                    ))
+                else: # Túnel (rotamos los ejes para que mire hacia adelante)
+                    fig_malla.add_trace(go.Scatter3d(
+                        x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]],
+                        mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), name=row["ID"], showlegend=False
+                    ))
+                    # Puntos en el frente
+                    fig_malla.add_trace(go.Scatter3d(
+                        x=[row["X"]], y=[row["Z_start"]], z=[row["Y"]],
+                        mode='markers', marker=dict(size=4, color='white'), showlegend=False
+                    ))
+
+            fig_malla.update_layout(
+                margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", 
+                scene=dict(
+                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), 
+                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), 
+                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), 
+                    bgcolor="rgba(0,0,0,0)", aspectmode='data'
+                ), 
+                showlegend=False
+            )
+            st.plotly_chart(fig_malla, use_container_width=True)
+            
+            # --- CÁLCULOS MATEMÁTICOS DE VOLADURA ---
+            st.markdown("<div class='titulo-seccion'>Reporte de Carga y Factor de Potencia</div>", unsafe_allow_html=True)
+            
+            num_taladros = len(df_malla)
+            
+            if "Tajo" in tipo_malla:
+                volumen_total = (burden * espaciamiento * profundidad) * num_taladros
+                tonelaje_total = volumen_total * densidad_roca
+                anfo_total = tonelaje_total * factor_potencia
+                anfo_por_taladro = anfo_total / num_taladros
+            else:
+                area_frente = 3 * 3 # 9 m2
+                volumen_total = area_frente * profundidad
+                tonelaje_total = volumen_total * densidad_roca
+                anfo_total = tonelaje_total * factor_potencia
+                anfo_por_taladro = anfo_total / num_taladros
+            
+            # Densidad de carga (Factor de carga lineal) aproximada
+            radio_m = (diametro_mm / 1000) / 2
+            volumen_taladro = math.pi * (radio_m ** 2) * profundidad
+            # Densidad del ANFO es aprox 0.8 g/cm3 = 800 kg/m3
+            kg_max_por_taladro = volumen_taladro * 800
+            
+            col_r1, col_r2, col_r3 = st.columns(3)
+            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas a Romper</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p><p style='color:#aaa; font-size:12px; margin:0;'>Volumen: {volumen_total:,.1f} m³</p></div>", unsafe_allow_html=True)
+            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Requerido</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p><p style='color:#aaa; font-size:12px; margin:0;'>{num_taladros} Taladros en la Malla</p></div>", unsafe_allow_html=True)
+            
+            # Verificación de sobrecarga
+            color_carga = "#ffeb3b" if anfo_por_taladro <= kg_max_por_taladro else "#f44336"
+            alerta_carga = "Carga Óptima" if anfo_por_taladro <= kg_max_por_taladro else "⚠️ Sobrecarga (Diámetro insuficiente)"
+            
+            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO por Taladro</p><p class='metric-value' style='color: {color_carga}; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p><p style='color:{color_carga}; font-size:12px; margin:0;'>{alerta_carga}</p></div>", unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 6: BASE DE DATOS
     # ====================================================================
     elif pestaña == "Base de Datos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
