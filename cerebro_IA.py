@@ -330,10 +330,18 @@ if conexion_exitosa:
                         df_mapa = pd.read_csv(StringIO(csv_content))
                         with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
                         
-                        col_lat = next((c for c in df_mapa.columns if 'LAT' in str(c).upper()), None)
-                        col_lon = next((c for c in df_mapa.columns if 'LON' in str(c).upper()), None)
-                        col_norte = next((c for c in df_mapa.columns if str(c).upper() in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
-                        col_este = next((c for c in df_mapa.columns if str(c).upper() in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
+                        def detectar_col(df, keywords):
+                            for col in df.columns:
+                                if str(col).upper() in keywords: return col
+                            for col in df.columns:
+                                for kw in keywords:
+                                    if kw in str(col).upper(): return col
+                            return None
+                            
+                        col_lat = detectar_col(df_mapa, ['LAT', 'LATITUD'])
+                        col_lon = detectar_col(df_mapa, ['LON', 'LNG', 'LONGITUD'])
+                        col_norte = detectar_col(df_mapa, ['NORTE', 'NORTH', 'Y_UTM'])
+                        col_este = detectar_col(df_mapa, ['ESTE', 'EAST', 'X_UTM'])
                         
                         if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
                         elif col_norte is not None and col_este is not None:
@@ -362,7 +370,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (NUEVO DATUM TOPOGRÁFICO)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (NUEVA TOPOGRAFÍA INTERPOLADA)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -389,7 +397,7 @@ if conexion_exitosa:
             
             if st.button("🚀 GENERAR MODELO 3D", type="primary", use_container_width=True):
                 if sel_collar and sel_survey and sel_assay:
-                    with st.spinner(f"Procesando modelo 3D y superficie topográfica en tiempo real..."):
+                    with st.spinner(f"Calculando interpolación espacial de la topografía..."):
                         try:
                             id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
                             id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
@@ -454,13 +462,10 @@ if conexion_exitosa:
                             df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
                             
                             resultados = []
-                            
                             for bhid in df_assay[id_a].unique():
                                 c_data = df_collar[df_collar[id_c] == bhid]
                                 if c_data.empty: continue
-                                
                                 x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
-                                
                                 s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
                                 a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
                                 
@@ -475,7 +480,6 @@ if conexion_exitosa:
                                     dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
                                     dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
                                     dz = mid_depth * np.sin(dip_rad)
-                                    
                                     resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
                                     
                             df_3d = pd.DataFrame(resultados)
@@ -486,7 +490,7 @@ if conexion_exitosa:
                                 fig_3d = go.Figure()
                                 cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                                 
-                                # 1. Renderizado de los Sondajes
+                                # 1. TRAZADO DE SONDAJES
                                 for hole in df_3d["BHID"].unique():
                                     df_hole = df_3d[df_3d["BHID"] == hole]
                                     fig_3d.add_trace(go.Scatter3d(
@@ -497,28 +501,44 @@ if conexion_exitosa:
                                         name=str(hole)
                                     ))
                                 
-                                # 2. NUEVA SUPERFICIE TOPOGRÁFICA (PLANO REFERENCIAL ELEGANTE)
-                                x_min, x_max = float(df_collar[c_x].min()), float(df_collar[c_x].max())
-                                y_min, y_max = float(df_collar[c_y].min()), float(df_collar[c_y].max())
-                                z_max = float(df_collar[c_z].max()) # Usamos la cota más alta
-                                
-                                # Ampliamos el plano un poco más allá de los sondajes
-                                margen_x = (x_max - x_min) * 0.15 if x_max != x_min else 100
-                                margen_y = (y_max - y_min) * 0.15 if y_max != y_min else 100
-                                
-                                x_grid = np.linspace(x_min - margen_x, x_max + margen_x, 10)
-                                y_grid = np.linspace(y_min - margen_y, y_max + margen_y, 10)
-                                x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
-                                z_mesh = np.full_like(x_mesh, z_max)
-                                
-                                fig_3d.add_trace(go.Surface(
-                                    x=x_mesh, y=y_mesh, z=z_mesh,
-                                    opacity=0.3, # Translúcido como un cristal
-                                    colorscale=[[0, '#2e7d32'], [1, '#1b5e20']], # Tonos verdes ejecutivos
-                                    showscale=False,
-                                    name='Nivel Cero (Superficie)',
-                                    hoverinfo='skip'
-                                ))
+                                # 2. MOTOR TOPOGRÁFICO: SUPERFICIE INTERPOLADA (IDW NATivo de Python)
+                                try:
+                                    x_col = df_collar[c_x].values
+                                    y_col = df_collar[c_y].values
+                                    z_col = df_collar[c_z].values
+                                    
+                                    if len(x_col) > 2:
+                                        x_min, x_max = x_col.min(), x_col.max()
+                                        y_min, y_max = y_col.min(), y_col.max()
+                                        
+                                        # Ampliamos la malla un 30% más allá de los taladros como pediste ("agrandemos mas")
+                                        margen_x = (x_max - x_min) * 0.3 if x_max != x_min else 100
+                                        margen_y = (y_max - y_min) * 0.3 if y_max != y_min else 100
+                                        
+                                        grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 40)
+                                        grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 40)
+                                        X_mesh, Y_mesh = np.meshgrid(grid_x, grid_y)
+                                        
+                                        X_flat = X_mesh.flatten()
+                                        Y_flat = Y_mesh.flatten()
+                                        
+                                        # Interpolación espacial matemática para crear un relieve continuo
+                                        dist = np.sqrt((x_col[:, np.newaxis] - X_flat)**2 + (y_col[:, np.newaxis] - Y_flat)**2)
+                                        dist = np.where(dist == 0, 1e-10, dist)
+                                        weights = 1.0 / (dist ** 2)
+                                        Z_flat = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
+                                        Z_mesh = Z_flat.reshape(X_mesh.shape)
+                                        
+                                        fig_3d.add_trace(go.Surface(
+                                            x=X_mesh, y=Y_mesh, z=Z_mesh,
+                                            opacity=0.65, 
+                                            colorscale=[[0, '#3e2723'], [0.6, '#5d4037'], [1, '#2e7d32']], # Gradiente de roca profunda a superficie verde
+                                            showscale=False,
+                                            name='Terreno Interpolado',
+                                            hoverinfo='skip'
+                                        ))
+                                except Exception as e:
+                                    pass # Si la interpolación falla, simplemente dibuja los sondajes puros.
 
                                 fig_3d.update_layout(
                                     margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
@@ -527,12 +547,12 @@ if conexion_exitosa:
                                         yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
                                         zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
                                         bgcolor="rgba(0,0,0,0)",
-                                        aspectmode='data' # Mantiene la proporción real del terreno
+                                        aspectmode='data' # Fuerza a Plotly a respetar las proporciones reales de la mina
                                     ), 
                                     legend=dict(font=dict(color="white"))
                                 )
                                 st.plotly_chart(fig_3d, use_container_width=True)
-                                st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales y Superficie Referencial plana.")
+                                st.success(f"✅ Modelo 3D generado con **{len(df_3d['BHID'].unique())}** sondajes y Topografía Espacial.")
                                 
                         except Exception as e: 
                             st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
