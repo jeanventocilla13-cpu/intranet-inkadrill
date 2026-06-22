@@ -370,7 +370,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (NUEVA TOPOGRAFÍA INTERPOLADA)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (TOPOGRAFÍA EXPANDIDA)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -501,7 +501,7 @@ if conexion_exitosa:
                                         name=str(hole)
                                     ))
                                 
-                                # 2. MOTOR TOPOGRÁFICO: SUPERFICIE INTERPOLADA (IDW NATivo de Python)
+                                # 2. MOTOR TOPOGRÁFICO EXTENDIDO
                                 try:
                                     x_col = df_collar[c_x].values
                                     y_col = df_collar[c_y].values
@@ -511,18 +511,20 @@ if conexion_exitosa:
                                         x_min, x_max = x_col.min(), x_col.max()
                                         y_min, y_max = y_col.min(), y_col.max()
                                         
-                                        # Ampliamos la malla un 30% más allá de los taladros como pediste ("agrandemos mas")
-                                        margen_x = (x_max - x_min) * 0.3 if x_max != x_min else 100
-                                        margen_y = (y_max - y_min) * 0.3 if y_max != y_min else 100
+                                        # --- EXPANSIÓN DE MÁRGENES AL 100% ---
+                                        # Ampliamos la malla el doble hacia los laterales para cubrir toda el área visual
+                                        margen_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
+                                        margen_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
                                         
-                                        grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 40)
-                                        grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 40)
+                                        # Aumentamos la resolución a 60x60 para que no pierda suavidad al estirarse
+                                        grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 60)
+                                        grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 60)
                                         X_mesh, Y_mesh = np.meshgrid(grid_x, grid_y)
                                         
                                         X_flat = X_mesh.flatten()
                                         Y_flat = Y_mesh.flatten()
                                         
-                                        # Interpolación espacial matemática para crear un relieve continuo
+                                        # Interpolación espacial matemática
                                         dist = np.sqrt((x_col[:, np.newaxis] - X_flat)**2 + (y_col[:, np.newaxis] - Y_flat)**2)
                                         dist = np.where(dist == 0, 1e-10, dist)
                                         weights = 1.0 / (dist ** 2)
@@ -532,13 +534,13 @@ if conexion_exitosa:
                                         fig_3d.add_trace(go.Surface(
                                             x=X_mesh, y=Y_mesh, z=Z_mesh,
                                             opacity=0.65, 
-                                            colorscale=[[0, '#3e2723'], [0.6, '#5d4037'], [1, '#2e7d32']], # Gradiente de roca profunda a superficie verde
+                                            colorscale=[[0, '#3e2723'], [0.6, '#5d4037'], [1, '#2e7d32']], 
                                             showscale=False,
                                             name='Terreno Interpolado',
                                             hoverinfo='skip'
                                         ))
                                 except Exception as e:
-                                    pass # Si la interpolación falla, simplemente dibuja los sondajes puros.
+                                    pass 
 
                                 fig_3d.update_layout(
                                     margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
@@ -547,12 +549,12 @@ if conexion_exitosa:
                                         yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
                                         zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
                                         bgcolor="rgba(0,0,0,0)",
-                                        aspectmode='data' # Fuerza a Plotly a respetar las proporciones reales de la mina
+                                        aspectmode='data' 
                                     ), 
                                     legend=dict(font=dict(color="white"))
                                 )
                                 st.plotly_chart(fig_3d, use_container_width=True)
-                                st.success(f"✅ Modelo 3D generado con **{len(df_3d['BHID'].unique())}** sondajes y Topografía Espacial.")
+                                st.success(f"✅ Modelo 3D generado con **{len(df_3d['BHID'].unique())}** sondajes y Topografía Espacial Extendida.")
                                 
                         except Exception as e: 
                             st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
