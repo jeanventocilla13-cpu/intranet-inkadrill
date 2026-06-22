@@ -287,4 +287,255 @@ if conexion_exitosa:
         with col_visor:
             html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
+
+        with col_resultados:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
+            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso y perneado esporádico con pernos de fricción en cuñas sueltas."
+            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
+            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
+            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. El sostenimiento debe ser concurrente a la excavación.<br><br><b>Soporte:</b> Perneado sistemático denso (1.0 m de espaciamiento), malla electrosoldada y shotcrete grueso (10 a 15 cm). Altamente recomendable evaluar el uso de cerchas metálicas cada 1.5 m."
+            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
+
+            st.markdown(f"""
+            <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI Identificado</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
+            <div class='metric-box'><p class='metric-label'>Clasificación RMR Unificada</p><p class='metric-value' style='color: {color_hex};'>{rmr_final}</p><p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p></div>
+            <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'><p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p><p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p></div>
+            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # ====================================================================
+    elif pestaña == "Visor Topográfico":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y PLANOS 🗺️</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        
+        if st.session_state.archivo_activo == "Base de datos general (Simulación)":
+            st.info("ℹ️ Mostrando mapa base de simulación (Área referencial - Ate).")
+            mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles="CartoDB dark_matter")
+            st_folium(mapa_mina, width="100%", height=500)
+        else:
+            st.success(f"🗺️ Procesando base de datos: **{st.session_state.archivo_activo}**")
+            with st.spinner("Buscando coordenadas planimétricas..."):
+                try:
+                    archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo), None)
+                    if not archivo_encontrado:
+                        st.error("⚠️ Archivo no encontrado en la memoria de Drive.")
+                    else:
+                        csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
+                        df_mapa = pd.read_csv(StringIO(csv_content))
+                        with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
+                        
+                        col_lat = next((c for c in df_mapa.columns if 'LAT' in str(c).upper()), None)
+                        col_lon = next((c for c in df_mapa.columns if 'LON' in str(c).upper()), None)
+                        col_norte = next((c for c in df_mapa.columns if str(c).upper() in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
+                        col_este = next((c for c in df_mapa.columns if str(c).upper() in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
+                        
+                        if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
+                        elif col_norte is not None and col_este is not None:
+                            st.info(f"🔄 Coordenadas UTM detectadas. Convirtiendo a WGS84...")
+                            df_clean = df_mapa.dropna(subset=[col_norte, col_este])
+                            if df_clean.empty: st.warning("⚠️ Las columnas UTM están vacías.")
+                            else:
+                                transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
+                                lon_centro, lat_centro = transformer.transform(float(df_clean.iloc[0][col_este]), float(df_clean.iloc[0][col_norte]))
+                                mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles="CartoDB dark_matter")
+                                for idx, row in df_clean.iterrows():
+                                    try:
+                                        lon_val, lat_val = transformer.transform(float(row[col_este]), float(row[col_norte]))
+                                        folium.Marker([lat_val, lon_val], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
+                                    except: pass
+                                st_folium(mapa_dinamico, width="100%", height=500)
+                        elif col_lat is not None and col_lon is not None:
+                            df_clean = df_mapa.dropna(subset=[col_lat, col_lon])
+                            if df_clean.empty: st.warning("⚠️ Hay coordenadas vacías.")
+                            else:
+                                mapa_dinamico = folium.Map(location=[float(df_clean.iloc[0][col_lat]), float(df_clean.iloc[0][col_lon])], zoom_start=14, tiles="CartoDB dark_matter")
+                                for idx, row in df_clean.iterrows(): folium.Marker([float(row[col_lat]), float(row[col_lon])], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                                st_folium(mapa_dinamico, width="100%", height=500)
+                        else: st.warning("🗺️ El archivo no contiene coordenadas topográficas (Lat/Lon o UTM Norte/Este).")
+                except Exception as e: st.error(f"Error procesando el mapa topográfico.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CON CONVERTIDOR NUMÉRICO NATIVO)
+    # ====================================================================
+    elif pestaña == "Visualizador 3D Sondajes":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        
+        csv_files = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.csv', '.txt'))]
+        
+        if len(csv_files) < 3:
+            st.warning("⚠️ Necesitas tener al menos 3 archivos CSV en tu Google Drive para modelar sondajes (Collar, Survey e Intervalos).")
+        else:
+            st.markdown("<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 10px;'>📌 Mapeo de Base de Datos (Selecciona los archivos del proyecto)</p>", unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                idx_c = next((i for i, f in enumerate(csv_files) if 'collar' in f.lower()), 0)
+                sel_collar = st.selectbox("Archivo COLLAR (X, Y, Z)", csv_files, index=idx_c)
+            with col2:
+                idx_s = next((i for i, f in enumerate(csv_files) if 'survey' in f.lower()), 0)
+                sel_survey = st.selectbox("Archivo SURVEY (Azimuth, Dip)", csv_files, index=idx_s)
+            with col3:
+                idx_a = next((i for i, f in enumerate(csv_files) if 'assay' in f.lower() or 'intervalo' in f.lower()), 0)
+                sel_assay = st.selectbox("Archivo ASSAY (Leyes)", csv_files, index=idx_a)
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if sel_collar and sel_survey and sel_assay:
+                with st.spinner(f"Procesando modelo 3D en tiempo real..."):
+                    try:
+                        id_collar = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_collar)
+                        id_survey = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_survey)
+                        id_assay = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == sel_assay)
+                        
+                        c_csv = drive_service.files().get_media(fileId=id_collar).execute().decode('utf-8')
+                        s_csv = drive_service.files().get_media(fileId=id_survey).execute().decode('utf-8')
+                        a_csv = drive_service.files().get_media(fileId=id_assay).execute().decode('utf-8')
+                        
+                        df_collar = pd.read_csv(StringIO(c_csv), sep=None, engine='python')
+                        df_survey = pd.read_csv(StringIO(s_csv), sep=None, engine='python')
+                        df_assay = pd.read_csv(StringIO(a_csv), sep=None, engine='python')
+                        
+                        df_collar.columns = df_collar.columns.str.strip().str.replace('\ufeff', '').str.replace('"', '')
+                        df_survey.columns = df_survey.columns.str.strip().str.replace('\ufeff', '').str.replace('"', '')
+                        df_assay.columns = df_assay.columns.str.strip().str.replace('\ufeff', '').str.replace('"', '')
+                        
+                        def buscar_col_exacta(df, palabras_clave):
+                            for col in df.columns:
+                                if str(col).upper() in [p.upper() for p in palabras_clave]: return col
+                            for col in df.columns:
+                                for p in palabras_clave:
+                                    if p.upper() in str(col).upper(): return col
+                            return df.columns[0]
+                            
+                        id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
+                        
+                        c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
+                        c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
+                        c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
+                        
+                        s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
+                        s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
+                        s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
+                        
+                        a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
+                        a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
+                        col_ley = buscar_col_exacta(df_assay, ['AU_GPT', 'CU_PCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
+                        
+                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
+                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
+                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
+                        
+                        # --- EL PURIFICADOR NUMÉRICO NATIVO ---
+                        # Esta función ignora a Pandas y usa Python puro para evadir errores de servidor
+                        def force_numeric(val):
+                            try:
+                                return float(str(val).replace(',', '.').strip())
+                            except:
+                                return 0.0
+                                
+                        df_collar[c_x] = df_collar[c_x].apply(force_numeric)
+                        df_collar[c_y] = df_collar[c_y].apply(force_numeric)
+                        df_collar[c_z] = df_collar[c_z].apply(force_numeric)
+                        
+                        df_survey[s_at] = df_survey[s_at].apply(force_numeric)
+                        df_survey[s_az] = df_survey[s_az].apply(force_numeric)
+                        df_survey[s_dip] = df_survey[s_dip].apply(force_numeric)
+                        
+                        df_assay[a_from] = df_assay[a_from].apply(force_numeric)
+                        df_assay[a_to] = df_assay[a_to].apply(force_numeric)
+                        df_assay[col_ley] = df_assay[col_ley].apply(force_numeric)
+                        
+                        resultados = []
+                        
+                        for bhid in df_assay[id_a].unique():
+                            c_data = df_collar[df_collar[id_c] == bhid]
+                            if c_data.empty: continue
+                            
+                            x0, y0, z0 = c_data.iloc[0][c_x], c_data.iloc[0][c_y], c_data.iloc[0][c_z]
+                            
+                            s_data = df_survey[df_survey[id_s] == bhid].sort_values(s_at)
+                            a_data = df_assay[df_assay[id_a] == bhid].sort_values(a_from)
+                            
+                            for _, row in a_data.iterrows():
+                                mid_depth = (row[a_from] + row[a_to]) / 2
+                                s_valido = s_data[s_data[s_at] <= mid_depth]
+                                s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
+                                    
+                                dip_rad = np.radians(s_row[s_dip])
+                                az_rad = np.radians(s_row[s_az])
+                                
+                                dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
+                                dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
+                                dz = mid_depth * np.sin(dip_rad)
+                                
+                                resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
+                                
+                        df_3d = pd.DataFrame(resultados)
+                        
+                        if df_3d.empty:
+                            st.error("❌ Los archivos se leyeron perfectamente, pero los nombres de los taladros (BHID) no coinciden entre sí.")
+                        else:
+                            fig_3d = go.Figure()
+                            cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
+                            
+                            for hole in df_3d["BHID"].unique():
+                                df_hole = df_3d[df_3d["BHID"] == hole]
+                                fig_3d.add_trace(go.Scatter3d(
+                                    x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
+                                    mode='lines+markers', 
+                                    marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                    line=dict(width=2, color='rgba(255,255,255,0.3)'), 
+                                    name=str(hole)
+                                ))
+                                
+                            fig_3d.update_layout(
+                                margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
+                                scene=dict(
+                                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
+                                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
+                                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
+                                    bgcolor="rgba(0,0,0,0)"
+                                ), 
+                                legend=dict(font=dict(color="white"))
+                            )
+                            st.plotly_chart(fig_3d, use_container_width=True)
+                            st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales.")
+                            
+                    except Exception as e: 
+                        st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
+                        
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 5: BASE DE DATOS
+    # ====================================================================
+    elif pestaña == "Base de Datos":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
+        col_busqueda, col_filtro = st.columns([3, 1])
+        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
+        with col_filtro: tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        archivos_mostrar = st.session_state.get("archivos_nube", [])
+        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
+        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
+        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
+        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
+            
+        if len(archivos_mostrar) == 0: st.warning("No se encontraron documentos en Drive.")
+        else:
+            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
+            columnas = st.columns(3)
+            for i, arch in enumerate(archivos_mostrar):
+                icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
+                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID DRIVE: {id_corto}...</p></div></div>"
+                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
