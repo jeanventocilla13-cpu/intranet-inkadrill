@@ -18,7 +18,7 @@ from PIL import Image
 from pyproj import Transformer
 import base64
 import requests
-import re # <-- Importante para limpieza extrema
+import re
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
@@ -362,7 +362,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (PURIFICACIÓN TOTAL)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (SINTAXIS PLOTLY ACTUALIZADA)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -403,8 +403,6 @@ if conexion_exitosa:
                             df_survey = pd.read_csv(StringIO(s_csv), sep=None, engine='python')
                             df_assay = pd.read_csv(StringIO(a_csv), sep=None, engine='python')
                             
-                            # --- LIMPIEZA EXTREMA DE ENCABEZADOS Y DATOS ---
-                            # Eliminar espacios en blanco, comillas, caracteres invisibles (BOM) y signos raros
                             df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
                             df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
                             df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
@@ -493,7 +491,10 @@ if conexion_exitosa:
                                     fig_3d.add_trace(go.Scatter3d(
                                         x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], 
                                         mode='lines+markers', 
-                                        marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', colorbar=dict(title=f"Ley Mineral", tickfont=dict(color='white'), titlefont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                        # --- SINTAXIS PLOTLY ACTUALIZADA (title=dict(...)) ---
+                                        marker=dict(size=4, color=df_hole["LEY"], colorscale='Viridis', 
+                                                    colorbar=dict(title=dict(text=f"Ley Mineral", font=dict(color='white')), tickfont=dict(color='white')), 
+                                                    cmin=0, cmax=cmax_val), 
                                         line=dict(width=2, color='rgba(255,255,255,0.3)'), 
                                         name=str(hole)
                                     ))
