@@ -25,7 +25,7 @@ import math
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Diseño de Voladura" # Cambiado para que lo veas al entrar
+    st.session_state.pestaña_activa = "Ventilación Minera"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -151,8 +151,15 @@ with st.sidebar:
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
     
-    # ¡AQUÍ AGREGAMOS LA NUEVA PESTAÑA A LA BARRA LATERAL!
-    opciones_nav = {"💬": "Chat Asistente Operativo", "🪨": "Cálculos Geomecánicos", "🗺️": "Visor Topográfico", "🛢️": "Visualizador 3D Sondajes", "🧨": "Diseño de Voladura", "🗄️": "Base de Datos"}
+    opciones_nav = {
+        "💬": "Chat Asistente Operativo", 
+        "🪨": "Cálculos Geomecánicos", 
+        "🗺️": "Visor Topográfico", 
+        "🛢️": "Visualizador 3D Sondajes", 
+        "🧨": "Diseño de Voladura", 
+        "⛑️": "Ventilación Minera", # Nueva Opción
+        "🗄️": "Base de Datos"
+    }
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
     indice_nav_activo = 0
@@ -330,22 +337,16 @@ if conexion_exitosa:
                     else:
                         csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
                         df_mapa = pd.read_csv(StringIO(csv_content))
+                        with st.expander("Ver tabla de datos", expanded=False): st.dataframe(df_mapa, use_container_width=True)
                         
-                        def detectar_col(df, keywords):
-                            for col in df.columns:
-                                if str(col).upper() in keywords: return col
-                            for col in df.columns:
-                                for kw in keywords:
-                                    if kw in str(col).upper(): return col
-                            return None
-                            
-                        col_lat = detectar_col(df_mapa, ['LAT', 'LATITUD'])
-                        col_lon = detectar_col(df_mapa, ['LON', 'LNG', 'LONGITUD'])
-                        col_norte = detectar_col(df_mapa, ['NORTE', 'NORTH', 'Y_UTM'])
-                        col_este = detectar_col(df_mapa, ['ESTE', 'EAST', 'X_UTM'])
+                        col_lat = next((c for c in df_mapa.columns if 'LAT' in str(c).upper()), None)
+                        col_lon = next((c for c in df_mapa.columns if 'LON' in str(c).upper()), None)
+                        col_norte = next((c for c in df_mapa.columns if str(c).upper() in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
+                        col_este = next((c for c in df_mapa.columns if str(c).upper() in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
                         
                         if df_mapa.empty: st.warning("⚠️ El archivo está vacío.")
                         elif col_norte is not None and col_este is not None:
+                            st.info(f"🔄 Coordenadas UTM detectadas. Convirtiendo a WGS84...")
                             df_clean = df_mapa.dropna(subset=[col_norte, col_este])
                             if df_clean.empty: st.warning("⚠️ Las columnas UTM están vacías.")
                             else:
@@ -370,7 +371,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES 
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -547,37 +548,31 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 5: DISEÑO DE VOLADURA (¡LA NUEVA PESTAÑA!)
+    # PESTAÑA 5: DISEÑO DE VOLADURA
     # ====================================================================
     elif pestaña == "Diseño de Voladura":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>DISEÑO DE MALLA DE PERFORACIÓN Y VOLADURA 🧨</h2>", unsafe_allow_html=True)
-        
         col_parametros, col_visor = st.columns([1.2, 2])
         
         with col_parametros:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Plantilla de Perforación</div>", unsafe_allow_html=True)
-            
             tipo_malla = st.selectbox("Seleccionar Plantilla Geometría", ["Malla Cuadrada (Tajo Abierto)", "Malla Tresbolillo (Tajo Abierto)", "Frente de Túnel (Galería 3x3m)"])
             
             if "Tajo" in tipo_malla:
                 col_b, col_s = st.columns(2)
                 burden = col_b.number_input("Burden (m)", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
                 espaciamiento = col_s.number_input("Espaciamiento (m)", min_value=1.0, max_value=10.0, value=3.5, step=0.5)
-                
                 col_l, col_d = st.columns(2)
                 profundidad = col_l.number_input("Longitud Taladro (m)", min_value=1.0, max_value=20.0, value=10.0, step=1.0)
                 diametro_mm = col_d.number_input("Diámetro (mm)", min_value=45.0, max_value=311.0, value=165.0, step=1.0)
-                
                 filas = st.slider("Número de Filas", 2, 10, 4)
                 columnas = st.slider("Taladros por Fila", 2, 20, 8)
-                tacos = 0.0 # No aplica directamente a la forma en galería simple
-                
-            else: # Túnel
+            else:
                 st.info("ℹ️ Parámetros estandarizados para una sección de galería de 3x3 metros.")
                 profundidad = st.number_input("Longitud de Avance (m)", min_value=1.0, max_value=5.0, value=3.0, step=0.5)
                 diametro_mm = st.number_input("Diámetro de Taladro (mm)", min_value=32.0, max_value=64.0, value=45.0, step=1.0)
-                burden, espaciamiento, filas, columnas = 1, 1, 1, 1 # Valores fijos para cálculo interno
+                burden, espaciamiento, filas, columnas = 1, 1, 1, 1
                 
             st.markdown("<br><div class='titulo-seccion'>Parámetros de Voladura</div>", unsafe_allow_html=True)
             densidad_roca = st.number_input("Densidad de la Roca (ton/m³)", min_value=1.0, max_value=5.0, value=2.7, step=0.1)
@@ -586,128 +581,244 @@ if conexion_exitosa:
             
         with col_visor:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            
-            # --- MOTOR GENERADOR DE MALLAS ---
             taladros = []
             
             if tipo_malla == "Malla Cuadrada (Tajo Abierto)":
                 for f in range(filas):
-                    for c in range(columnas):
-                        x = c * espaciamiento
-                        y = f * burden
-                        taladros.append({"ID": f"T-{f}-{c}", "X": x, "Y": y, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
-                        
+                    for c in range(columnas): taladros.append({"ID": f"T-{f}-{c}", "X": c * espaciamiento, "Y": f * burden, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
             elif tipo_malla == "Malla Tresbolillo (Tajo Abierto)":
                 for f in range(filas):
                     offset = (espaciamiento / 2) if f % 2 != 0 else 0
-                    for c in range(columnas):
-                        x = (c * espaciamiento) + offset
-                        y = f * burden
-                        taladros.append({"ID": f"T-{f}-{c}", "X": x, "Y": y, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
-                        
+                    for c in range(columnas): taladros.append({"ID": f"T-{f}-{c}", "X": (c * espaciamiento) + offset, "Y": f * burden, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
             elif tipo_malla == "Frente de Túnel (Galería 3x3m)":
-                # Arranque (Cut) - Centro
                 taladros.append({"ID": "A1", "X": 1.5, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 taladros.append({"ID": "A2", "X": 1.3, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 taladros.append({"ID": "A3", "X": 1.7, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 taladros.append({"ID": "A4", "X": 1.5, "Y": 1.3, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 taladros.append({"ID": "A5", "X": 1.5, "Y": 1.7, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                
-                # Ayudas (Relievers)
                 for x in [1.0, 2.0]:
-                    for y in [1.0, 2.0]:
-                        taladros.append({"ID": f"Ay-{x}-{y}", "X": x, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Ayudas"})
-                        
-                # Cuadradores y Arrastre
-                for x in [0.2, 0.8, 1.5, 2.2, 2.8]:
-                    taladros.append({"ID": f"Ar-{x}", "X": x, "Y": 0.2, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arrastre"})
+                    for y in [1.0, 2.0]: taladros.append({"ID": f"Ay-{x}-{y}", "X": x, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Ayudas"})
+                for x in [0.2, 0.8, 1.5, 2.2, 2.8]: taladros.append({"ID": f"Ar-{x}", "X": x, "Y": 0.2, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arrastre"})
                 for y in [0.8, 1.5, 2.2]:
                     taladros.append({"ID": f"C1-{y}", "X": 0.2, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Cuadradores"})
                     taladros.append({"ID": f"C2-{y}", "X": 2.8, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Cuadradores"})
-                
-                # Corona (Roof)
-                for x in [0.2, 0.8, 1.5, 2.2, 2.8]:
-                    taladros.append({"ID": f"Co-{x}", "X": x, "Y": 2.8, "Z_start": 0, "Z_end": profundidad, "Tipo": "Corona"})
+                for x in [0.2, 0.8, 1.5, 2.2, 2.8]: taladros.append({"ID": f"Co-{x}", "X": x, "Y": 2.8, "Z_start": 0, "Z_end": profundidad, "Tipo": "Corona"})
 
             df_malla = pd.DataFrame(taladros)
-            
-            # --- RENDERIZADO 3D DE LA MALLA ---
             fig_malla = go.Figure()
-            
             colores = {"Producción": "#f44336", "Arranque": "#ffeb3b", "Ayudas": "#ff9800", "Cuadradores": "#2196f3", "Arrastre": "#4caf50", "Corona": "#9c27b0"}
             
             for _, row in df_malla.iterrows():
-                # Dibujamos las líneas de los taladros
                 if "Tajo" in tipo_malla:
-                    fig_malla.add_trace(go.Scatter3d(
-                        x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]],
-                        mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), name=row["ID"], showlegend=False
-                    ))
-                    # Puntos en superficie
-                    fig_malla.add_trace(go.Scatter3d(
-                        x=[row["X"]], y=[row["Y"]], z=[row["Z_start"]],
-                        mode='markers', marker=dict(size=5, color='white'), showlegend=False
-                    ))
-                else: # Túnel (rotamos los ejes para que mire hacia adelante)
-                    fig_malla.add_trace(go.Scatter3d(
-                        x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]],
-                        mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), name=row["ID"], showlegend=False
-                    ))
-                    # Puntos en el frente
-                    fig_malla.add_trace(go.Scatter3d(
-                        x=[row["X"]], y=[row["Z_start"]], z=[row["Y"]],
-                        mode='markers', marker=dict(size=4, color='white'), showlegend=False
-                    ))
+                    fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
+                    fig_malla.add_trace(go.Scatter3d(x=[row["X"]], y=[row["Y"]], z=[row["Z_start"]], mode='markers', marker=dict(size=5, color='white'), showlegend=False))
+                else:
+                    fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
+                    fig_malla.add_trace(go.Scatter3d(x=[row["X"]], y=[row["Z_start"]], z=[row["Y"]], mode='markers', marker=dict(size=4, color='white'), showlegend=False))
 
-            fig_malla.update_layout(
-                margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", 
-                scene=dict(
-                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), 
-                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), 
-                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), 
-                    bgcolor="rgba(0,0,0,0)", aspectmode='data'
-                ), 
-                showlegend=False
-            )
+            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
             st.plotly_chart(fig_malla, use_container_width=True)
             
-            # --- CÁLCULOS MATEMÁTICOS DE VOLADURA ---
             st.markdown("<div class='titulo-seccion'>Reporte de Carga y Factor de Potencia</div>", unsafe_allow_html=True)
-            
             num_taladros = len(df_malla)
             
             if "Tajo" in tipo_malla:
                 volumen_total = (burden * espaciamiento * profundidad) * num_taladros
-                tonelaje_total = volumen_total * densidad_roca
-                anfo_total = tonelaje_total * factor_potencia
-                anfo_por_taladro = anfo_total / num_taladros
             else:
-                area_frente = 3 * 3 # 9 m2
-                volumen_total = area_frente * profundidad
-                tonelaje_total = volumen_total * densidad_roca
-                anfo_total = tonelaje_total * factor_potencia
-                anfo_por_taladro = anfo_total / num_taladros
-            
-            # Densidad de carga (Factor de carga lineal) aproximada
+                volumen_total = 9 * profundidad
+                
+            tonelaje_total = volumen_total * densidad_roca
+            anfo_total = tonelaje_total * factor_potencia
+            anfo_por_taladro = anfo_total / num_taladros
             radio_m = (diametro_mm / 1000) / 2
             volumen_taladro = math.pi * (radio_m ** 2) * profundidad
-            # Densidad del ANFO es aprox 0.8 g/cm3 = 800 kg/m3
             kg_max_por_taladro = volumen_taladro * 800
             
             col_r1, col_r2, col_r3 = st.columns(3)
             col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas a Romper</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p><p style='color:#aaa; font-size:12px; margin:0;'>Volumen: {volumen_total:,.1f} m³</p></div>", unsafe_allow_html=True)
-            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Requerido</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p><p style='color:#aaa; font-size:12px; margin:0;'>{num_taladros} Taladros en la Malla</p></div>", unsafe_allow_html=True)
-            
-            # Verificación de sobrecarga
+            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Requerido</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p><p style='color:#aaa; font-size:12px; margin:0;'>{num_taladros} Taladros</p></div>", unsafe_allow_html=True)
             color_carga = "#ffeb3b" if anfo_por_taladro <= kg_max_por_taladro else "#f44336"
-            alerta_carga = "Carga Óptima" if anfo_por_taladro <= kg_max_por_taladro else "⚠️ Sobrecarga (Diámetro insuficiente)"
-            
+            alerta_carga = "Carga Óptima" if anfo_por_taladro <= kg_max_por_taladro else "⚠️ Sobrecarga"
             col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO por Taladro</p><p class='metric-value' style='color: {color_carga}; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p><p style='color:{color_carga}; font-size:12px; margin:0;'>{alerta_carga}</p></div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 6: VENTILACIÓN MINERA (¡NUEVO SISTEMA INTEGRADO!)
+    # ====================================================================
+    elif pestaña == "Ventilación Minera":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SISTEMA OPERATIVO DE VENTILACIÓN MINERA ⛑️</h2>", unsafe_allow_html=True)
+        
+        col_inputs, col_3d_visor = st.columns([1.3, 2])
+        
+        with col_inputs:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>1. Parámetros de Caudal Requerido (Q)</div>", unsafe_allow_html=True)
+            
+            # Sub-sección: Personal
+            col_p1, col_p2 = st.columns(2)
+            n_personal = col_p1.number_input("Número de Personal (Turno Crítico)", min_value=1, value=45)
+            q_personal = col_p2.slider("Norma de Aire por Persona (m³/min)", 3.0, 6.0, 4.0, step=0.5)
+            
+            # Sub-sección: Equipos Diésel
+            col_d1, col_d2 = st.columns(2)
+            hp_diesel = col_d1.number_input("Potencia Diésel Efectiva Total (HP)", min_value=0, value=280)
+            q_diesel = col_d2.slider("Factor por HP (m³/min per HP)", 2.8, 4.0, 3.0, step=0.1)
+            dispo_diesel = st.slider("Factor de Disponibilidad Mecánica", 0.1, 1.0, 0.85, step=0.05)
+            
+            # Sub-sección: Gases
+            st.markdown("<p style='font-size:13px; color:#aaa; font-weight:600; margin-bottom:2px;'>Dilución de Gases de Voladura / Desmonte</p>", unsafe_allow_html=True)
+            col_g1, col_g2, col_g3 = st.columns(3)
+            v_gas = col_g1.number_input("Volumen Gas (m³/min)", min_value=0.0, value=0.12, step=0.01)
+            c_lim = col_g2.number_input("Límite L.M.P (ppm)", min_value=1, value=25) / 1000000 # Convierte a decimal decimal
+            c_o = col_g3.number_input("Gas en Ingreso (ppm)", min_value=0, value=0) / 1000000
+            
+            st.markdown("<br><div class='titulo-seccion'>2. Geometría del Circuito y Fricción (Atkinson)</div>", unsafe_allow_html=True)
+            col_g1, col_g2 = st.columns(2)
+            longitud_ducto = col_g1.number_input("Longitud de Labor / Galería (m)", min_value=1, value=350)
+            k_atkinson = col_g2.number_input("Factor de Fricción k (kg/m³)", min_value=0.0001, max_value=0.05, value=0.0120, format="%.4f")
+            
+            col_dim1, col_dim2 = st.columns(2)
+            ancho_gal = col_dim1.number_input("Ancho Galería (m)", min_value=1.0, value=3.0, step=0.5)
+            alto_gal = col_dim2.number_input("Alto Galería (m)", min_value=1.0, value=3.0, step=0.5)
+            
+            st.markdown("<br><div class='titulo-seccion'>3. Parámetro Mecánico</div>", unsafe_allow_html=True)
+            eficiencia_vent = st.slider("Eficiencia del Ventilador (η)", 0.50, 0.95, 0.75, step=0.05)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with col_3d_visor:
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            
+            # --- MOTOR DE CÁLCULO DE CAUDAL TOTAL ---
+            Q_p = n_personal * q_personal
+            Q_d = (hp_diesel * q_diesel) * dispo_diesel
+            
+            denominador_gases = c_lim - c_o
+            if denominador_gases <= 0: denominador_gases = 0.00001
+            Q_g = v_gas / denominador_gases
+            
+            # Caudal crítico en m3/min
+            Q_total_min = max(Q_p, Q_d, Q_g)
+            # Conversión crítica a m3/s para usar Atkinson
+            Q_m3s = Q_total_min / 60.0
+            
+            # Perímetro y Área de la galería
+            area_transversal = ancho_gal * alto_gal
+            perimetro_transversal = 2 * (ancho_gal + alto_gal)
+            
+            # Resistencia Estructural (R)
+            R_atkinson = (k_atkinson * perimetro_transversal * longitud_ducto) / (area_transversal ** 3)
+            
+            # Caída de Presión (Delta P)
+            delta_P = R_atkinson * (Q_m3s ** 2)
+            
+            # Potencia Mecánica (kW)
+            potencia_kW = (delta_P * Q_m3s) / (1000.0 * eficiencia_vent)
+            
+            # --- MODELAMIENTO AERODINÁMICO 3D ---
+            # Construcción de una galería minera tridimensional con flujos vectoriales (Cones)
+            fig_vent = go.Figure()
+            
+            # Generar el trayecto de la galería principal
+            y_line = np.linspace(0, longitud_ducto, 30)
+            x_line = np.zeros_like(y_line)
+            z_line = np.full_like(y_line, alto_gal / 2.0)
+            
+            # Añadir vectores de dirección y velocidad del aire usando Cones de Plotly
+            # Escalamos el tamaño del vector por la velocidad real (v = Q / A)
+            velocidad_aire = Q_m3s / area_transversal
+            
+            y_cones = np.linspace(20, longitud_ducto - 20, 12)
+            x_cones = np.zeros_like(y_cones)
+            z_cones = np.full_like(y_cones, alto_gal / 2.0)
+            
+            # Direcciones vectoriales (U, V, W) -> Fluye a lo largo del eje Y (Avance de la mina)
+            u = np.zeros_like(y_cones)
+            v = np.ones_like(y_cones) * velocidad_aire
+            w = np.zeros_like(y_cones)
+            
+            fig_vent.add_trace(go.Cone(
+                x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w,
+                colorscale='Cividis', sizemode='scaled', sizeref=1.5,
+                colorbar=dict(title=dict(text="Velocidad (m/s)", font=dict(color='white')), tickfont=dict(color='white')),
+                name='Flujo de Aire'
+            ))
+            
+            # Dibujar las paredes virtuales de la galería de roca para darle profundidad
+            box_x = [-ancho_gal/2, ancho_gal/2, ancho_gal/2, -ancho_gal/2, -ancho_gal/2]
+            box_z = [0, 0, alto_gal, alto_gal, 0]
+            
+            for y_wall in [0, longitud_ducto / 2, longitud_ducto]:
+                fig_vent.add_trace(go.Scatter3d(
+                    x=box_x, y=[y_wall]*5, z=box_z, mode='lines',
+                    line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'
+                ))
+                
+            # Líneas del perimetro de avance de túnel
+            fig_vent.add_trace(go.Scatter3d(
+                x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
+            ))
+            fig_vent.add_trace(go.Scatter3d(
+                x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[0, 0], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
+            ))
+            fig_vent.add_trace(go.Scatter3d(
+                x=[-ancho_gal/2, -ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
+            ))
+            fig_vent.add_trace(go.Scatter3d(
+                x=[ancho_gal/2, ancho_gal/2], y=[0, longitud_ducto], z=[alto_gal, alto_gal], mode='lines', line=dict(color='rgba(139,195,74,0.4)', width=2), showlegend=False
+            ))
+            
+            fig_vent.update_layout(
+                margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)",
+                scene=dict(
+                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"),
+                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"),
+                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"),
+                    bgcolor="rgba(0,0,0,0)"
+                )
+            )
+            st.plotly_chart(fig_vent, use_container_width=True)
+            
+            # --- PANEL DE METRICAS DEL CIRCUITO ---
+            st.markdown("<div class='titulo-seccion'>Resultados del Balance de Ventilación Dinámica</div>", unsafe_allow_html=True)
+            
+            col_m1, col_m2, col_m3 = st.columns(3)
+            
+            # Card 1: Caudal Requerido Crítico
+            col_m1.markdown(f"""
+            <div class='metric-box'>
+                <p class='metric-label'>Caudal Crítico (Q_t)</p>
+                <p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p>
+                <p style='color:#aaa; font-size:11px; margin:0;'>Pers: {Q_p:,.0f} | Diésel: {Q_d:,.0f} | Gas: {Q_g:,.0f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Card 2: Caída de Presión Atkinson
+            col_m2.markdown(f"""
+            <div class='metric-box'>
+                <p class='metric-label'>Caída de Presión (ΔP)</p>
+                <p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p>
+                <p style='color:#aaa; font-size:11px; margin:0;'>Resistencia R: {R_atkinson:,.5f} kg/m⁷</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Card 3: Potencia del Ventilador
+            col_m3.markdown(f"""
+            <div class='metric-box'>
+                <p class='metric-label'>Potencia Mecánica</p>
+                <p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p>
+                <p style='color:#aaa; font-size:11px; margin:0;'>Velocidad del Aire: {velocidad_aire:,.2f} m/s</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Mensaje de validación de velocidad según normativa DS-024-2016-EM
+            if velocidad_aire < 0.3: st.warning("⚠️ Alerta Normativa: La velocidad del aire es menor a 0.3 m/s. Riesgo de acumulación de gases de escape.")
+            elif velocidad_aire > 6.0: st.error("⚠️ Alerta de Confort: La velocidad supera los 6.0 m/s. Fricción y ruido excesivo en las paredes del túnel.")
+            else: st.success("✅ Flujo de aire óptimo y reglamentario para labores subterráneas.")
             
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 6: BASE DE DATOS
+    # PESTAÑA 7: BASE DE DATOS
     # ====================================================================
     elif pestaña == "Base de Datos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
