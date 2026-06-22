@@ -362,7 +362,7 @@ if conexion_exitosa:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CON SUPERFICIE TOPOGRÁFICA)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (NUEVO DATUM TOPOGRÁFICO)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO 3D DE SONDAJES 🛢️</h2>", unsafe_allow_html=True)
@@ -486,7 +486,7 @@ if conexion_exitosa:
                                 fig_3d = go.Figure()
                                 cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                                 
-                                # 1. Renderizado de los Sondajes (Líneas)
+                                # 1. Renderizado de los Sondajes
                                 for hole in df_3d["BHID"].unique():
                                     df_hole = df_3d[df_3d["BHID"] == hole]
                                     fig_3d.add_trace(go.Scatter3d(
@@ -497,24 +497,28 @@ if conexion_exitosa:
                                         name=str(hole)
                                     ))
                                 
-                                # 2. --- NUEVA SUPERFICIE TOPOGRÁFICA ---
-                                try:
-                                    # Intento Principal: Malla real de terreno basada en los puntos del Collar
-                                    fig_3d.add_trace(go.Mesh3d(
-                                        x=df_collar[c_x], y=df_collar[c_y], z=df_collar[c_z],
-                                        opacity=0.35, color='#5D4037', delaunayaxis='z', name='Superficie Terreno'
-                                    ))
-                                except:
-                                    # Plan de Contingencia: Plano referencial de cristal plano si la triangulación falla
-                                    x_min, x_max = float(df_collar[c_x].min()), float(df_collar[c_x].max())
-                                    y_min, y_max = float(df_collar[c_y].min()), float(df_collar[c_y].max())
-                                    z_mean = float(df_collar[c_z].mean())
-                                    fig_3d.add_trace(go.Surface(
-                                        x=[[x_min, x_max], [x_min, x_max]],
-                                        y=[[y_min, y_min], [y_max, y_max]],
-                                        z=[[z_mean, z_mean], [z_mean, z_mean]],
-                                        opacity=0.3, colorscale=[[0, '#5D4037'], [1, '#5D4037']], showscale=False, name='Nivel 0 (Referencia)'
-                                    ))
+                                # 2. NUEVA SUPERFICIE TOPOGRÁFICA (PLANO REFERENCIAL ELEGANTE)
+                                x_min, x_max = float(df_collar[c_x].min()), float(df_collar[c_x].max())
+                                y_min, y_max = float(df_collar[c_y].min()), float(df_collar[c_y].max())
+                                z_max = float(df_collar[c_z].max()) # Usamos la cota más alta
+                                
+                                # Ampliamos el plano un poco más allá de los sondajes
+                                margen_x = (x_max - x_min) * 0.15 if x_max != x_min else 100
+                                margen_y = (y_max - y_min) * 0.15 if y_max != y_min else 100
+                                
+                                x_grid = np.linspace(x_min - margen_x, x_max + margen_x, 10)
+                                y_grid = np.linspace(y_min - margen_y, y_max + margen_y, 10)
+                                x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
+                                z_mesh = np.full_like(x_mesh, z_max)
+                                
+                                fig_3d.add_trace(go.Surface(
+                                    x=x_mesh, y=y_mesh, z=z_mesh,
+                                    opacity=0.3, # Translúcido como un cristal
+                                    colorscale=[[0, '#2e7d32'], [1, '#1b5e20']], # Tonos verdes ejecutivos
+                                    showscale=False,
+                                    name='Nivel Cero (Superficie)',
+                                    hoverinfo='skip'
+                                ))
 
                                 fig_3d.update_layout(
                                     margin=dict(r=10, l=10, b=10, t=10), height=700, paper_bgcolor="rgba(0,0,0,0)", 
@@ -522,12 +526,13 @@ if conexion_exitosa:
                                         xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
                                         yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
                                         zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
-                                        bgcolor="rgba(0,0,0,0)"
+                                        bgcolor="rgba(0,0,0,0)",
+                                        aspectmode='data' # Mantiene la proporción real del terreno
                                     ), 
                                     legend=dict(font=dict(color="white"))
                                 )
                                 st.plotly_chart(fig_3d, use_container_width=True)
-                                st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales y Superficie Referencial.")
+                                st.success(f"✅ Modelo 3D generado automáticamente con **{len(df_3d['BHID'].unique())}** sondajes reales y Superficie Referencial plana.")
                                 
                         except Exception as e: 
                             st.error(f"⚠️ Error matemático crítico al generar el modelo 3D: {e}")
