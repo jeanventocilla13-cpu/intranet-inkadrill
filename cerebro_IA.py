@@ -25,7 +25,7 @@ import math
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visualizador 3D Sondajes"
+    st.session_state.pestaña_activa = "Visor Topográfico"
 if "archivo_activo" not in st.session_state:
     st.session_state.archivo_activo = "Base de datos general (Simulación)"
 
@@ -203,7 +203,7 @@ if conexion_exitosa:
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
         st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
-        if st.session_state.archivo_activo != "Base de datos general (Simulación)": st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose en el archivo: `{st.session_state.archivo_activo}`")
+        if st.session_state.archivo_activo != "Base de datos general (Simulación)": st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose on el archivo: `{st.session_state.archivo_activo}`")
             
         with st.popover("➕", use_container_width=False):
             st.markdown("#### 🛠️ Herramientas")
@@ -306,101 +306,133 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (100% AUTÓNOMO E INDEPENDIENTE)
     # ====================================================================
     elif pestaña == "Visor Topográfico":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y MAPAS GEOESPACIALES 🗺️</h2>", unsafe_allow_html=True)
-        col_inputs, col_visor = st.columns([1.2, 2])
-        total_puntos_mapeados, sistema_coords_detectado, centroide_elevacion_str, df_mapa_global = 0, "Ninguno", "0.0 m", None
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>VISOR TOPOGRÁFICO 3D AUTÓNOMO 🗺️</h2>", unsafe_allow_html=True)
         
-        with col_inputs:
+        col_inputs_topo, col_render_topo = st.columns([1.2, 2])
+        
+        with col_inputs_topo:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            st.markdown("<div class='titulo-seccion'>Control Documental de Obra</div>", unsafe_allow_html=True)
-            if st.session_state.archivo_activo == "Base de datos general (Simulación)":
-                st.info("ℹ️ Ejecutando en Modo de Simulación de Superficie.")
-                sistema_coords_detectado = "Geográficas (WGS84)"
-                total_puntos_mapeados = 1
-                centroide_elevacion_str = "-12.025, -76.908"
-            else: st.success(f"🌐 Conectado a Drive: **{st.session_state.archivo_activo}**")
-            capa_base = st.selectbox("Seleccionar Capa Base de Terreno", ["CartoDB dark_matter", "OpenStreetMap", "CartoDB positron"])
+            st.markdown("<div class='titulo-seccion'>⚙️ Entrada de Coordenadas y Filtros</div>", unsafe_allow_html=True)
+            
+            # Selector de paleta cromática interactiva
+            paleta_topo = st.selectbox("🎨 Escala Cromática de Elevación (Cotas)", ["Tierra (Marrón-Verde-Amarillo)", "Rojo-Verde-Azul Dinámico", "Viridis Geo", "Plasma de Altas Cotas"])
+            mapa_paletas = {
+                "Tierra (Marrón-Verde-Amarillo)": [[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']],
+                "Rojo-Verde-Azul Dinámico": [[0, 'blue'], [0.5, 'green'], [1, 'red']],
+                "Viridis Geo": "Viridis",
+                "Plasma de Altas Cotas": "Plasma"
+            }
+            
+            st.markdown("<p style='font-size: 13px; color: #aaa; margin-bottom: 5px;'>Copia y pega las estaciones o vértices del levantamiento en formato CSV:</p>", unsafe_allow_html=True)
+            
+            # Valores por defecto de una topografía real para evitar que abra vacío
+            default_topo_data = "ESTACION,ESTE_X,NORTE_Y,COTA_Z\nE-01,500000,8800000,4320\nE-02,500050,8800020,4315\nE-03,500100,8800010,4290\nE-04,500020,8800080,4340\nE-05,500080,8800090,4310\nE-06,500120,8800060,4285\nE-07,500160,8800120,4260\nE-08,500220,8800100,4245"
+            
+            txt_topo = st.text_area("📋 Datos Planimétricos (Formato: ID, X, Y, Z)", default_topo_data, height=250)
             st.markdown("</div>", unsafe_allow_html=True)
-
-        with col_visor:
+            
+        with col_render_topo:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            if st.session_state.archivo_activo == "Base de datos general (Simulación)":
-                mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles=capa_base)
-                st_folium(mapa_mina, width="100%", height=450)
-            else:
-                with st.spinner("Decodificando planimetría UTM/Geográfica..."):
+            
+            if txt_topo:
+                with st.spinner("Interpolando malla topográfica tridimensional..."):
                     try:
-                        archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo), None)
-                        if not archivo_encontrado: st.error("⚠️ Archivo no encontrado.")
-                        else:
-                            csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
-                            df_mapa_global = pd.read_csv(StringIO(csv_content))
-                            df_mapa_global.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_mapa_global.columns]
-                            col_lat = next((c for c in df_mapa_global.columns if 'LAT' in str(c)), None)
-                            col_lon = next((c for c in df_mapa_global.columns if 'LON' in str(c) or 'LNG' in str(c)), None)
-                            col_norte = next((c for c in df_mapa_global.columns if str(c) in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
-                            col_este = next((c for c in df_mapa_global.columns if str(c) in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
-                            col_z = next((c for c in df_mapa_global.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL']), None)
+                        df_topo = pd.read_csv(StringIO(txt_topo), sep=None, engine='python')
+                        df_topo.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_topo.columns]
+                        
+                        c_x = next((c for c in df_topo.columns if str(c) in ['X', 'ESTE', 'EAST', 'EASTING', 'ESTE_X']), df_topo.columns[1])
+                        c_y = next((c for c in df_topo.columns if str(c) in ['Y', 'NORTE', 'NORTH', 'NORTHING', 'NORTE_Y']), df_topo.columns[2])
+                        c_z = next((c for c in df_topo.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL', 'COTA_Z']), df_topo.columns[3])
+                        
+                        def force_num(val):
+                            try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
+                            except: return 0.0
+                                
+                        df_topo[c_x] = df_topo[c_x].apply(force_num)
+                        df_topo[c_y] = df_topo[c_y].apply(force_num)
+                        df_topo[c_z] = df_topo[c_z].apply(force_num)
+                        
+                        # --- MOTOR DE INTERPOLACIÓN TOPOGRÁFICA EXTENDIDA ---
+                        x_arr, y_arr, z_arr = df_topo[c_x].values, df_topo[c_y].values, df_topo[c_z].values
+                        
+                        fig_topo_3d = go.Figure()
+                        
+                        if len(x_arr) > 2:
+                            x_min, x_max = x_arr.min(), x_arr.max()
+                            y_min, y_max = y_arr.min(), y_arr.max()
                             
-                            if df_mapa_global.empty: st.warning("⚠️ Archivo vacío.")
-                            elif col_norte is not None and col_este is not None:
-                                sistema_coords_detectado = "UTM WGS84 Z-18S"
-                                df_clean = df_mapa_global.dropna(subset=[col_norte, col_este])
-                                total_puntos_mapeados = len(df_clean)
-                                transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
-                                lon_centro, lat_centro = transformer.transform(float(df_clean[col_este].mean()), float(df_clean[col_norte].mean()))
-                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_centro:,.4f}°"
-                                mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles=capa_base)
-                                for idx, row in df_clean.iterrows():
-                                    try:
-                                        l_v, la_v = transformer.transform(float(str(row[col_este]).replace(',','.')), float(str(row[col_norte]).replace(',','.')))
-                                        folium.Marker([la_v, l_v], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
-                                    except: pass
-                                st_folium(mapa_dinamico, width="100%", height=450)
-                            elif col_lat is not None and col_lon is not None:
-                                sistema_coords_detectado = "Geográficas WGS84"
-                                df_clean = df_mapa_global.dropna(subset=[col_lat, col_lon])
-                                total_puntos_mapeados = len(df_clean)
-                                lat_m, lon_m = df_clean[col_lat].apply(lambda x: float(str(x).replace(',','.'))).mean(), df_clean[col_lon].apply(lambda x: float(str(x).replace(',','.'))).mean()
-                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_m:,.4f}°"
-                                mapa_dinamico = folium.Map(location=[lat_m, lon_m], zoom_start=14, tiles=capa_base)
-                                for idx, row in df_clean.iterrows():
-                                    try: folium.Marker([float(str(row[col_lat]).replace(',','.')), float(str(row[col_lon]).replace(',','.'))], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
-                                    except: pass
-                                st_folium(mapa_dinamico, width="100%", height=450)
-                    except: st.error("Error crítico en el renderizado.")
-            st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor</div>", unsafe_allow_html=True)
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Puntos Totales</p><p class='metric-value' style='color: #4af4ff; font-size:32px;'>{total_puntos_mapeados}</p><p style='color:#aaa; font-size:12px; margin:0;'>Estaciones Levantadas</p></div>", unsafe_allow_html=True)
-            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Sistema de Referencia</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{sistema_coords_detectado}</p><p style='color:#aaa; font-size:12px; margin:0;'>Detección Digital</p></div>", unsafe_allow_html=True)
-            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota / Centroide</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{centroide_elevacion_str}</p><p style='color:#aaa; font-size:12px; margin:0;'>Datum del Plano</p></div>", unsafe_allow_html=True)
+                            # Margen perimetral expandido al 100% para cubrir los laterales de la caja
+                            m_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
+                            m_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
+                            
+                            g_x = np.linspace(x_min - m_x, x_max + m_x, 60)
+                            g_y = np.linspace(y_min - m_y, y_max + m_y, 60)
+                            XM, YM = np.meshgrid(g_x, g_y)
+                            XF, YF = XM.flatten(), YM.flatten()
+                            
+                            distancias = np.sqrt((x_arr[:, np.newaxis] - XF)**2 + (y_arr[:, np.newaxis] - YF)**2)
+                            distancias = np.where(distancias == 0, 1e-10, distancias)
+                            pesos = 1.0 / (distancias ** 2)
+                            ZF = np.sum(pesos * z_arr[:, np.newaxis], axis=0) / np.sum(pesos, axis=0)
+                            ZM = ZF.reshape(XM.shape)
+                            
+                            # Dibujar el manto superficial continuo
+                            fig_topo_3d.add_trace(go.Surface(
+                                x=XM, y=YM, z=ZM, opacity=0.75,
+                                colorscale=mapa_paletas[paleta_topo],
+                                colorbar=dict(title=dict(text="Cota (m)", font=dict(color='white')), tickfont=dict(color='white')),
+                                name='Superficie Terreno'
+                            ))
+                            
+                        # Dibujar las estaciones base como esferas flotantes
+                        fig_topo_3d.add_trace(go.Scatter3d(
+                            x=x_arr, y=y_arr, z=z_arr, mode='markers+text',
+                            text=df_topo.iloc[:, 0].astype(str),
+                            textposition="top center",
+                            marker=dict(size=6, color='white', symbol='diamond'),
+                            name='Vértices Estación',
+                            textfont=dict(color='white', size=10)
+                        ))
+                        
+                        fig_topo_3d.update_layout(
+                            margin=dict(r=10, l=10, b=10, t=10), height=480, paper_bgcolor="rgba(0,0,0,0)",
+                            scene=dict(
+                                xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"),
+                                yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"),
+                                zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Cota (Z)", color="white"),
+                                bgcolor="rgba(0,0,0,0)", aspectmode='data'
+                            ),
+                            legend=dict(font=dict(color="white"))
+                        )
+                        st.plotly_chart(fig_topo_3d, use_container_width=True)
+                        
+                        # Reporte estadístico fisiográfico de la labor en tarjetas de métricas
+                        st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor Mapeada</div>", unsafe_allow_html=True)
+                        col_tb1, col_md2, col_md3 = st.columns(3)
+                        col_tb1.markdown(f"<div class='metric-box'><p class='metric-label'>Estaciones Registradas</p><p class='metric-value' style='color:#4af4ff; font-size:32px;'>{len(df_topo)}</p></div>", unsafe_allow_html=True)
+                        col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Máxima Levantada</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{z_arr.max():,.1f} m</p></div>", unsafe_allow_html=True)
+                        col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Mínima Levantada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{z_arr.min():,.1f} m</p></div>", unsafe_allow_html=True)
+                        
+                    except Exception as e:
+                        st.error(f"⚠️ Error procesando la sintaxis del texto topográfico: {e}")
             st.markdown("</div>", unsafe_allow_html=True)
-        with col_inputs:
-            if df_mapa_global is not None:
-                with st.expander("🔎 Ver Base de Datos Estructural", expanded=False): st.dataframe(df_mapa_global, use_container_width=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (100% INDEPENDIENTE Y MANUAL)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
-        
         col_manual_inputs, col_3d_render = st.columns([1.3, 2])
-        
         with col_manual_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>⚙️ Configuración Visual e Inputs Manuales</div>", unsafe_allow_html=True)
-            
-            # NUEVO SELECTOR DE COLOR INTERACTIVO
             escala_color = st.selectbox("🎨 Escala Gráfica de Leyes (Gama Cromática)", ["Viridis (Azul-Verde-Amarillo)", "Plasma (Violeta-Rojo-Amarillo)", "Hot (Negro-Rojo-Amarillo-Blanco)"])
             escala_map = {"Viridis (Azul-Verde-Amarillo)": "Viridis", "Plasma (Violeta-Rojo-Amarillo)": "Plasma", "Hot (Negro-Rojo-Amarillo-Blanco)": "Hot"}
-            
             st.markdown("<p style='font-size: 13px; color: #aaa; margin-bottom: 5px;'>Copia y pega las tablas CSV directamente desde Excel o un bloc de notas:</p>", unsafe_allow_html=True)
             
-            # Datos por defecto (Mina de Oro de Jean) para que la app nunca abra vacía
             default_collar = "BHID,X,Y,Z,DEPTH\nDDH-001,100,100,250,120\nDDH-002,140,110,245,130\nDDH-003,120,150,252,110"
             default_survey = "BHID,AT,AZ,DIP\nDDH-001,0,150,-60\nDDH-001,60,152,-58\nDDH-002,0,220,-55\nDDH-002,70,218,-54\nDDH-003,0,45,-70"
             default_assay = "BHID,FROM,TO,AU_GPT\nDDH-001,0,40,0.35\nDDH-001,40,80,2.15\nDDH-001,80,120,4.80\nDDH-002,0,50,0.10\nDDH-002,50,100,1.85\nDDH-002,100,130,3.90\nDDH-003,0,60,0.90\nDDH-003,60,110,5.20"
@@ -412,16 +444,12 @@ if conexion_exitosa:
             
         with col_3d_render:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            
             if txt_collar and txt_survey and txt_assay:
                 with st.spinner("Procesando matriz trigonométrica independiente..."):
                     try:
-                        # Lectura directa desde los cuadros de texto
                         df_collar = pd.read_csv(StringIO(txt_collar), sep=None, engine='python')
                         df_survey = pd.read_csv(StringIO(txt_survey), sep=None, engine='python')
                         df_assay = pd.read_csv(StringIO(txt_assay), sep=None, engine='python')
-                        
-                        # Limpieza extrema de caracteres ocultos
                         df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
                         df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
                         df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
@@ -437,15 +465,12 @@ if conexion_exitosa:
                         id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
                         id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
                         id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                        
                         c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
                         c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
                         c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
-                        
                         s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
                         s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
                         s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
-                        
                         a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
                         a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
                         col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
@@ -489,13 +514,10 @@ if conexion_exitosa:
                                 resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
                                 
                         df_3d = pd.DataFrame(resultados)
-                        
-                        if df_3d.empty: st.error("❌ Los códigos de taladros no coinciden entre sí.")
+                        if df_3d.empty: st.error("❌ Los códigos de taladros no coinciden.")
                         else:
                             fig_3d = go.Figure()
                             cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
-                            
-                            # 1. Dibujado de Sondajes tridimensionales
                             for hole in df_3d["BHID"].unique():
                                 df_hole = df_3d[df_3d["BHID"] == hole]
                                 fig_3d.add_trace(go.Scatter3d(
@@ -503,49 +525,30 @@ if conexion_exitosa:
                                     marker=dict(size=4, color=df_hole["LEY"], colorscale=escala_map[escala_color], colorbar=dict(title=dict(text=f"Ley ({col_ley})", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
                                     line=dict(width=3, color='rgba(255,255,255,0.4)'), name=str(hole)
                                 ))
-                            
-                            # 2. Generación del Relieve Topográfico Panorámico Continuo (Margen Extendido 100%)
                             x_col, y_col, z_col = df_collar[c_x].values, df_collar[c_y].values, df_collar[c_z].values
                             if len(x_col) > 2:
                                 x_min, x_max = x_col.min(), x_col.max()
                                 y_min, y_max = y_col.min(), y_col.max()
-                                margen_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
-                                margen_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
-                                
-                                grid_x = np.linspace(x_min - margen_x, x_max + margen_x, 60)
-                                grid_y = np.linspace(y_min - margen_y, y_max + margen_y, 60)
-                                X_mesh, Y_mesh = np.meshgrid(grid_x, grid_y)
-                                X_flat, Y_flat = X_mesh.flatten(), Y_mesh.flatten()
-                                
-                                dist = np.sqrt((x_col[:, np.newaxis] - X_flat)**2 + (y_col[:, np.newaxis] - Y_flat)**2)
+                                m_x, m_y = (x_max - x_min) * 1.0, (y_max - y_min) * 1.0
+                                grid_x = np.linspace(x_min - m_x, x_max + m_x, 60)
+                                grid_y = np.linspace(y_min - m_y, y_max + m_y, 60)
+                                XM, YM = np.meshgrid(grid_x, grid_y)
+                                XF, YF = XM.flatten(), YM.flatten()
+                                dist = np.sqrt((x_col[:, np.newaxis] - XF)**2 + (y_col[:, np.newaxis] - YF)**2)
                                 dist = np.where(dist == 0, 1e-10, dist)
                                 weights = 1.0 / (dist ** 2)
-                                Z_flat = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
-                                Z_mesh = Z_flat.reshape(X_mesh.shape)
-                                
-                                fig_3d.add_trace(go.Surface(
-                                    x=X_mesh, y=Y_mesh, z=Z_mesh, opacity=0.6, 
-                                    colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'
-                                ))
-
-                            fig_3d.update_layout(
-                                margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", 
-                                scene=dict(
-                                    xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), 
-                                    yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), 
-                                    zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), 
-                                    bgcolor="rgba(0,0,0,0)", aspectmode='data'
-                                ), legend=dict(font=dict(color="white"))
-                            )
+                                ZF = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
+                                ZM = ZF.reshape(XM.shape)
+                                fig_3d.add_trace(go.Surface(x=XM, y=YM, z=ZM, opacity=0.6, colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'))
+                            fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
                             st.plotly_chart(fig_3d, use_container_width=True)
                             
-                            # Reporte de Control de Datos Manuales
                             st.markdown("<div class='titulo-seccion'>Análisis de Consistencia de Datos Levantados</div>", unsafe_allow_html=True)
                             col_md1, col_md2, col_md3 = st.columns(3)
                             col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
                             col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
                             col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
-                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
+                    except Exception as e: st.error(f"⚠️ Error al decodificar: {e}")
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -604,15 +607,11 @@ if conexion_exitosa:
             df_malla = pd.DataFrame(taladros)
             fig_malla = go.Figure()
             colores = {"Producción": "#f44336", "Arranque": "#ffeb3b", "Ayudas": "#ff9800", "Cuadradores": "#2196f3", "Arrastre": "#4caf50", "Corona": "#9c27b0"}
-            
             for _, row in df_malla.iterrows():
                 if "Tajo" in tipo_malla:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
-                    fig_malla.add_trace(go.Scatter3d(x=[row["X"]], y=[row["Y"]], z=[row["Z_start"]], mode='markers', marker=dict(size=5, color='white'), showlegend=False))
                 else:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
-                    fig_malla.add_trace(go.Scatter3d(x=[row["X"]], y=[row["Z_start"]], z=[row["Y"]], mode='markers', marker=dict(size=4, color='white'), showlegend=False))
-
             fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
             st.plotly_chart(fig_malla, use_container_width=True)
             
@@ -622,16 +621,10 @@ if conexion_exitosa:
             tonelaje_total = volumen_total * densidad_roca
             anfo_total = tonelaje_total * factor_potencia
             anfo_por_taladro = anfo_total / num_taladros
-            radio_m = (diametro_mm / 1000) / 2
-            volumen_taladro = math.pi * (radio_m ** 2) * profundidad
-            kg_max_por_taladro = volumen_taladro * 800
-            
             col_r1, col_r2, col_r3 = st.columns(3)
-            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas a Romper</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p><p style='color:#aaa; font-size:12px; margin:0;'>Volumen: {volumen_total:,.1f} m³</p></div>", unsafe_allow_html=True)
-            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Requerido</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p><p style='color:#aaa; font-size:12px; margin:0;'>{num_taladros} Taladros</p></div>", unsafe_allow_html=True)
-            color_carga = "#ffeb3b" if anfo_por_taladro <= kg_max_por_taladro else "#f44336"
-            alerta_carga = "Carga Óptima" if anfo_por_taladro <= kg_max_por_taladro else "⚠️ Sobrecarga"
-            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO por Taladro</p><p class='metric-value' style='color: {color_carga}; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p><p style='color:{color_carga}; font-size:12px; margin:0;'>{alerta_carga}</p></div>", unsafe_allow_html=True)
+            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas a Romper</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p></div>", unsafe_allow_html=True)
+            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Requerido</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p></div>", unsafe_allow_html=True)
+            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO por Taladro</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -650,7 +643,6 @@ if conexion_exitosa:
             hp_diesel = col_d1.number_input("Potencia Diésel Efectiva Total (HP)", min_value=0, value=280)
             q_diesel = col_d2.slider("Factor por HP (m³/min per HP)", 2.8, 4.0, 3.0, step=0.1)
             dispo_diesel = st.slider("Factor de Disponibilidad Mecánica", 0.1, 1.0, 0.85, step=0.05)
-            st.markdown("<p style='font-size:13px; color:#aaa; font-weight:600; margin-bottom:2px;'>Dilución de Gases de Voladura / Desmonte</p>", unsafe_allow_html=True)
             col_g1, col_g2, col_g3 = st.columns(3)
             v_gas = col_g1.number_input("Volumen Gas (m³/min)", min_value=0.0, value=0.12, step=0.01)
             c_lim = col_g2.number_input("Límite L.M.P (ppm)", min_value=1, value=25) / 1000000
@@ -686,44 +678,9 @@ if conexion_exitosa:
             y_cones = np.linspace(20, longitud_ducto - 20, 12)
             x_cones, z_cones = np.zeros_like(y_cones), np.full_like(y_cones, alto_gal / 2.0)
             u, v, w = np.zeros_like(y_cones), np.ones_like(y_cones) * velocidad_aire, np.zeros_like(y_cones)
-            
             fig_vent.add_trace(go.Cone(x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w, colorscale='Cividis', sizemode='scaled', sizeref=1.5, colorbar=dict(title=dict(text="Velocidad (m/s)", font=dict(color='white')), tickfont=dict(color='white')), name='Flujo de Aire'))
             box_x, box_z = [-ancho_gal/2, ancho_gal/2, ancho_gal/2, -ancho_gal/2, -ancho_gal/2], [0, 0, alto_gal, alto_gal, 0]
             for y_wall in [0, longitud_ducto / 2, longitud_ducto]:
                 fig_vent.add_trace(go.Scatter3d(x=box_x, y=[y_wall]*5, z=box_z, mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'))
-            
             fig_vent.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"), bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig_vent, use_container_width=True)
-            
-            st.markdown("<div class='titulo-seccion'>Resultados del Balance de Ventilación Dinámica</div>", unsafe_allow_html=True)
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal Crítico (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p></div>", unsafe_allow_html=True)
-            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Caída de Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p></div>", unsafe_allow_html=True)
-            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Potencia Mecánica</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # ====================================================================
-    # PESTAÑA 7: BASE DE DATOS
-    # ====================================================================
-    elif pestaña == "Base de Datos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
-        col_busqueda, col_filtro = st.columns([3, 1])
-        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
-        with col_filtro: tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        archivos_mostrar = st.session_state.get("archivos_nube", [])
-        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
-        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
-        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
-        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
-        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
-            
-        if len(archivos_mostrar) == 0: st.warning("No se encontraron documentos en Drive.")
-        else:
-            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
-            columnas = st.columns(3)
-            for i, arch in enumerate(archivos_mostrar):
-                icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
-                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID DRIVE: {id_corto}...</p></div></div>"
-                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
