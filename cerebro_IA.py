@@ -24,10 +24,15 @@ import math
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
+# --- INICIALIZACIÓN DE VARIABLES DE ESTADO (NUEVO SISTEMA DE CHATS) ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visor Topográfico"
-if "archivo_activo" not in st.session_state:
-    st.session_state.archivo_activo = "Base de datos general (Simulación)"
+    st.session_state.pestaña_activa = "Chat Asistente Operativo"
+if "modo_ia" not in st.session_state:
+    st.session_state.modo_ia = "🌐 General"
+if "conversaciones" not in st.session_state:
+    st.session_state.conversaciones = {"Conversación 1": []}
+if "chat_activo" not in st.session_state:
+    st.session_state.chat_activo = "Conversación 1"
 
 def obtener_icono(nombre_archivo):
     nombre_lower = nombre_archivo.lower()
@@ -42,7 +47,6 @@ def obtener_icono(nombre_archivo):
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
-    
     html, body, [class*="css"] { font-family: 'Google Sans', sans-serif !important; }
     
     .stApp {
@@ -132,13 +136,23 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 
 # --- 3. BARRA LATERAL ESTILO GEMINI ---
 with st.sidebar:
-    st.markdown("<div style='display:flex; align-items:center; margin-bottom:15px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
+    st.markdown("<div style='display:flex; align-items:center; margin-bottom:10px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
+    
+    # NUEVO: Selector de Modo de IA
+    nuevo_modo = st.selectbox("Origen de Datos IA:", ["🌐 Búsqueda General", "📂 Base de Datos Drive"], index=0 if st.session_state.modo_ia == "🌐 General" else 1)
+    st.session_state.modo_ia = "🌐 General" if "General" in nuevo_modo else "📂 Drive"
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Botón Nueva Conversación
     if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
-        st.session_state.mensajes_ia = [] 
+        nuevo_id = f"Conversación {len(st.session_state.conversaciones) + 1}"
+        st.session_state.conversaciones[nuevo_id] = []
+        st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
         st.rerun()
         
-    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Navegación</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Herramientas</p>", unsafe_allow_html=True)
     
     opciones_nav = {
         "💬": "Chat Asistente Operativo", 
@@ -165,28 +179,19 @@ with st.sidebar:
     
     pestaña = st.session_state.pestaña_activa
     
+    # NUEVO: Historial de Chats en lugar de archivos
     st.markdown("<br>", unsafe_allow_html=True) 
-    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Recientes</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Historial de Chats</p>", unsafe_allow_html=True)
     
-    opciones_archivos = ["Base de datos general (Simulación)"]
-    archivos_filtrados = []
+    nombres_chats = list(st.session_state.conversaciones.keys())
+    nombres_chats_fmt = [f"💬 {c}" for c in nombres_chats]
+    indice_chat_activo = nombres_chats.index(st.session_state.chat_activo) if st.session_state.chat_activo in nombres_chats else 0
     
-    if "archivos_nube" in st.session_state:
-        if pestaña in ["Base de Datos", "Visualizador 3D Sondajes", "Visor Topográfico"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.csv', '.xlsx', '.xls', '.pdf'))]
-        elif pestaña in ["Chat Asistente Operativo"]: archivos_filtrados = [f for f in st.session_state.archivos_nube if f['name'].endswith(('.pdf', '.txt', '.png', '.jpg', '.jpeg', '.csv'))]
-    for f in archivos_filtrados: opciones_archivos.append(f['name'])
-        
-    nombres_archivos_formateados = [f"{obtener_icono(arch)} {arch}" for arch in opciones_archivos]
-    indice_archivo_activo = 0
-    for i, arch in enumerate(opciones_archivos):
-        if arch == st.session_state.archivo_activo:
-            indice_archivo_activo = i
-            break
-            
-    seleccion_archivo = st.radio("Recientes", options=nombres_archivos_formateados, index=indice_archivo_activo, label_visibility="collapsed", key="radio_archivos")
-    archivo_real = seleccion_archivo.split(" ", 1)[1]
-    if archivo_real != st.session_state.archivo_activo:
-        st.session_state.archivo_activo = archivo_real
+    seleccion_chat = st.radio("Historial", options=nombres_chats_fmt, index=indice_chat_activo, label_visibility="collapsed", key="radio_chats")
+    chat_real = seleccion_chat.replace("💬 ", "")
+    if chat_real != st.session_state.chat_activo:
+        st.session_state.chat_activo = chat_real
+        st.session_state.pestaña_activa = "Chat Asistente Operativo"
         st.rerun()
     
     st.markdown("---")
@@ -199,11 +204,21 @@ with st.sidebar:
 
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO
+    # PESTAÑA 1: CHATBOT UNIFICADO (NUEVA LÓGICA DE MODOS)
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
         st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
-        if st.session_state.archivo_activo != "Base de datos general (Simulación)": st.info(f"🔎 **Modo Enfoque:** El chat responderá basándose on el archivo: `{st.session_state.archivo_activo}`")
+        
+        doc_contexto = None
+        if st.session_state.modo_ia == "📂 Drive":
+            st.info("📂 **Modo Drive Activo:** La IA responderá basándose estrictamente en el documento que selecciones a continuación.")
+            archivos_texto = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.pdf', '.txt'))]
+            if archivos_texto:
+                doc_contexto = st.selectbox("Selecciona el documento guía para el asistente:", archivos_texto)
+            else:
+                st.warning("⚠️ No se detectaron documentos PDF o TXT en tu Google Drive.")
+        else:
+            st.info("🌐 **Modo General Activo:** La IA responderá usando su conocimiento global sobre minería e ingeniería.")
             
         with st.popover("➕", use_container_width=False):
             st.markdown("#### 🛠️ Herramientas")
@@ -215,33 +230,36 @@ if conexion_exitosa:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
 
-        if "mensajes_ia" not in st.session_state: st.session_state.mensajes_ia = []
-        for mensaje in st.session_state.mensajes_ia:
+        # Renderizar mensajes del chat activo
+        mensajes_actuales = st.session_state.conversaciones[st.session_state.chat_activo]
+        for mensaje in mensajes_actuales:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        pregunta = st.chat_input("Pregunta a Gemini")
+        pregunta = st.chat_input("Escribe tu consulta geológica o de ingeniería...")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
-            st.session_state.mensajes_ia.append({"rol": "user", "contenido": pregunta})
+            mensajes_actuales.append({"rol": "user", "contenido": pregunta})
+            
             with st.chat_message("assistant"):
                 caja_respuesta = st.empty()
-                caja_respuesta.markdown("Extrayendo datos de la nube y procesando... ⏳")
+                caja_respuesta.markdown("Procesando consulta... ⏳")
                 try:
                     contexto_documento = ""
-                    if st.session_state.archivo_activo != "Base de datos general (Simulación)":
+                    if st.session_state.modo_ia == "📂 Drive" and doc_contexto:
                         try:
-                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == st.session_state.archivo_activo)
-                            if st.session_state.archivo_activo.endswith('.pdf'):
+                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == doc_contexto)
+                            if doc_contexto.endswith('.pdf'):
                                 pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
                                 lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
                                 texto_extraido = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
-                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({st.session_state.archivo_activo}):\n\n{texto_extraido}\n\n"
+                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({doc_contexto}):\n\n{texto_extraido}\n\n"
                         except Exception as e: pass
+                        
                     instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
                     texto_final = modelo.generate_content(instruccion_final).text
                     caja_respuesta.markdown(texto_final)
-                    st.session_state.mensajes_ia.append({"rol": "assistant", "contenido": texto_final})
-                except Exception as e: caja_respuesta.error(f"Hubo un error de conexión: {e}")
+                    mensajes_actuales.append({"rol": "assistant", "contenido": texto_final})
+                except Exception as e: caja_respuesta.error(f"Hubo un error de conexión con el motor IA: {e}")
 
     # ====================================================================
     # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
@@ -292,133 +310,98 @@ if conexion_exitosa:
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
-            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático. Se recomienda desate meticuloso y perneado esporádico con pernos de fricción en cuñas sueltas."
-            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m). Soporte a no más de 20 m del frente.<br><br><b>Soporte:</b> Instalar pernos sistemáticos (longitud de 3 m) espaciados entre 1.5 y 2.0 m en corona y hastiales. Opcional: Aplicar 5 cm de shotcrete en corona si existe debilidad local."
-            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m). Soporte a <10 m del frente.<br><br><b>Soporte:</b> Pernos sistemáticos (3 a 4 m) cada 1.5 m. <b>Obligatorio:</b> Aplicación de shotcrete estructural (5 a 10 cm) complementado con malla electrosoldada en techo y paredes."
-            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. El sostenimiento debe ser concurrente a la excavación.<br><br><b>Soporte:</b> Perneado sistemático denso (1.0 m de espaciamiento), malla electrosoldada y shotcrete grueso (10 a 15 cm). Altamente recomendable evaluar el uso de cerchas metálicas cada 1.5 m."
-            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m). Sostenimiento inmediato bajo paraguas de protección.<br><br><b>Soporte:</b> Uso sistemático de cerchas pesadas cada 0.75 m, marchavantes y blindaje con shotcrete estructural (>15 cm) en corona, hastiales y solera."
+            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático."
+            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m).<br><br><b>Soporte:</b> Instalar pernos sistemáticos espaciados entre 1.5 y 2.0 m."
+            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m).<br><br><b>Soporte:</b> Pernos sistemáticos. <b>Obligatorio:</b> Aplicación de shotcrete estructural."
+            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. Sostenimiento concurrente.<br><br><b>Soporte:</b> Perneado denso, malla electrosoldada y shotcrete grueso (10-15 cm)."
+            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m).<br><br><b>Soporte:</b> Uso de cerchas pesadas, marchavantes y blindaje con shotcrete (>15 cm)."
 
             st.markdown(f"""
-            <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI Identificado</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
-            <div class='metric-box'><p class='metric-label'>Clasificación RMR Unificada</p><p class='metric-value' style='color: {color_hex};'>{rmr_final}</p><p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p></div>
+            <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
+            <div class='metric-box'><p class='metric-label'>RMR Unificado</p><p class='metric-value' style='color: {color_hex};'>{rmr_final}</p><p style='color: {color_hex}; font-size: 13px; margin:0; font-weight: 500;'>Calidad: {texto_rmr}</p></div>
             <div class='metric-box' style='text-align: left; background-color: rgba(168,199,250,0.05); border-color: rgba(168,199,250,0.2) !important;'><p class='metric-label' style='color: #a8c7fa; margin-bottom: 8px;'>RECOMENDACIÓN TÉCNICA</p><p style='color: #e3e3e3; font-size: 11.5px; margin:0; line-height: 1.6;'>{rec_eng}</p></div>
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (100% AUTÓNOMO E INDEPENDIENTE)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (ACTUALIZADO SIN SIDEBAR)
     # ====================================================================
     elif pestaña == "Visor Topográfico":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>VISOR TOPOGRÁFICO 3D AUTÓNOMO 🗺️</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y MAPAS GEOESPACIALES 🗺️</h2>", unsafe_allow_html=True)
+        col_inputs, col_visor = st.columns([1.2, 2])
+        total_puntos_mapeados, sistema_coords_detectado, centroide_elevacion_str, df_mapa_global = 0, "Ninguno", "0.0 m", None
         
-        col_inputs_topo, col_render_topo = st.columns([1.2, 2])
-        
-        with col_inputs_topo:
+        with col_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            st.markdown("<div class='titulo-seccion'>⚙️ Entrada de Coordenadas y Filtros</div>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>Control Documental de Obra</div>", unsafe_allow_html=True)
             
-            # Selector de paleta cromática interactiva
-            paleta_topo = st.selectbox("🎨 Escala Cromática de Elevación (Cotas)", ["Tierra (Marrón-Verde-Amarillo)", "Rojo-Verde-Azul Dinámico", "Viridis Geo", "Plasma de Altas Cotas"])
-            mapa_paletas = {
-                "Tierra (Marrón-Verde-Amarillo)": [[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']],
-                "Rojo-Verde-Azul Dinámico": [[0, 'blue'], [0.5, 'green'], [1, 'red']],
-                "Viridis Geo": "Viridis",
-                "Plasma de Altas Cotas": "Plasma"
-            }
+            archivos_topo = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.csv', '.txt'))]
+            archivos_topo.insert(0, "Modo de Simulación (Ate, Lima)")
+            sel_topo = st.selectbox("Cargar Base de Datos Topográfica (Drive):", archivos_topo)
             
-            st.markdown("<p style='font-size: 13px; color: #aaa; margin-bottom: 5px;'>Copia y pega las estaciones o vértices del levantamiento en formato CSV:</p>", unsafe_allow_html=True)
-            
-            # Valores por defecto de una topografía real para evitar que abra vacío
-            default_topo_data = "ESTACION,ESTE_X,NORTE_Y,COTA_Z\nE-01,500000,8800000,4320\nE-02,500050,8800020,4315\nE-03,500100,8800010,4290\nE-04,500020,8800080,4340\nE-05,500080,8800090,4310\nE-06,500120,8800060,4285\nE-07,500160,8800120,4260\nE-08,500220,8800100,4245"
-            
-            txt_topo = st.text_area("📋 Datos Planimétricos (Formato: ID, X, Y, Z)", default_topo_data, height=250)
+            capa_base = st.selectbox("Seleccionar Capa Base de Terreno", ["CartoDB dark_matter", "OpenStreetMap", "CartoDB positron"])
             st.markdown("</div>", unsafe_allow_html=True)
-            
-        with col_render_topo:
+
+        with col_visor:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            
-            if txt_topo:
-                with st.spinner("Interpolando malla topográfica tridimensional..."):
+            if sel_topo == "Modo de Simulación (Ate, Lima)":
+                sistema_coords_detectado = "Geográficas (WGS84)"
+                total_puntos_mapeados = 1
+                centroide_elevacion_str = "-12.025, -76.908"
+                mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles=capa_base)
+                st_folium(mapa_mina, width="100%", height=450)
+            else:
+                with st.spinner("Decodificando planimetría UTM/Geográfica..."):
                     try:
-                        df_topo = pd.read_csv(StringIO(txt_topo), sep=None, engine='python')
-                        df_topo.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_topo.columns]
-                        
-                        c_x = next((c for c in df_topo.columns if str(c) in ['X', 'ESTE', 'EAST', 'EASTING', 'ESTE_X']), df_topo.columns[1])
-                        c_y = next((c for c in df_topo.columns if str(c) in ['Y', 'NORTE', 'NORTH', 'NORTHING', 'NORTE_Y']), df_topo.columns[2])
-                        c_z = next((c for c in df_topo.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL', 'COTA_Z']), df_topo.columns[3])
-                        
-                        def force_num(val):
-                            try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
-                            except: return 0.0
-                                
-                        df_topo[c_x] = df_topo[c_x].apply(force_num)
-                        df_topo[c_y] = df_topo[c_y].apply(force_num)
-                        df_topo[c_z] = df_topo[c_z].apply(force_num)
-                        
-                        # --- MOTOR DE INTERPOLACIÓN TOPOGRÁFICA EXTENDIDA ---
-                        x_arr, y_arr, z_arr = df_topo[c_x].values, df_topo[c_y].values, df_topo[c_z].values
-                        
-                        fig_topo_3d = go.Figure()
-                        
-                        if len(x_arr) > 2:
-                            x_min, x_max = x_arr.min(), x_arr.max()
-                            y_min, y_max = y_arr.min(), y_arr.max()
+                        archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == sel_topo), None)
+                        if not archivo_encontrado: st.error("⚠️ Archivo no encontrado.")
+                        else:
+                            csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
+                            df_mapa_global = pd.read_csv(StringIO(csv_content))
+                            df_mapa_global.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_mapa_global.columns]
                             
-                            # Margen perimetral expandido al 100% para cubrir los laterales de la caja
-                            m_x = (x_max - x_min) * 1.0 if x_max != x_min else 200
-                            m_y = (y_max - y_min) * 1.0 if y_max != y_min else 200
+                            col_lat = next((c for c in df_mapa_global.columns if 'LAT' in str(c)), None)
+                            col_lon = next((c for c in df_mapa_global.columns if 'LON' in str(c) or 'LNG' in str(c)), None)
+                            col_norte = next((c for c in df_mapa_global.columns if str(c) in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
+                            col_este = next((c for c in df_mapa_global.columns if str(c) in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
+                            col_z = next((c for c in df_mapa_global.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL']), None)
                             
-                            g_x = np.linspace(x_min - m_x, x_max + m_x, 60)
-                            g_y = np.linspace(y_min - m_y, y_max + m_y, 60)
-                            XM, YM = np.meshgrid(g_x, g_y)
-                            XF, YF = XM.flatten(), YM.flatten()
-                            
-                            distancias = np.sqrt((x_arr[:, np.newaxis] - XF)**2 + (y_arr[:, np.newaxis] - YF)**2)
-                            distancias = np.where(distancias == 0, 1e-10, distancias)
-                            pesos = 1.0 / (distancias ** 2)
-                            ZF = np.sum(pesos * z_arr[:, np.newaxis], axis=0) / np.sum(pesos, axis=0)
-                            ZM = ZF.reshape(XM.shape)
-                            
-                            # Dibujar el manto superficial continuo
-                            fig_topo_3d.add_trace(go.Surface(
-                                x=XM, y=YM, z=ZM, opacity=0.75,
-                                colorscale=mapa_paletas[paleta_topo],
-                                colorbar=dict(title=dict(text="Cota (m)", font=dict(color='white')), tickfont=dict(color='white')),
-                                name='Superficie Terreno'
-                            ))
-                            
-                        # Dibujar las estaciones base como esferas flotantes
-                        fig_topo_3d.add_trace(go.Scatter3d(
-                            x=x_arr, y=y_arr, z=z_arr, mode='markers+text',
-                            text=df_topo.iloc[:, 0].astype(str),
-                            textposition="top center",
-                            marker=dict(size=6, color='white', symbol='diamond'),
-                            name='Vértices Estación',
-                            textfont=dict(color='white', size=10)
-                        ))
-                        
-                        fig_topo_3d.update_layout(
-                            margin=dict(r=10, l=10, b=10, t=10), height=480, paper_bgcolor="rgba(0,0,0,0)",
-                            scene=dict(
-                                xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"),
-                                yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"),
-                                zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Cota (Z)", color="white"),
-                                bgcolor="rgba(0,0,0,0)", aspectmode='data'
-                            ),
-                            legend=dict(font=dict(color="white"))
-                        )
-                        st.plotly_chart(fig_topo_3d, use_container_width=True)
-                        
-                        # Reporte estadístico fisiográfico de la labor en tarjetas de métricas
-                        st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor Mapeada</div>", unsafe_allow_html=True)
-                        col_tb1, col_md2, col_md3 = st.columns(3)
-                        col_tb1.markdown(f"<div class='metric-box'><p class='metric-label'>Estaciones Registradas</p><p class='metric-value' style='color:#4af4ff; font-size:32px;'>{len(df_topo)}</p></div>", unsafe_allow_html=True)
-                        col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Máxima Levantada</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{z_arr.max():,.1f} m</p></div>", unsafe_allow_html=True)
-                        col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Mínima Levantada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{z_arr.min():,.1f} m</p></div>", unsafe_allow_html=True)
-                        
-                    except Exception as e:
-                        st.error(f"⚠️ Error procesando la sintaxis del texto topográfico: {e}")
+                            if df_mapa_global.empty: st.warning("⚠️ Archivo vacío.")
+                            elif col_norte is not None and col_este is not None:
+                                sistema_coords_detectado = "UTM WGS84 Z-18S"
+                                df_clean = df_mapa_global.dropna(subset=[col_norte, col_este])
+                                total_puntos_mapeados = len(df_clean)
+                                transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
+                                lon_centro, lat_centro = transformer.transform(float(df_clean[col_este].mean()), float(df_clean[col_norte].mean()))
+                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_centro:,.4f}°"
+                                mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles=capa_base)
+                                for idx, row in df_clean.iterrows():
+                                    try:
+                                        l_v, la_v = transformer.transform(float(str(row[col_este]).replace(',','.')), float(str(row[col_norte]).replace(',','.')))
+                                        folium.Marker([la_v, l_v], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
+                                    except: pass
+                                st_folium(mapa_dinamico, width="100%", height=450)
+                            elif col_lat is not None and col_lon is not None:
+                                sistema_coords_detectado = "Geográficas WGS84"
+                                df_clean = df_mapa_global.dropna(subset=[col_lat, col_lon])
+                                total_puntos_mapeados = len(df_clean)
+                                lat_m, lon_m = df_clean[col_lat].apply(lambda x: float(str(x).replace(',','.'))).mean(), df_clean[col_lon].apply(lambda x: float(str(x).replace(',','.'))).mean()
+                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_m:,.4f}°"
+                                mapa_dinamico = folium.Map(location=[lat_m, lon_m], zoom_start=14, tiles=capa_base)
+                                for idx, row in df_clean.iterrows():
+                                    try: folium.Marker([float(str(row[col_lat]).replace(',','.')), float(str(row[col_lon]).replace(',','.'))], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
+                                    except: pass
+                                st_folium(mapa_dinamico, width="100%", height=450)
+                    except: st.error("Error crítico en el renderizado.")
+            st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor</div>", unsafe_allow_html=True)
+            col_m1, col_m2, col_m3 = st.columns(3)
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Puntos Totales</p><p class='metric-value' style='color: #4af4ff; font-size:32px;'>{total_puntos_mapeados}</p><p style='color:#aaa; font-size:12px; margin:0;'>Estaciones Levantadas</p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Sistema de Referencia</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{sistema_coords_detectado}</p><p style='color:#aaa; font-size:12px; margin:0;'>Detección Digital</p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota / Centroide</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{centroide_elevacion_str}</p><p style='color:#aaa; font-size:12px; margin:0;'>Datum del Plano</p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
+        with col_inputs:
+            if df_mapa_global is not None:
+                with st.expander("🔎 Ver Base de Datos Estructural", expanded=False): st.dataframe(df_mapa_global, use_container_width=True)
 
     # ====================================================================
     # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
@@ -548,7 +531,7 @@ if conexion_exitosa:
                             col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
                             col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
                             col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
-                    except Exception as e: st.error(f"⚠️ Error al decodificar: {e}")
+                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -643,6 +626,7 @@ if conexion_exitosa:
             hp_diesel = col_d1.number_input("Potencia Diésel Efectiva Total (HP)", min_value=0, value=280)
             q_diesel = col_d2.slider("Factor por HP (m³/min per HP)", 2.8, 4.0, 3.0, step=0.1)
             dispo_diesel = st.slider("Factor de Disponibilidad Mecánica", 0.1, 1.0, 0.85, step=0.05)
+            st.markdown("<p style='font-size:13px; color:#aaa; font-weight:600; margin-bottom:2px;'>Dilución de Gases de Voladura / Desmonte</p>", unsafe_allow_html=True)
             col_g1, col_g2, col_g3 = st.columns(3)
             v_gas = col_g1.number_input("Volumen Gas (m³/min)", min_value=0.0, value=0.12, step=0.01)
             c_lim = col_g2.number_input("Límite L.M.P (ppm)", min_value=1, value=25) / 1000000
@@ -684,3 +668,36 @@ if conexion_exitosa:
                 fig_vent.add_trace(go.Scatter3d(x=box_x, y=[y_wall]*5, z=box_z, mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'))
             fig_vent.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"), bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig_vent, use_container_width=True)
+            
+            st.markdown("<div class='titulo-seccion'>Resultados del Balance de Ventilación Dinámica</div>", unsafe_allow_html=True)
+            col_m1, col_m2, col_m3 = st.columns(3)
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal Crítico (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Caída de Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Potencia Mecánica</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p></div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 7: BASE DE DATOS
+    # ====================================================================
+    elif pestaña == "Base de Datos":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
+        col_busqueda, col_filtro = st.columns([3, 1])
+        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
+        with col_filtro: tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        archivos_mostrar = st.session_state.get("archivos_nube", [])
+        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
+        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
+        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
+        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
+            
+        if len(archivos_mostrar) == 0: st.warning("No se encontraron documentos en Drive.")
+        else:
+            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
+            columnas = st.columns(3)
+            for i, arch in enumerate(archivos_mostrar):
+                icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
+                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID DRIVE: {id_corto}...</p></div></div>"
+                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
