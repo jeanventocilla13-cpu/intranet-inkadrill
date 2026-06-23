@@ -191,12 +191,8 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:10px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
-    seleccion_origen = st.selectbox(
-        "Base de Datos Activa:", 
-        ["🌐 Gemini IA (Internet)", "🔱 InkaDrill IA (Carpeta Drive)"],
-        index=0 if st.session_state.modo_ia == "🌐 Gemini IA (Internet)" else 1
-    )
-    st.session_state.modo_ia = seleccion_origen
+    # Fijamos el modo IA a Internet para que nunca intente conectar a Drive
+    st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -205,8 +201,8 @@ with st.sidebar:
         st.session_state.conversaciones[nuevo_id] = []
         st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
-        st.session_state.preview_file = None
-        st.session_state.doc_chat = None # Limpiamos el adjunto al crear un nuevo chat
+        st.session_state.preview_file = None 
+        st.session_state.doc_chat = None 
         st.session_state.texto_chat = ""
         st.rerun()
         
@@ -219,7 +215,7 @@ with st.sidebar:
         "🛢️": "Visualizador 3D Sondajes", 
         "🧨": "Diseño de Voladura", 
         "⛑️": "Ventilación Minera", 
-        "🗄️": "Base de Datos"
+        
     }
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
@@ -812,85 +808,4 @@ if conexion_exitosa:
     # ====================================================================
     # PESTAÑA 7: GESTOR DE BASE DE DATOS
     # ====================================================================
-    elif pestaña == "Base de Datos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS OPERATIVOS (DRIVE) 🗄️</h2>", unsafe_allow_html=True)
-
-        if st.session_state.preview_file is None:
-            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            col_busqueda, col_filtro = st.columns([3, 1])
-            with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento...", "")
-            with col_filtro: tipo_filtro = st.selectbox("Filtro Rápido", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            archivos_mostrar = st.session_state.get("archivos_nube", [])
-            
-            if not archivos_mostrar:
-                 query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
-                 archivos_mostrar = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
-                 st.session_state.archivos_nube = archivos_mostrar
-
-            if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
-            if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
-            elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
-            elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
-            elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
-                
-            if len(archivos_mostrar) == 0: 
-                st.warning("⚠️ No se encontraron documentos en la nube vinculada de Drive.")
-            else:
-                st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos operativos:</p>", unsafe_allow_html=True)
-                cols = st.columns(4)
-                for i, f in enumerate(archivos_mostrar):
-                    with cols[i % 4]:
-                        icono = obtener_icono(f['name'])
-                        st.markdown(f"""
-                        <div class='drive-card'>
-                            <div class='drive-icon'>{icono}</div>
-                            <div class='drive-title' title="{f['name']}">{f['name']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        if st.button("👁️ Abrir / Descargar", key=f"btn_{f['id']}", use_container_width=True):
-                            st.session_state.preview_file = f
-                            st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-        else:
-            f = st.session_state.preview_file
-            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            
-            col_back, col_title, col_down = st.columns([1, 3, 1])
-            with col_back:
-                if st.button("⬅️ Volver al Gestor", use_container_width=True):
-                    st.session_state.preview_file = None
-                    st.rerun()
-            with col_title:
-                st.markdown(f"<h3 style='color: #e3e3e3; margin: 0; text-align: center; font-size: 20px;'>{obtener_icono(f['name'])} {f['name']}</h3>", unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            with st.spinner("Cargando visor nativo desde la nube... ⏳"):
-                try:
-                    file_bytes = drive_service.files().get_media(fileId=f['id']).execute()
-                    
-                    with col_down:
-                        st.download_button("⬇️ Descargar Archivo", data=file_bytes, file_name=f['name'], mime="application/octet-stream", use_container_width=True, type="primary")
-                    
-                    if f['name'].endswith('.pdf'):
-                        url_preview = f"https://drive.google.com/file/d/{f['id']}/preview"
-                        st.markdown(f'<iframe src="{url_preview}" width="100%" height="750px" style="border: none; border-radius: 10px; background-color: #f0f0f0;"></iframe>', unsafe_allow_html=True)
-                                
-                    elif f['name'].endswith(('.csv', '.txt')):
-                        text_data = file_bytes.decode('utf-8')
-                        if f['name'].endswith('.csv'):
-                            df_prev = pd.read_csv(StringIO(text_data))
-                            st.dataframe(df_prev, use_container_width=True, height=600)
-                        else:
-                            st.text_area("Contenido del archivo", text_data, height=500)
-                    elif f['name'].endswith(('.png', '.jpg', '.jpeg')):
-                        st.image(file_bytes, caption=f['name'], use_container_width=True)
-                    else:
-                        st.info("ℹ️ Previsualización nativa no disponible para este formato. Utiliza el botón de descarga para verlo en tu computadora.")
-                except Exception as e:
-                    st.error(f"❌ Error al abrir el documento nativo: {e}")
-                    
-            st.markdown("</div>", unsafe_allow_html=True)
+    
