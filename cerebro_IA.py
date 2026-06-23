@@ -94,6 +94,7 @@ st.markdown("""
     }
     .stChatInputContainer textarea { padding-left: 20px !important; color: #e3e3e3 !important; }
     
+    /* MEJORA 1: Reversión de estilo de cuadros ejecutivos limpios */
     .panel-geo { background-color: rgba(25, 26, 27, 0.6) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 12px; padding: 20px; height: 100%; }
     .titulo-seccion { color: #e3e3e3; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
     .metric-box { background-color: rgba(19, 19, 20, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; }
@@ -107,6 +108,19 @@ st.markdown("""
     .file-name { color: #e3e3e3; font-weight: 600; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .file-id { color: #888; font-size: 11px; margin: 0; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     
+    /* MEJORA 2: Botón "+" pequeño, circular, fijo, a la izquierda de la barra de búsqueda */
+    div[data-testid="stPopover"] { position: fixed !important; bottom: 27px !important; left: auto !important; width: 46px !important; height: 46px !important; z-index: 999999 !important; }
+    div[data-testid="stPopover"] > button {
+        width: 46px !important; height: 46px !important; min-width: 46px !important; max-width: 46px !important;
+        border-radius: 50% !important; padding: 0 !important; margin: 0 !important; display: flex !important;
+        align-items: center !important; justify-content: center !important; background-color: rgba(25, 26, 27, 0.85) !important;
+        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #e3e3e3 !important; font-size: 24px !important; transition: 0.3s;
+    }
+    div[data-testid="stPopover"] > button:hover { background-color: rgba(255, 255, 255, 0.15) !important; color: #ffd54f !important; }
+    /* Ocultar el texto standard del botón */
+    div[data-testid="stPopover"] > button svg { display: none !important; width: 0 !important; height: 0 !important; }
+    div[data-testid="stPopover"] > button p, div[data-testid="stPopover"] > button span { margin: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; }
+    
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
@@ -116,7 +130,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -138,7 +152,7 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:10px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
-    # MEJORA 2: Interruptor del Origen de la Base de Datos (Entre el logo y nuevo chat)
+    # Interruptor del Origen de la Base de Datos
     seleccion_origen = st.selectbox(
         "Base de Datos Activa:", 
         ["🌐 Gemini IA (Internet)", "🔱 InkaDrill IA (Carpeta Drive)"],
@@ -183,7 +197,7 @@ with st.sidebar:
     
     pestaña = st.session_state.pestaña_activa
     
-    # MEJORA 1: Sección Exclusiva para el Historial de Conversaciones Anteriores
+    # Sección Exclusiva para el Historial de Conversaciones Anteriores
     st.markdown("<br>", unsafe_allow_html=True) 
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Chats Recientes</p>", unsafe_allow_html=True)
     
@@ -218,11 +232,13 @@ if conexion_exitosa:
             st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>Gemini IA</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Red Global e Internet (Conocimiento Enciclopédico de Ingeniería)</p>", unsafe_allow_html=True)
             
+        # MEJORA 2: Botón ➕ circular, pequeño, fijo a la izquierda de la búsqueda.
+        # Gracias al CSS, este popover aparecerá como un círculo pequeño sobre la barra de búsqueda inferior.
         with st.popover("➕", use_container_width=False):
-            st.markdown("#### 🛠️ Herramientas")
+            st.markdown("#### 🛠️ Herramientas de Chat")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
             with tab1:
-                archivo_subido = st.file_uploader("Arrastra PDFs", type=["pdf", "txt", "png", "jpg", "jpeg"])
+                archivo_subido = st.file_uploader("Arrastra PDFs o TXT", type=["pdf", "txt", "png", "jpg", "jpeg"])
                 if st.button("Guardar en Nube", type="primary", use_container_width=True) and archivo_subido: st.success("Guardado correctamente.")
             with tab2:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
@@ -233,6 +249,7 @@ if conexion_exitosa:
         for mensaje in mensajes_actuales:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
+        # Barra de búsqueda standard
         pregunta = st.chat_input("Escribe tu consulta operativa...")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
@@ -273,7 +290,7 @@ if conexion_exitosa:
                     # Generar respuesta con Gemini
                     texto_final = modelo.generate_content(instruccion_final).text
                     
-                    # AGREGAR LOS TÍTULOS DE LOS DOCUMENTOS UTILIZADOS AL FINAL (MEJORA SOLICITADA)
+                    # AGREGAR LOS TÍTULOS DE LOS DOCUMENTOS UTILIZADOS AL FINAL
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -284,7 +301,7 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Error de conexión con las redes neuronales: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (CON CUADROS CORREGIDOS)
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -324,7 +341,8 @@ if conexion_exitosa:
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
-            html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
+            # Reversión de estilo de cuadros ejecutivos limpios
+            html_visor = f"<div style='background: rgba(30, 31, 32, 0.5); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px DASHED rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
@@ -524,7 +542,7 @@ if conexion_exitosa:
                                 ZF = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
                                 ZM = ZF.reshape(XM.shape)
                                 fig_3d.add_trace(go.Surface(x=XM, y=YM, z=ZM, opacity=0.6, colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'))
-                            fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
+                            fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="X", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Y", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Z", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
                             st.plotly_chart(fig_3d, use_container_width=True)
                     except: st.error("Error al procesar tablas.")
             st.markdown("</div>", unsafe_allow_html=True)
