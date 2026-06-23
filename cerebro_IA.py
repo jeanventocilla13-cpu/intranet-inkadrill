@@ -28,7 +28,7 @@ st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout=
 if "pestaña_activa" not in st.session_state:
     st.session_state.pestaña_activa = "Chat Asistente Operativo"
 if "modo_ia" not in st.session_state:
-    st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
+    st.session_state.modo_ia = " inkadrill IA (Internet)"
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {"Conversación 1": []}
 if "chat_activo" not in st.session_state:
