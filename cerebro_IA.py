@@ -26,7 +26,7 @@ st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout=
 
 # --- INICIALIZACIÓN DE VARIABLES DE ESTADO DE CHATS ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Chat Asistente Operativo"
+    st.session_state.pestaña_activa = "Visualizador 3D Sondajes"
 if "modo_ia" not in st.session_state:
     st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
@@ -88,7 +88,6 @@ st.markdown("""
     [data-testid="stBottom"], [data-testid="stBottom"] > div { background-color: transparent !important; border: none !important; box-shadow: none !important; }
     .stChatFloatingInputContainer { background-color: transparent !important; }
 
-    /* Barra de Búsqueda desplazada a la derecha para dejar hueco al botón + */
     .stChatInputContainer {
         border-radius: 30px !important; 
         background-color: rgba(25, 26, 27, 0.85) !important; 
@@ -100,7 +99,6 @@ st.markdown("""
     }
     .stChatInputContainer textarea { padding-left: 20px !important; color: #e3e3e3 !important; }
     
-    /* Botón "+" circular pequeño y fijo a la izquierda */
     div[data-testid="stPopover"] { 
         position: fixed !important; 
         bottom: 35px !important; 
@@ -137,13 +135,6 @@ st.markdown("""
     .metric-value { font-size: 46px; font-weight: 700; margin: 5px 0; line-height: 1; }
     .metric-label { color: #aaa; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
     
-    .file-card { background-color: rgba(30, 31, 32, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-    .file-card:hover { background-color: rgba(255, 255, 255, 0.05); border-color: #a8c7fa; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
-    .file-icon { font-size: 34px; margin-right: 15px; }
-    .file-details { overflow: hidden; width: 100%; }
-    .file-name { color: #e3e3e3; font-weight: 600; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .file-id { color: #888; font-size: 11px; margin: 0; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
@@ -153,7 +144,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -245,7 +236,6 @@ if conexion_exitosa:
     # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
-        # Textos limpios sin degradados problemáticos
         if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
             st.markdown("<h1 style='text-align: center; color: #ff9800; font-weight: 600; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>InkaDrill IA</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Carpeta Conectada de Google Drive (Escaneo Inteligente Automatizado)</p>", unsafe_allow_html=True)
@@ -280,7 +270,6 @@ if conexion_exitosa:
                     
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
-                        
                         for f in st.session_state.get("archivos_nube", []):
                             nombre = f['name']
                             if nombre.endswith('.pdf'):
@@ -297,14 +286,12 @@ if conexion_exitosa:
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{txt_content}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
-                        
                         instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
                     else:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
                         instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
                     texto_final = modelo.generate_content(instruccion_final).text
-                    
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -344,18 +331,16 @@ if conexion_exitosa:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
-        
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
                 respuesta = requests.get(url_github, timeout=3)
                 if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
             except: pass
-
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
-            html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
+            html_visor = f"<div style='background: rgba(30, 31, 32, 0.5); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px DASHED rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
@@ -367,7 +352,7 @@ if conexion_exitosa:
             elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m)."
             elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m)."
             elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. Sostenimiento concurrente."
-            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m)."
+            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Controlled advance (0.5 a 1.0 m)."
 
             st.markdown(f"""
             <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
@@ -395,11 +380,14 @@ if conexion_exitosa:
             st.markdown("<p style='font-size: 13px; color: #aaa; margin-bottom: 5px;'>Copia y pega las estaciones del levantamiento en formato CSV:</p>", unsafe_allow_html=True)
             default_topo_data = "ESTACION,ESTE_X,NORTE_Y,COTA_Z\nE-01,500000,8800000,4320\nE-02,500050,8800020,4315\nE-03,500100,8800010,4290\nE-04,500020,8800080,4340\nE-05,500080,8800090,4310\nE-06,500120,8800060,4285\nE-07,500160,8800120,4260\nE-08,500220,8800100,4245"
             txt_topo = st.text_area("📋 Datos Planimétricos (Formato: ID, X, Y, Z)", default_topo_data, height=250)
+            
+            # Botón exclusivo para renderizar
+            btn_render_topo = st.button("🚀 RENDERIZAR SUPERFICIE 3D", type="primary", use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_render_topo:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            if txt_topo:
+            if btn_render_topo and txt_topo:
                 with st.spinner("Interpolando malla topográfica tridimensional..."):
                     try:
                         df_topo = pd.read_csv(StringIO(txt_topo), sep=None, engine='python')
@@ -443,14 +431,17 @@ if conexion_exitosa:
                         col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Máxima</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{z_arr.max():,.1f} m</p></div>", unsafe_allow_html=True)
                         col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Mínima</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{z_arr.min():,.1f} m</p></div>", unsafe_allow_html=True)
                     except Exception as e: st.error(f"⚠️ Error: {e}")
+            elif not btn_render_topo:
+                st.info("👈 Ingresa o modifica tus coordenadas y presiona el botón 'RENDERIZAR SUPERFICIE 3D'.")
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CORREGIDO: BOTÓN DE RENDER Y MATCHING)
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
         col_manual_inputs, col_3d_render = st.columns([1.3, 2])
+        
         with col_manual_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>⚙️ Configuración Visual e Inputs Manuales</div>", unsafe_allow_html=True)
@@ -465,16 +456,20 @@ if conexion_exitosa:
             txt_collar = st.text_area("📋 Tabla 1: COLLAR", default_collar, height=120)
             txt_survey = st.text_area("📋 Tabla 2: SURVEY", default_survey, height=120)
             txt_assay = st.text_area("📋 Tabla 3: ASSAY", default_assay, height=120)
+            
+            # NUEVO: Botón de renderizado explícito para evitar fallos mientras se escribe
+            btn_render_3d = st.button("🚀 RENDERIZAR MODELO 3D", type="primary", use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_3d_render:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            if txt_collar and txt_survey and txt_assay:
+            if btn_render_3d and txt_collar and txt_survey and txt_assay:
                 with st.spinner("Procesando matriz trigonométrica independiente..."):
                     try:
                         df_collar = pd.read_csv(StringIO(txt_collar), sep=None, engine='python')
                         df_survey = pd.read_csv(StringIO(txt_survey), sep=None, engine='python')
                         df_assay = pd.read_csv(StringIO(txt_assay), sep=None, engine='python')
+                        
                         df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
                         df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
                         df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
@@ -497,9 +492,10 @@ if conexion_exitosa:
                         a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
                         col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
                         
-                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
-                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
-                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
+                        # MEJORA: Forzar mayúsculas para evitar desfase de IDs por "ddh" vs "DDH"
+                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip().str.upper()
+                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip().str.upper()
+                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip().str.upper()
                         
                         def force_numeric(val):
                             try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
@@ -534,7 +530,8 @@ if conexion_exitosa:
                                 resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
                                 
                         df_3d = pd.DataFrame(resultados)
-                        if df_3d.empty: st.error("❌ Desfase de IDs.")
+                        if df_3d.empty: 
+                            st.error("❌ Los códigos de taladros no coinciden o están vacíos. Revisa que el ID en Collar, Survey y Assay sea idéntico.")
                         else:
                             fig_3d = go.Figure()
                             cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
@@ -557,7 +554,15 @@ if conexion_exitosa:
                                 fig_3d.add_trace(go.Surface(x=XM, y=YM, z=ZM, opacity=0.6, colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'))
                             fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
                             st.plotly_chart(fig_3d, use_container_width=True)
-                    except: st.error("Error al procesar tablas.")
+                            
+                            st.markdown("<div class='titulo-seccion'>Análisis de Consistencia de Datos Levantados</div>", unsafe_allow_html=True)
+                            col_md1, col_md2, col_md3 = st.columns(3)
+                            col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
+                            col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
+                            col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
+                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
+            elif not btn_render_3d:
+                st.info("👈 Ingresa o modifica tus coordenadas y presiona el botón 'RENDERIZAR MODELO 3D'.")
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -601,10 +606,6 @@ if conexion_exitosa:
                     for c in range(columnas): taladros.append({"ID": f"T-{f}-{c}", "X": (c * espaciamiento) + offset, "Y": f * burden, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
             elif tipo_malla == "Frente de Túnel (Galería 3x3m)":
                 taladros.append({"ID": "A1", "X": 1.5, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A2", "X": 1.3, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A3", "X": 1.7, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A4", "X": 1.5, "Y": 1.3, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A5", "X": 1.5, "Y": 1.7, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 for x in [1.0, 2.0]:
                     for y in [1.0, 2.0]: taladros.append({"ID": f"Ay-{x}-{y}", "X": x, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Ayudas"})
                 for x in [0.2, 0.8, 1.5, 2.2, 2.8]: taladros.append({"ID": f"Ar-{x}", "X": x, "Y": 0.2, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arrastre"})
@@ -621,7 +622,7 @@ if conexion_exitosa:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
                 else:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
-            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
+            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=40), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
             st.plotly_chart(fig_malla, use_container_width=True)
             
             st.markdown("<div class='titulo-seccion'>Reporte de Carga Mecánica</div>", unsafe_allow_html=True)
@@ -702,13 +703,15 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 7: BASE DE DATOS
+    # PESTAÑA 7: GESTOR DE BASE DE DATOS (REDISEÑADO CON EXPLORADOR)
     # ====================================================================
     elif pestaña == "Base de Datos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE BASE DE DATOS 🗄️</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS (NUBE) 🗄️</h2>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
         col_busqueda, col_filtro = st.columns([3, 1])
-        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento por nombre...", "")
-        with col_filtro: tipo_filtro = st.selectbox("Filtro por Tipo", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
+        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento en Drive...", "")
+        with col_filtro: tipo_filtro = st.selectbox("Filtro Rápido", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
         st.markdown("<br>", unsafe_allow_html=True)
         
         archivos_mostrar = st.session_state.get("archivos_nube", [])
@@ -718,11 +721,36 @@ if conexion_exitosa:
         elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
         elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
             
-        if len(archivos_mostrar) == 0: st.warning("No se encontraron documentos en Drive.")
+        if len(archivos_mostrar) == 0: 
+            st.warning("⚠️ No se encontraron documentos en la carpeta vinculada de Google Drive.")
         else:
-            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos de la nube</p>", unsafe_allow_html=True)
-            columnas = st.columns(3)
-            for i, arch in enumerate(archivos_mostrar):
-                icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
-                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID: {id_corto}...</p></div></div>"
-                columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
+            # MEJORA: Construir un DataFrame elegante en lugar de tarjetas estáticas HTML
+            datos_tabla = []
+            for f in archivos_mostrar:
+                nombre = f['name']
+                if nombre.endswith('.pdf'): tipo, icon = "Documento PDF", "📕"
+                elif nombre.endswith(('.csv', '.xlsx')): tipo, icon = "Hoja de Cálculo", "📗"
+                elif nombre.endswith('.txt'): tipo, icon = "Texto Plano", "📝"
+                else: tipo, icon = "Archivo", "📄"
+                
+                datos_tabla.append({
+                    "Icono": icon,
+                    "Nombre del Archivo": nombre,
+                    "Formato": tipo,
+                    "ID Único de Drive": f['id']
+                })
+            
+            df_archivos = pd.DataFrame(datos_tabla)
+            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos enlazados:</p>", unsafe_allow_html=True)
+            
+            # Renderizado nativo de tabla interactiva de Streamlit (Dark Mode)
+            st.dataframe(
+                df_archivos, 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "Icono": st.column_config.TextColumn("Tipo", width="small"),
+                    "Nombre del Archivo": st.column_config.TextColumn("Nombre del Documento", width="large"),
+                }
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
