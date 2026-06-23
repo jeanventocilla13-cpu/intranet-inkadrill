@@ -24,15 +24,18 @@ import math
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
-# --- INICIALIZACIÓN DE VARIABLES DE ESTADO DE CHATS ---
+# --- INICIALIZACIÓN DE VARIABLES DE ESTADO ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Visualizador 3D Sondajes"
+    st.session_state.pestaña_activa = "Base de Datos" # Pestaña activa por defecto para que pruebes
 if "modo_ia" not in st.session_state:
     st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {"Conversación 1": []}
 if "chat_activo" not in st.session_state:
     st.session_state.chat_activo = "Conversación 1"
+# Nueva variable para controlar la previsualización de documentos
+if "preview_file" not in st.session_state:
+    st.session_state.preview_file = None
 
 def obtener_icono(nombre_archivo):
     nombre_lower = nombre_archivo.lower()
@@ -88,7 +91,6 @@ st.markdown("""
     [data-testid="stBottom"], [data-testid="stBottom"] > div { background-color: transparent !important; border: none !important; box-shadow: none !important; }
     .stChatFloatingInputContainer { background-color: transparent !important; }
 
-    /* Barra de Búsqueda desplazada a la derecha para dejar hueco al botón + */
     .stChatInputContainer {
         border-radius: 30px !important; 
         background-color: rgba(25, 26, 27, 0.85) !important; 
@@ -100,7 +102,6 @@ st.markdown("""
     }
     .stChatInputContainer textarea { padding-left: 20px !important; color: #e3e3e3 !important; }
     
-    /* Botón "+" circular pequeño y fijo a la izquierda */
     div[data-testid="stPopover"] { 
         position: fixed !important; 
         bottom: 35px !important; 
@@ -136,6 +137,26 @@ st.markdown("""
     .metric-box { background-color: rgba(19, 19, 20, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; }
     .metric-value { font-size: 46px; font-weight: 700; margin: 5px 0; line-height: 1; }
     .metric-label { color: #aaa; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+    
+    /* NUEVO CSS: TARJETAS ESTILO GOOGLE DRIVE */
+    .drive-card { 
+        background-color: rgba(30, 31, 32, 0.7); 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 12px; 
+        padding: 20px 10px; 
+        text-align: center; 
+        transition: 0.3s; 
+        margin-bottom: 10px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .drive-card:hover { 
+        background-color: rgba(255, 255, 255, 0.1); 
+        border-color: #a8c7fa; 
+        transform: translateY(-3px); 
+        box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+    }
+    .drive-icon { font-size: 45px; margin-bottom: 12px; }
+    .drive-title { color: #e3e3e3; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; }
     
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
@@ -182,6 +203,7 @@ with st.sidebar:
         st.session_state.conversaciones[nuevo_id] = []
         st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
+        st.session_state.preview_file = None # Reinicia la vista si estamos en BD
         st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Herramientas</p>", unsafe_allow_html=True)
@@ -207,6 +229,7 @@ with st.sidebar:
     nav_real = seleccion_nav.split(" ", 1)[1] 
     if nav_real != st.session_state.pestaña_activa:
         st.session_state.pestaña_activa = nav_real
+        st.session_state.preview_file = None # Reinicia el visor si cambias de pestaña
         st.rerun()
     
     pestaña = st.session_state.pestaña_activa
@@ -272,7 +295,6 @@ if conexion_exitosa:
                     
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
-                        
                         for f in st.session_state.get("archivos_nube", []):
                             nombre = f['name']
                             if nombre.endswith('.pdf'):
@@ -289,14 +311,12 @@ if conexion_exitosa:
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{txt_content}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
-                        
                         instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
                     else:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
                         instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
                     texto_final = modelo.generate_content(instruccion_final).text
-                    
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -336,14 +356,12 @@ if conexion_exitosa:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
-        
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
                 respuesta = requests.get(url_github, timeout=3)
                 if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
             except: pass
-
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
@@ -442,7 +460,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CORREGIDO Y REPARADO)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
@@ -459,11 +477,10 @@ if conexion_exitosa:
             default_survey = "BHID,AT,AZ,DIP\nDDH-001,0,150,-60\nDDH-001,60,152,-58\nDDH-002,0,220,-55\nDDH-002,70,218,-54\nDDH-003,0,45,-70"
             default_assay = "BHID,FROM,TO,AU_GPT\nDDH-001,0,40,0.35\nDDH-001,40,80,2.15\nDDH-001,80,120,4.80\nDDH-002,0,50,0.10\nDDH-002,50,100,1.85\nDDH-002,100,130,3.90\nDDH-003,0,60,0.90\nDDH-003,60,110,5.20"
             
-            txt_collar = st.text_area("📋 Tabla 1: COLLAR (Boca de pozo: BHID, X, Y, Z, DEPTH)", default_collar, height=120)
-            txt_survey = st.text_area("📋 Tabla 2: SURVEY (Trayectoria: BHID, AT, AZ, DIP)", default_survey, height=120)
-            txt_assay = st.text_area("📋 Tabla 3: ASSAY (Intervalos y Leyes: BHID, FROM, TO, LEY)", default_assay, height=120)
+            txt_collar = st.text_area("📋 Tabla 1: COLLAR", default_collar, height=120)
+            txt_survey = st.text_area("📋 Tabla 2: SURVEY", default_survey, height=120)
+            txt_assay = st.text_area("📋 Tabla 3: ASSAY", default_assay, height=120)
             
-            # Botón de ejecución para evitar el crasheo en vivo
             btn_render_3d = st.button("🚀 RENDERIZAR MODELO 3D", type="primary", use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
             
@@ -491,20 +508,17 @@ if conexion_exitosa:
                         id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
                         id_s = buscar_col_exacta(df_survey, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
                         id_a = buscar_col_exacta(df_assay, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
-                        
                         c_x = buscar_col_exacta(df_collar, ['X', 'ESTE', 'EAST', 'EASTING'])
                         c_y = buscar_col_exacta(df_collar, ['Y', 'NORTE', 'NORTH', 'NORTHING'])
                         c_z = buscar_col_exacta(df_collar, ['Z', 'ELEV', 'ELEVATION', 'RL', 'COTA'])
-                        
                         s_at = buscar_col_exacta(df_survey, ['AT', 'DEPTH', 'PROF', 'DISTANCE'])
                         s_az = buscar_col_exacta(df_survey, ['AZIMUTH', 'AZ', 'AZM', 'DIR'])
                         s_dip = buscar_col_exacta(df_survey, ['DIP', 'INCLINACION', 'BUZAMIENTO'])
-                        
                         a_from = buscar_col_exacta(df_assay, ['FROM', 'DESDE'])
                         a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
                         col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
                         
-                        # SOLUCIÓN DE MATCHING DE IDs: Convertir todo a MAYÚSCULAS
+                        # FUERZA MAYÚSCULAS PARA EVITAR DESFASE DE IDs
                         df_collar[id_c] = df_collar[id_c].astype(str).str.strip().str.upper()
                         df_survey[id_s] = df_survey[id_s].astype(str).str.strip().str.upper()
                         df_assay[id_a] = df_assay[id_a].astype(str).str.strip().str.upper()
@@ -545,7 +559,7 @@ if conexion_exitosa:
                                 
                         df_3d = pd.DataFrame(resultados)
                         if df_3d.empty: 
-                            st.error("❌ Los códigos de taladros no coinciden. Asegúrate que el BHID sea igual en Collar, Survey y Assay.")
+                            st.error("❌ Los códigos de taladros no coinciden o están vacíos. Revisa que el ID en Collar, Survey y Assay sea idéntico.")
                         else:
                             fig_3d = go.Figure()
                             cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
@@ -579,7 +593,7 @@ if conexion_exitosa:
                             col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
                             col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
                             col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
-                    except Exception as e: st.error(f"⚠️ Error al decodificar: {e}")
+                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
             elif not btn_render_3d:
                 st.info("👈 Ingresa o modifica tus coordenadas y presiona el botón 'RENDERIZAR MODELO 3D'.")
             st.markdown("</div>", unsafe_allow_html=True)
@@ -722,60 +736,83 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 7: GESTOR DE BASE DE DATOS (REDISEÑADO CON TABLA INTERACTIVA)
+    # PESTAÑA 7: GESTOR DE BASE DE DATOS (NUEVO VISOR Y DESCARGA DIRECTA)
     # ====================================================================
     elif pestaña == "Base de Datos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS (NUBE) 🗄️</h2>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-        col_busqueda, col_filtro = st.columns([3, 1])
-        with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento en Drive...", "")
-        with col_filtro: tipo_filtro = st.selectbox("Filtro Rápido", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        archivos_mostrar = st.session_state.get("archivos_nube", [])
-        if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
-        if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
-        elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
-        elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
-        elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS Y VISOR DOCUMENTAL 🗄️</h2>", unsafe_allow_html=True)
+
+        if st.session_state.preview_file is None:
+            # VISTA DE CUADRÍCULA (GRID)
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+            col_busqueda, col_filtro = st.columns([3, 1])
+            with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento en Drive...", "")
+            with col_filtro: tipo_filtro = st.selectbox("Filtro Rápido", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
+            st.markdown("<br>", unsafe_allow_html=True)
             
-        if len(archivos_mostrar) == 0: 
-            st.warning("⚠️ No se encontraron documentos en la carpeta vinculada de Google Drive.")
+            archivos_mostrar = st.session_state.get("archivos_nube", [])
+            if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
+            if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
+            elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
+            elif tipo_filtro == "Imágenes": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.png', '.jpg', '.jpeg'))]
+            elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
+                
+            if len(archivos_mostrar) == 0: 
+                st.warning("⚠️ No se encontraron documentos en la carpeta vinculada de Google Drive.")
+            else:
+                st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos enlazados:</p>", unsafe_allow_html=True)
+                cols = st.columns(4)
+                for i, f in enumerate(archivos_mostrar):
+                    with cols[i % 4]:
+                        icono = obtener_icono(f['name'])
+                        st.markdown(f"""
+                        <div class='drive-card'>
+                            <div class='drive-icon'>{icono}</div>
+                            <div class='drive-title' title="{f['name']}">{f['name']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        if st.button("👁️ Abrir / Descargar", key=f"btn_{f['id']}", use_container_width=True):
+                            st.session_state.preview_file = f
+                            st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+            
         else:
-            # Construir un DataFrame elegante en lugar de tarjetas estáticas HTML
-            datos_tabla = []
-            for f in archivos_mostrar:
-                nombre = f['name']
-                file_id = f['id']
-                link = f"https://drive.google.com/file/d/{file_id}/view"
-                
-                if nombre.endswith('.pdf'): tipo, icon = "PDF", "📕"
-                elif nombre.endswith(('.csv', '.xlsx', '.xls')): tipo, icon = "Hoja de Cálculo", "📗"
-                elif nombre.endswith(('.png', '.jpg', '.jpeg')): tipo, icon = "Imagen", "🖼️"
-                elif nombre.endswith('.txt'): tipo, icon = "Texto", "📝"
-                else: tipo, icon = "Archivo", "📄"
-                
-                datos_tabla.append({
-                    "Icono": icon,
-                    "Nombre del Documento": nombre,
-                    "Formato": tipo,
-                    "Enlace Drive": link
-                })
+            # VISTA DE PREVISUALIZACIÓN Y DESCARGA
+            f = st.session_state.preview_file
+            st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             
-            df_archivos = pd.DataFrame(datos_tabla)
-            st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos enlazados:</p>", unsafe_allow_html=True)
+            col_back, col_title, col_down = st.columns([1, 3, 1])
+            with col_back:
+                if st.button("⬅️ Volver a la Carpeta", use_container_width=True):
+                    st.session_state.preview_file = None
+                    st.rerun()
+            with col_title:
+                st.markdown(f"<h3 style='color: #e3e3e3; margin: 0; text-align: center; font-size: 20px;'>{obtener_icono(f['name'])} {f['name']}</h3>", unsafe_allow_html=True)
             
-            # Renderizado nativo de tabla interactiva de Streamlit (Dark Mode) con links directos a Drive
-            st.dataframe(
-                df_archivos, 
-                use_container_width=True, 
-                hide_index=True,
-                column_config={
-                    "Icono": st.column_config.TextColumn("Tipo", width="small"),
-                    "Nombre del Documento": st.column_config.TextColumn("Nombre del Documento", width="medium"),
-                    "Formato": st.column_config.TextColumn("Formato", width="small"),
-                    "Enlace Drive": st.column_config.LinkColumn("🔗 Acceso en Nube", display_text="Abrir en Drive")
-                }
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("---")
+            
+            with st.spinner("Descargando archivo desde la nube de Google Drive..."):
+                try:
+                    file_bytes = drive_service.files().get_media(fileId=f['id']).execute()
+                    
+                    with col_down:
+                        st.download_button("⬇️ Descargar Archivo", data=file_bytes, file_name=f['name'], mime="application/octet-stream", use_container_width=True, type="primary")
+                    
+                    if f['name'].endswith('.pdf'):
+                        b64_pdf = base64.b64encode(file_bytes).decode('utf-8')
+                        pdf_display = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="100%" height="650px" type="application/pdf"></iframe>'
+                        st.markdown(pdf_display, unsafe_allow_html=True)
+                    elif f['name'].endswith(('.csv', '.txt')):
+                        text_data = file_bytes.decode('utf-8')
+                        if f['name'].endswith('.csv'):
+                            df_prev = pd.read_csv(StringIO(text_data))
+                            st.dataframe(df_prev, use_container_width=True, height=600)
+                        else:
+                            st.text_area("Contenido del archivo", text_data, height=500)
+                    elif f['name'].endswith(('.png', '.jpg', '.jpeg')):
+                        st.image(file_bytes, caption=f['name'], use_container_width=True)
+                    else:
+                        st.info("ℹ️ Previsualización no disponible para este formato. Utiliza el botón de descarga para verlo en tu computadora.")
+                except Exception as e:
+                    st.error(f"Error al abrir el documento: {e}")
+                    
+            st.markdown("</div>", unsafe_allow_html=True)
