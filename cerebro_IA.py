@@ -436,12 +436,11 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES (CORREGIDO: BOTÓN DE RENDER Y MATCHING)
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
         col_manual_inputs, col_3d_render = st.columns([1.3, 2])
-        
         with col_manual_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>⚙️ Configuración Visual e Inputs Manuales</div>", unsafe_allow_html=True)
@@ -453,23 +452,19 @@ if conexion_exitosa:
             default_survey = "BHID,AT,AZ,DIP\nDDH-001,0,150,-60\nDDH-001,60,152,-58\nDDH-002,0,220,-55\nDDH-002,70,218,-54\nDDH-003,0,45,-70"
             default_assay = "BHID,FROM,TO,AU_GPT\nDDH-001,0,40,0.35\nDDH-001,40,80,2.15\nDDH-001,80,120,4.80\nDDH-002,0,50,0.10\nDDH-002,50,100,1.85\nDDH-002,100,130,3.90\nDDH-003,0,60,0.90\nDDH-003,60,110,5.20"
             
-            txt_collar = st.text_area("📋 Tabla 1: COLLAR", default_collar, height=120)
-            txt_survey = st.text_area("📋 Tabla 2: SURVEY", default_survey, height=120)
-            txt_assay = st.text_area("📋 Tabla 3: ASSAY", default_assay, height=120)
-            
-            # NUEVO: Botón de renderizado explícito para evitar fallos mientras se escribe
-            btn_render_3d = st.button("🚀 RENDERIZAR MODELO 3D", type="primary", use_container_width=True)
+            txt_collar = st.text_area("📋 Tabla 1: COLLAR (Boca de pozo: BHID, X, Y, Z, DEPTH)", default_collar, height=120)
+            txt_survey = st.text_area("📋 Tabla 2: SURVEY (Trayectoria: BHID, AT, AZ, DIP)", default_survey, height=120)
+            txt_assay = st.text_area("📋 Tabla 3: ASSAY (Intervalos y Leyes: BHID, FROM, TO, LEY)", default_assay, height=120)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_3d_render:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            if btn_render_3d and txt_collar and txt_survey and txt_assay:
+            if txt_collar and txt_survey and txt_assay:
                 with st.spinner("Procesando matriz trigonométrica independiente..."):
                     try:
                         df_collar = pd.read_csv(StringIO(txt_collar), sep=None, engine='python')
                         df_survey = pd.read_csv(StringIO(txt_survey), sep=None, engine='python')
                         df_assay = pd.read_csv(StringIO(txt_assay), sep=None, engine='python')
-                        
                         df_collar.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_collar.columns]
                         df_survey.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_survey.columns]
                         df_assay.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_assay.columns]
@@ -477,6 +472,9 @@ if conexion_exitosa:
                         def buscar_col_exacta(df, palabras_clave):
                             for col in df.columns:
                                 if col in [p.upper() for p in palabras_clave]: return col
+                            for col in df.columns:
+                                for p in palabras_clave:
+                                    if p.upper() in col: return col
                             return df.columns[0]
                             
                         id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
@@ -492,10 +490,9 @@ if conexion_exitosa:
                         a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
                         col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
                         
-                        # MEJORA: Forzar mayúsculas para evitar desfase de IDs por "ddh" vs "DDH"
-                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip().str.upper()
-                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip().str.upper()
-                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip().str.upper()
+                        df_collar[id_c] = df_collar[id_c].astype(str).str.strip()
+                        df_survey[id_s] = df_survey[id_s].astype(str).str.strip()
+                        df_assay[id_a] = df_assay[id_a].astype(str).str.strip()
                         
                         def force_numeric(val):
                             try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
@@ -523,27 +520,33 @@ if conexion_exitosa:
                                 mid_depth = (row[a_from] + row[a_to]) / 2
                                 s_valido = s_data[s_data[s_at] <= mid_depth]
                                 s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
-                                dip_rad, az_rad = np.radians(s_row[s_dip]), np.radians(s_row[s_az])
+                                    
+                                dip_rad = np.radians(s_row[s_dip])
+                                az_rad = np.radians(s_row[s_az])
                                 dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
                                 dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
                                 dz = mid_depth * np.sin(dip_rad)
                                 resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
                                 
                         df_3d = pd.DataFrame(resultados)
-                        if df_3d.empty: 
-                            st.error("❌ Los códigos de taladros no coinciden o están vacíos. Revisa que el ID en Collar, Survey y Assay sea idéntico.")
+                        if df_3d.empty: st.error("❌ Los códigos de taladros no coinciden.")
                         else:
                             fig_3d = go.Figure()
                             cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                             for hole in df_3d["BHID"].unique():
                                 df_hole = df_3d[df_3d["BHID"] == hole]
-                                fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["LEY"], colorscale=escala_map[escala_color], colorbar=dict(title=dict(text=f"Ley ({col_ley})", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), line=dict(width=3, color='rgba(255,255,255,0.4)'), name=str(hole)))
+                                fig_3d.add_trace(go.Scatter3d(
+                                    x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', 
+                                    marker=dict(size=4, color=df_hole["LEY"], colorscale=escala_map[escala_color], colorbar=dict(title=dict(text=f"Ley ({col_ley})", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
+                                    line=dict(width=3, color='rgba(255,255,255,0.4)'), name=str(hole)
+                                ))
                             x_col, y_col, z_col = df_collar[c_x].values, df_collar[c_y].values, df_collar[c_z].values
                             if len(x_col) > 2:
                                 x_min, x_max = x_col.min(), x_col.max()
                                 y_min, y_max = y_col.min(), y_col.max()
                                 m_x, m_y = (x_max - x_min) * 1.0, (y_max - y_min) * 1.0
-                                grid_x, grid_y = np.linspace(x_min - m_x, x_max + m_x, 60), np.linspace(y_min - m_y, y_max + m_y, 60)
+                                grid_x = np.linspace(x_min - m_x, x_max + m_x, 60)
+                                grid_y = np.linspace(y_min - m_y, y_max + m_y, 60)
                                 XM, YM = np.meshgrid(grid_x, grid_y)
                                 XF, YF = XM.flatten(), YM.flatten()
                                 dist = np.sqrt((x_col[:, np.newaxis] - XF)**2 + (y_col[:, np.newaxis] - YF)**2)
@@ -560,10 +563,9 @@ if conexion_exitosa:
                             col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
                             col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
                             col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
-                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
-            elif not btn_render_3d:
-                st.info("👈 Ingresa o modifica tus coordenadas y presiona el botón 'RENDERIZAR MODELO 3D'.")
+                    except Exception as e: st.error(f"⚠️ Error al decodificar: {e}")
             st.markdown("</div>", unsafe_allow_html=True)
+
 
     # ====================================================================
     # PESTAÑA 5: DISEÑO DE VOLADURA
