@@ -26,7 +26,7 @@ st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout=
 
 # --- INICIALIZACIÓN DE VARIABLES DE ESTADO ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Base de Datos"
+    st.session_state.pestaña_activa = "Base de Datos" 
 if "modo_ia" not in st.session_state:
     st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
@@ -293,14 +293,13 @@ if conexion_exitosa:
                     
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
-                        
                         for f in st.session_state.get("archivos_nube", []):
                             nombre = f['name']
                             if nombre.endswith('.pdf'):
                                 try:
                                     pdf_bytes = drive_service.files().get_media(fileId=f['id']).execute()
                                     lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
+                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages if pagina.extract_text()])
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{texto_pdf}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
@@ -310,14 +309,12 @@ if conexion_exitosa:
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{txt_content}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
-                        
                         instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
                     else:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
                         instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
                     texto_final = modelo.generate_content(instruccion_final).text
-                    
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -357,14 +354,12 @@ if conexion_exitosa:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
-        
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
                 respuesta = requests.get(url_github, timeout=3)
                 if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
             except: pass
-
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
@@ -468,7 +463,6 @@ if conexion_exitosa:
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
         col_manual_inputs, col_3d_render = st.columns([1.3, 2])
-        
         with col_manual_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>⚙️ Configuración Visual e Inputs Manuales</div>", unsafe_allow_html=True)
@@ -738,7 +732,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 7: GESTOR DE BASE DE DATOS (VISOR SEGURO)
+    # PESTAÑA 7: GESTOR DE BASE DE DATOS (VISOR NATIVO CONTINGENCIA)
     # ====================================================================
     elif pestaña == "Base de Datos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS Y VISOR DOCUMENTAL 🗄️</h2>", unsafe_allow_html=True)
@@ -790,7 +784,7 @@ if conexion_exitosa:
             
             st.markdown("---")
             
-            with st.spinner("Descargando archivo desde la nube de Google Drive..."):
+            with st.spinner("Conectando con el visor seguro de la nube..."):
                 try:
                     file_bytes = drive_service.files().get_media(fileId=f['id']).execute()
                     
@@ -798,17 +792,15 @@ if conexion_exitosa:
                         st.download_button("⬇️ Descargar Archivo", data=file_bytes, file_name=f['name'], mime="application/octet-stream", use_container_width=True, type="primary")
                     
                     if f['name'].endswith('.pdf'):
-                        b64_pdf = base64.b64encode(file_bytes).decode('utf-8')
+                        # Solución Definitiva: Enlace de previsualización nativo de Google Drive (evade bloqueos de navegador)
+                        url_preview = f"https://drive.google.com/file/d/{f['id']}/preview"
+                        st.markdown(f'<iframe src="{url_preview}" width="100%" height="750px" style="border: none; border-radius: 10px; background-color: #f0f0f0;"></iframe>', unsafe_allow_html=True)
                         
-                        # SOLUCIÓN DE SEGURIDAD: Uso de EMBED en lugar de IFRAME para evitar bloqueo de Chrome
-                        pdf_display = f'<embed src="data:application/pdf;base64,{b64_pdf}" width="100%" height="700px" type="application/pdf">'
-                        st.markdown(pdf_display, unsafe_allow_html=True)
-                        
-                        # PLAN DE CONTINGENCIA: Si el navegador sigue bloqueando el embed, se extrae el texto puro
-                        with st.expander("📄 Ver contenido en texto plano (Modo de Lectura Rápida)"):
+                        # Plan de contingencia absoluto: Texto extraído si Google Drive rechaza la conexión
+                        with st.expander("📄 Ver contenido en texto plano (Si el visor superior está bloqueado por el navegador)"):
                             try:
                                 lector_pdf = PyPDF2.PdfReader(BytesIO(file_bytes))
-                                texto_extraido = "\n\n".join([pagina.extract_text() for pagina in lector_pdf.pages])
+                                texto_extraido = "\n\n".join([pagina.extract_text() for pagina in lector_pdf.pages if pagina.extract_text()])
                                 st.text_area("Texto extraído del documento:", texto_extraido, height=350)
                             except Exception as e:
                                 st.warning("No se pudo extraer el texto plano del PDF.")
