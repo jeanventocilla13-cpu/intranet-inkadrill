@@ -252,7 +252,7 @@ with st.sidebar:
     st.markdown("""
         <div style='display:flex; align-items:center; padding-left:10px;'>
             <div style='width:30px; height:30px; border-radius:50%; background-color:#a8c7fa; color:#000; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; margin-right:10px;'>J</div>
-            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Jean Kennedy</p><p style='margin:0; font-size:12px; color:#aaa;'>Ingeniería Pro</p></div>
+            <div><p style='margin:0; font-size:14px; color:#e3e3e3;'>Usuario</p><p style='margin:0; font-size:12px; color:#aaa;'>Ingeniería Pro</p></div>
         </div>
     """, unsafe_allow_html=True)
 
