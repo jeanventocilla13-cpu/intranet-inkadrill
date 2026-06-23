@@ -265,7 +265,7 @@ if conexion_exitosa:
             st.markdown("<h1 style='text-align: center; color: #ff9800; font-weight: 600; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>InkaDrill IA</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Carpeta Conectada de Google Drive (Escaneo Inteligente Automatizado)</p>", unsafe_allow_html=True)
         else:
-            st.markdown("<h1 style='text-align: center; color: #4285f4; font-weight: 600; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>Gemini IA</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; color: #4285f4; font-weight: 600; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>InkaDill IA</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Red Global e Internet (Conocimiento Enciclopédico de Ingeniería)</p>", unsafe_allow_html=True)
             
         with st.popover("➕", use_container_width=False):
