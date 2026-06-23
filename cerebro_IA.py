@@ -26,14 +26,13 @@ st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout=
 
 # --- INICIALIZACIÓN DE VARIABLES DE ESTADO ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Base de Datos" # Pestaña activa por defecto para que pruebes
+    st.session_state.pestaña_activa = "Chat Asistente Operativo"
 if "modo_ia" not in st.session_state:
     st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {"Conversación 1": []}
 if "chat_activo" not in st.session_state:
     st.session_state.chat_activo = "Conversación 1"
-# Nueva variable para controlar la previsualización de documentos
 if "preview_file" not in st.session_state:
     st.session_state.preview_file = None
 
@@ -202,11 +201,12 @@ with st.sidebar:
         st.session_state.conversaciones[nuevo_id] = []
         st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
-        st.session_state.preview_file = None # Reinicia la vista si estamos en BD
+        st.session_state.preview_file = None
         st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Herramientas</p>", unsafe_allow_html=True)
     
+    # ELIMINAMOS LA PESTAÑA DE SUBIR ARCHIVOS DE LA NAVEGACIÓN
     opciones_nav = {
         "💬": "Chat Asistente Operativo", 
         "🪨": "Cálculos Geomecánicos", 
@@ -214,8 +214,7 @@ with st.sidebar:
         "🛢️": "Visualizador 3D Sondajes", 
         "🧨": "Diseño de Voladura", 
         "⛑️": "Ventilación Minera", 
-        "🗄️": "Base de Datos",
-        "📎": "Subir Archivos" # NUEVA PESTAÑA PARA SUBIR
+        "🗄️": "Base de Datos"
     }
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
@@ -229,7 +228,7 @@ with st.sidebar:
     nav_real = seleccion_nav.split(" ", 1)[1] 
     if nav_real != st.session_state.pestaña_activa:
         st.session_state.pestaña_activa = nav_real
-        st.session_state.preview_file = None # Reinicia el visor si cambias de pestaña
+        st.session_state.preview_file = None
         st.rerun()
     
     pestaña = st.session_state.pestaña_activa
@@ -272,7 +271,27 @@ if conexion_exitosa:
             st.markdown("#### 🛠️ Herramientas de Chat")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
             with tab1:
-                st.info("ℹ️ Para subir archivos, por favor ve a la pestaña '📎 Subir Archivos' en la barra lateral.")
+                # SE RESTAURA EL CARGADOR DE ARCHIVOS AL CHAT
+                archivo_subido = st.file_uploader("Arrastra PDFs, TXT o CSV", type=["pdf", "txt", "csv", "png", "jpg", "jpeg"])
+                nombre_personalizado = st.text_input("Asignar Nombre (Opcional)", "")
+                
+                if st.button("Guardar en Nube", type="primary", use_container_width=True) and archivo_subido:
+                    with st.spinner("Subiendo a Google Drive... ⏳"):
+                        try:
+                            nombre_final = nombre_personalizado if nombre_personalizado else archivo_subido.name
+                            mimetype = archivo_subido.type if archivo_subido.type else 'application/octet-stream'
+                            metadata = {'name': nombre_final, 'parents': [ID_CARPETA_MEMORIA]}
+                            media = MediaIoBaseUpload(archivo_subido, mimetype=mimetype, resumable=True)
+                            
+                            drive_service.files().create(body=metadata, media_body=media, fields='id, name').execute()
+                            
+                            # REFRESH AUTOMÁTICO DE BASE DE DATOS (Soluciona el problema de visibilidad)
+                            query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                            st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                            
+                            st.success(f"✅ Archivo indexado correctamente.")
+                        except Exception as e:
+                            st.error(f"❌ Error al subir: {e}")
             with tab2:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
@@ -297,7 +316,6 @@ if conexion_exitosa:
                         
                         archivos_nube = st.session_state.get("archivos_nube", [])
                         if not archivos_nube:
-                             # Forzar un refresh si no hay archivos
                              query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
                              archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
                              st.session_state.archivos_nube = archivos_nube
@@ -308,7 +326,7 @@ if conexion_exitosa:
                                 try:
                                     pdf_bytes = drive_service.files().get_media(fileId=f['id']).execute()
                                     lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
+                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages if pagina.extract_text()])
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{texto_pdf}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
@@ -339,52 +357,7 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Error de conexión con las redes neuronales: {e}")
 
     # ====================================================================
-    # NUEVA PESTAÑA 2: SUBIR ARCHIVOS (REPARADA CON REFRESH DE BD)
-    # ====================================================================
-    elif pestaña == "Subir Archivos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUBIR DOCUMENTOS OPERATIVOS A DRIVE 📎</h2>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-        st.markdown("<div class='titulo-seccion'>Cargar Nuevo Archivo</div>", unsafe_allow_html=True)
-        
-        archivo_subido = st.file_uploader("Arrastra PDFs o TXT", type=["pdf", "txt", "csv", "png", "jpg", "jpeg"], key="uploader_principal")
-        nombre_personalizado = st.text_input("Asignar Nombre (Opcional, dejar vacío para usar el original)", "")
-        
-        btn_subir = st.button("🚀 SUBIR ARCHIVO A DRIVE", type="primary", use_container_width=True)
-        
-        if btn_subir and archivo_subido:
-            with st.spinner(f"Subiendo '{archivo_subido.name}' a Google Drive... ⏳"):
-                try:
-                    nombre_final = nombre_personalizado if nombre_personalizado else archivo_subido.name
-                    
-                    # CORRECCIÓN DE SUBIDA: Definir tipo de archivo correctamente
-                    mimetype = archivo_subido.type if archivo_subido.type else 'application/octet-stream'
-                    
-                    metadata = {'name': nombre_final, 'parents': [ID_CARPETA_MEMORIA]}
-                    media = MediaIoBaseUpload(archivo_subido, mimetype=mimetype, resumable=True)
-                    
-                    archivo_drive = drive_service.files().create(body=metadata, media_body=media, fields='id, name').execute()
-                    
-                    # --- EL TRUCO DEL INGENIERO: REFRESH DE BASE DE DATOS ---
-                    query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
-                    st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
-                    # -------------------------------------------------------
-                    
-                    st.success(f"✅ Archivo '{archivo_drive.get('name')}' subido con éxito e indexado en la Base de Datos.")
-                    st.info("Ahora puedes verlo en la pestaña 'Base de Datos' o consultarlo en el 'Chat'.")
-                    
-                    # Pequeño rerun para limpiar el uploader
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"❌ Error al subir archivo a Drive: {e}")
-        elif btn_subir and not archivo_subido:
-            st.warning("⚠️ Por favor, selecciona un archivo antes de intentar subirlo.")
-            
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # ====================================================================
-    # PESTAÑA 3: CÁLCULOS GEOMECÁNICOS
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -446,7 +419,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISOR TOPOGRÁFICO INTERACTIVO
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>VISOR TOPOGRÁFICO 3D AUTÓNOMO 🗺️</h2>", unsafe_allow_html=True)
@@ -519,7 +492,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 5: VISUALIZADOR 3D SONDAJES
+    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
@@ -657,7 +630,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 6: DISEÑO DE VOLADURA
+    # PESTAÑA 5: DISEÑO DE VOLADURA
     # ====================================================================
     elif pestaña == "Diseño de Voladura":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>DISEÑO DE MALLA DE PERFORACIÓN Y VOLADURA 🧨</h2>", unsafe_allow_html=True)
@@ -729,7 +702,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 7: VENTILACIÓN MINERA
+    # PESTAÑA 6: VENTILACIÓN MINERA
     # ====================================================================
     elif pestaña == "Ventilación Minera":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SISTEMA OPERATIVO DE VENTILACIÓN MINERA ⛑️</h2>", unsafe_allow_html=True)
@@ -794,7 +767,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 8: GESTOR DE BASE DE DATOS
+    # PESTAÑA 7: GESTOR DE BASE DE DATOS
     # ====================================================================
     elif pestaña == "Base de Datos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS OPERATIVOS (DRIVE) 🗄️</h2>", unsafe_allow_html=True)
@@ -808,7 +781,6 @@ if conexion_exitosa:
             
             archivos_mostrar = st.session_state.get("archivos_nube", [])
             
-            # Forzar refresh si está vacío
             if not archivos_mostrar:
                  query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
                  archivos_mostrar = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
@@ -840,7 +812,6 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
             
         else:
-            # VISTA DE PREVISUALIZACIÓN NATIVA
             f = st.session_state.preview_file
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             
