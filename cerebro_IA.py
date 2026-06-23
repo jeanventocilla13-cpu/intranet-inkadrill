@@ -26,14 +26,13 @@ st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout=
 
 # --- INICIALIZACIÓN DE VARIABLES DE ESTADO ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Base de Datos" # Pestaña activa por defecto para que pruebes
+    st.session_state.pestaña_activa = "Base de Datos"
 if "modo_ia" not in st.session_state:
     st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {"Conversación 1": []}
 if "chat_activo" not in st.session_state:
     st.session_state.chat_activo = "Conversación 1"
-# Nueva variable para controlar la previsualización de documentos
 if "preview_file" not in st.session_state:
     st.session_state.preview_file = None
 
@@ -138,7 +137,6 @@ st.markdown("""
     .metric-value { font-size: 46px; font-weight: 700; margin: 5px 0; line-height: 1; }
     .metric-label { color: #aaa; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
     
-    /* NUEVO CSS: TARJETAS ESTILO GOOGLE DRIVE */
     .drive-card { 
         background-color: rgba(30, 31, 32, 0.7); 
         border: 1px solid rgba(255, 255, 255, 0.1); 
@@ -203,7 +201,7 @@ with st.sidebar:
         st.session_state.conversaciones[nuevo_id] = []
         st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
-        st.session_state.preview_file = None # Reinicia la vista si estamos en BD
+        st.session_state.preview_file = None
         st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Herramientas</p>", unsafe_allow_html=True)
@@ -229,7 +227,7 @@ with st.sidebar:
     nav_real = seleccion_nav.split(" ", 1)[1] 
     if nav_real != st.session_state.pestaña_activa:
         st.session_state.pestaña_activa = nav_real
-        st.session_state.preview_file = None # Reinicia el visor si cambias de pestaña
+        st.session_state.preview_file = None
         st.rerun()
     
     pestaña = st.session_state.pestaña_activa
@@ -295,6 +293,7 @@ if conexion_exitosa:
                     
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
+                        
                         for f in st.session_state.get("archivos_nube", []):
                             nombre = f['name']
                             if nombre.endswith('.pdf'):
@@ -311,12 +310,14 @@ if conexion_exitosa:
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{txt_content}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
+                        
                         instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
                     else:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
                         instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
                     texto_final = modelo.generate_content(instruccion_final).text
+                    
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -356,12 +357,14 @@ if conexion_exitosa:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
+        
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
                 respuesta = requests.get(url_github, timeout=3)
                 if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
             except: pass
+
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
@@ -518,7 +521,6 @@ if conexion_exitosa:
                         a_to = buscar_col_exacta(df_assay, ['TO', 'HASTA'])
                         col_ley = buscar_col_exacta(df_assay, ['AUGPT', 'CUPCT', 'CU', 'AU', 'AG', 'LEY', 'GRADE', 'VALOR'])
                         
-                        # FUERZA MAYÚSCULAS PARA EVITAR DESFASE DE IDs
                         df_collar[id_c] = df_collar[id_c].astype(str).str.strip().str.upper()
                         df_survey[id_s] = df_survey[id_s].astype(str).str.strip().str.upper()
                         df_assay[id_a] = df_assay[id_a].astype(str).str.strip().str.upper()
@@ -736,13 +738,12 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 7: GESTOR DE BASE DE DATOS (NUEVO VISOR Y DESCARGA DIRECTA)
+    # PESTAÑA 7: GESTOR DE BASE DE DATOS (VISOR SEGURO)
     # ====================================================================
     elif pestaña == "Base de Datos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS Y VISOR DOCUMENTAL 🗄️</h2>", unsafe_allow_html=True)
 
         if st.session_state.preview_file is None:
-            # VISTA DE CUADRÍCULA (GRID)
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             col_busqueda, col_filtro = st.columns([3, 1])
             with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento en Drive...", "")
@@ -776,7 +777,6 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
             
         else:
-            # VISTA DE PREVISUALIZACIÓN Y DESCARGA
             f = st.session_state.preview_file
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             
@@ -799,8 +799,20 @@ if conexion_exitosa:
                     
                     if f['name'].endswith('.pdf'):
                         b64_pdf = base64.b64encode(file_bytes).decode('utf-8')
-                        pdf_display = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="100%" height="650px" type="application/pdf"></iframe>'
+                        
+                        # SOLUCIÓN DE SEGURIDAD: Uso de EMBED en lugar de IFRAME para evitar bloqueo de Chrome
+                        pdf_display = f'<embed src="data:application/pdf;base64,{b64_pdf}" width="100%" height="700px" type="application/pdf">'
                         st.markdown(pdf_display, unsafe_allow_html=True)
+                        
+                        # PLAN DE CONTINGENCIA: Si el navegador sigue bloqueando el embed, se extrae el texto puro
+                        with st.expander("📄 Ver contenido en texto plano (Modo de Lectura Rápida)"):
+                            try:
+                                lector_pdf = PyPDF2.PdfReader(BytesIO(file_bytes))
+                                texto_extraido = "\n\n".join([pagina.extract_text() for pagina in lector_pdf.pages])
+                                st.text_area("Texto extraído del documento:", texto_extraido, height=350)
+                            except Exception as e:
+                                st.warning("No se pudo extraer el texto plano del PDF.")
+                                
                     elif f['name'].endswith(('.csv', '.txt')):
                         text_data = file_bytes.decode('utf-8')
                         if f['name'].endswith('.csv'):
