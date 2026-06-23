@@ -88,13 +88,49 @@ st.markdown("""
     [data-testid="stBottom"], [data-testid="stBottom"] > div { background-color: transparent !important; border: none !important; box-shadow: none !important; }
     .stChatFloatingInputContainer { background-color: transparent !important; }
 
+    /* Barra de Búsqueda desplazada a la derecha para dejar hueco al botón + */
     .stChatInputContainer {
-        border-radius: 30px !important; background-color: rgba(25, 26, 27, 0.85) !important; backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important; width: calc(100% - 65px) !important; margin-left: 65px !important; margin-bottom: 15px !important;
+        border-radius: 30px !important; 
+        background-color: rgba(25, 26, 27, 0.85) !important; 
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important; 
+        width: calc(100% - 60px) !important; 
+        margin-left: 60px !important; 
+        margin-bottom: 15px !important;
     }
     .stChatInputContainer textarea { padding-left: 20px !important; color: #e3e3e3 !important; }
     
-    /* MEJORA 1: Reversión de estilo de cuadros ejecutivos limpios */
+    /* Botón "+" circular pequeño y fijo a la izquierda */
+    div[data-testid="stPopover"] { 
+        position: fixed !important; 
+        bottom: 35px !important; 
+        margin-left: 5px !important;
+        width: 44px !important; 
+        height: 44px !important; 
+        z-index: 999999 !important; 
+    }
+    div[data-testid="stPopover"] > button {
+        width: 44px !important; 
+        height: 44px !important; 
+        min-width: 44px !important; 
+        max-width: 44px !important;
+        border-radius: 50% !important; 
+        padding: 0 !important; 
+        margin: 0 !important; 
+        display: flex !important;
+        align-items: center !important; 
+        justify-content: center !important; 
+        background-color: rgba(25, 26, 27, 0.85) !important;
+        backdrop-filter: blur(12px) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.15) !important; 
+        color: #e3e3e3 !important; 
+        font-size: 24px !important; 
+        transition: 0.3s;
+    }
+    div[data-testid="stPopover"] > button:hover { background-color: rgba(255, 255, 255, 0.15) !important; color: #ffd54f !important; transform: scale(1.05); }
+    div[data-testid="stPopover"] > button svg { display: none !important; width: 0 !important; height: 0 !important; }
+    div[data-testid="stPopover"] > button p, div[data-testid="stPopover"] > button span { margin: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; }
+    
     .panel-geo { background-color: rgba(25, 26, 27, 0.6) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 12px; padding: 20px; height: 100%; }
     .titulo-seccion { color: #e3e3e3; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
     .metric-box { background-color: rgba(19, 19, 20, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; }
@@ -107,19 +143,6 @@ st.markdown("""
     .file-details { overflow: hidden; width: 100%; }
     .file-name { color: #e3e3e3; font-weight: 600; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .file-id { color: #888; font-size: 11px; margin: 0; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    /* MEJORA 2: Botón "+" pequeño, circular, fijo, a la izquierda de la barra de búsqueda */
-    div[data-testid="stPopover"] { position: fixed !important; bottom: 27px !important; left: auto !important; width: 46px !important; height: 46px !important; z-index: 999999 !important; }
-    div[data-testid="stPopover"] > button {
-        width: 46px !important; height: 46px !important; min-width: 46px !important; max-width: 46px !important;
-        border-radius: 50% !important; padding: 0 !important; margin: 0 !important; display: flex !important;
-        align-items: center !important; justify-content: center !important; background-color: rgba(25, 26, 27, 0.85) !important;
-        backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #e3e3e3 !important; font-size: 24px !important; transition: 0.3s;
-    }
-    div[data-testid="stPopover"] > button:hover { background-color: rgba(255, 255, 255, 0.15) !important; color: #ffd54f !important; }
-    /* Ocultar el texto standard del botón */
-    div[data-testid="stPopover"] > button svg { display: none !important; width: 0 !important; height: 0 !important; }
-    div[data-testid="stPopover"] > button p, div[data-testid="stPopover"] > button span { margin: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; }
     
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
@@ -152,7 +175,6 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:10px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
-    # Interruptor del Origen de la Base de Datos
     seleccion_origen = st.selectbox(
         "Base de Datos Activa:", 
         ["🌐 Gemini IA (Internet)", "🔱 InkaDrill IA (Carpeta Drive)"],
@@ -162,7 +184,6 @@ with st.sidebar:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Botón Nueva Conversación
     if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
         nuevo_id = f"Conversación {len(st.session_state.conversaciones) + 1}"
         st.session_state.conversaciones[nuevo_id] = []
@@ -197,7 +218,6 @@ with st.sidebar:
     
     pestaña = st.session_state.pestaña_activa
     
-    # Sección Exclusiva para el Historial de Conversaciones Anteriores
     st.markdown("<br>", unsafe_allow_html=True) 
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Chats Recientes</p>", unsafe_allow_html=True)
     
@@ -222,18 +242,17 @@ with st.sidebar:
 
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO (SISTEMA RAG INTEGRAL AUTOMÁTICO)
+    # PESTAÑA 1: CHATBOT UNIFICADO
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
+        # Textos limpios sin degradados problemáticos
         if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
-            st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #ffd54f, #ff9800); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>InkaDrill IA</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; color: #ff9800; font-weight: 600; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>InkaDrill IA</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Carpeta Conectada de Google Drive (Escaneo Inteligente Automatizado)</p>", unsafe_allow_html=True)
         else:
-            st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>Gemini IA</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; color: #4285f4; font-weight: 600; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>Gemini IA</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Red Global e Internet (Conocimiento Enciclopédico de Ingeniería)</p>", unsafe_allow_html=True)
             
-        # MEJORA 2: Botón ➕ circular, pequeño, fijo a la izquierda de la búsqueda.
-        # Gracias al CSS, este popover aparecerá como un círculo pequeño sobre la barra de búsqueda inferior.
         with st.popover("➕", use_container_width=False):
             st.markdown("#### 🛠️ Herramientas de Chat")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
@@ -244,12 +263,10 @@ if conexion_exitosa:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
 
-        # Renderizar historial del chat activo
         mensajes_actuales = st.session_state.conversaciones[st.session_state.chat_activo]
         for mensaje in mensajes_actuales:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        # Barra de búsqueda standard
         pregunta = st.chat_input("Escribe tu consulta operativa...")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
@@ -261,7 +278,6 @@ if conexion_exitosa:
                     contexto_master = ""
                     archivos_usados = []
                     
-                    # SI ES MODO DRIVE, EXTAE EL TEXTO DE ABSOLUTAMENTE TODOS LOS ARCHIVOS DISPONIBLES EN TIEMPO REAL
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
                         
@@ -287,10 +303,8 @@ if conexion_exitosa:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
                         instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
-                    # Generar respuesta con Gemini
                     texto_final = modelo.generate_content(instruccion_final).text
                     
-                    # AGREGAR LOS TÍTULOS DE LOS DOCUMENTOS UTILIZADOS AL FINAL
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -301,7 +315,7 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Error de conexión con las redes neuronales: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS (CON CUADROS CORREGIDOS)
+    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -341,8 +355,7 @@ if conexion_exitosa:
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
-            # Reversión de estilo de cuadros ejecutivos limpios
-            html_visor = f"<div style='background: rgba(30, 31, 32, 0.5); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px DASHED rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
+            html_visor = f"<div style='background: radial-gradient(circle, {color_hex}44 0%, transparent 70%); height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);'><img src='{src_imagen}' style='width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.9));' /><p style='color: {color_hex}; font-weight: 800; font-size: 26px; margin-top: 15px; margin-bottom: 0; letter-spacing: 2px; text-shadow: 2px 2px 4px #000;'>{codigo_gsi}</p><p style='color: #e3e3e3; font-weight: 500; font-size: 11px; margin-top: 2px; text-transform: uppercase;'>{estructura} / {condicion}</p></div>"
             st.markdown(html_visor, unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.button("⚡ ACTUALIZAR ANÁLISIS", type="primary", use_container_width=True)
@@ -354,7 +367,7 @@ if conexion_exitosa:
             elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m)."
             elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m)."
             elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. Sostenimiento concurrente."
-            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Controlled advance (0.5 a 1.0 m)."
+            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m)."
 
             st.markdown(f"""
             <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
@@ -364,7 +377,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (ENTRADA MANUAL AUTÓNOMA)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>VISOR TOPOGRÁFICO 3D AUTÓNOMO 🗺️</h2>", unsafe_allow_html=True)
@@ -542,7 +555,7 @@ if conexion_exitosa:
                                 ZF = np.sum(weights * z_col[:, np.newaxis], axis=0) / np.sum(weights, axis=0)
                                 ZM = ZF.reshape(XM.shape)
                                 fig_3d.add_trace(go.Surface(x=XM, y=YM, z=ZM, opacity=0.6, colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'))
-                            fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="X", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Y", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Z", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
+                            fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
                             st.plotly_chart(fig_3d, use_container_width=True)
                     except: st.error("Error al procesar tablas.")
             st.markdown("</div>", unsafe_allow_html=True)
@@ -567,7 +580,7 @@ if conexion_exitosa:
                 filas = st.slider("Número de Filas", 2, 10, 4)
                 columnas = st.slider("Taladros por Fila", 2, 20, 8)
             else:
-                st.info("ℹ️ Parámetros de túnel estandarizados.")
+                st.info("ℹ️ Parámetros estandarizados para una sección de galería de 3x3 metros.")
                 profundidad = st.number_input("Longitud de Avance (m)", min_value=1.0, max_value=5.0, value=3.0, step=0.5)
                 diametro_mm = st.number_input("Diámetro (mm)", min_value=32.0, max_value=64.0, value=45.0, step=1.0)
                 burden, espaciamiento, filas, columnas = 1, 1, 1, 1
@@ -588,6 +601,10 @@ if conexion_exitosa:
                     for c in range(columnas): taladros.append({"ID": f"T-{f}-{c}", "X": (c * espaciamiento) + offset, "Y": f * burden, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
             elif tipo_malla == "Frente de Túnel (Galería 3x3m)":
                 taladros.append({"ID": "A1", "X": 1.5, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A2", "X": 1.3, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A3", "X": 1.7, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A4", "X": 1.5, "Y": 1.3, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
+                taladros.append({"ID": "A5", "X": 1.5, "Y": 1.7, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 for x in [1.0, 2.0]:
                     for y in [1.0, 2.0]: taladros.append({"ID": f"Ay-{x}-{y}", "X": x, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Ayudas"})
                 for x in [0.2, 0.8, 1.5, 2.2, 2.8]: taladros.append({"ID": f"Ar-{x}", "X": x, "Y": 0.2, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arrastre"})
@@ -604,7 +621,7 @@ if conexion_exitosa:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
                 else:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
-            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="X", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Y", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Z", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
+            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
             st.plotly_chart(fig_malla, use_container_width=True)
             
             st.markdown("<div class='titulo-seccion'>Reporte de Carga Mecánica</div>", unsafe_allow_html=True)
@@ -614,9 +631,9 @@ if conexion_exitosa:
             anfo_total = tonelaje_total * factor_potencia
             anfo_por_taladro = anfo_total / num_taladros
             col_r1, col_r2, col_r3 = st.columns(3)
-            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p></div>", unsafe_allow_html=True)
-            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Malla</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p></div>", unsafe_allow_html=True)
-            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO / Taladro</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p></div>", unsafe_allow_html=True)
+            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas a Romper</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p></div>", unsafe_allow_html=True)
+            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Malla</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p></div>", unsafe_allow_html=True)
+            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO por Taladro</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
