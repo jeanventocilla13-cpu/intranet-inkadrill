@@ -35,6 +35,10 @@ if "chat_activo" not in st.session_state:
     st.session_state.chat_activo = "Conversación 1"
 if "preview_file" not in st.session_state:
     st.session_state.preview_file = None
+# NUEVO: Variables para guardar el documento adjunto temporalmente en el chat
+if "doc_chat" not in st.session_state:
+    st.session_state.doc_chat = None
+    st.session_state.texto_chat = ""
 
 def obtener_icono(nombre_archivo):
     nombre_lower = nombre_archivo.lower()
@@ -165,7 +169,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -202,11 +206,12 @@ with st.sidebar:
         st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
         st.session_state.preview_file = None
+        st.session_state.doc_chat = None # Limpiamos el adjunto al crear un nuevo chat
+        st.session_state.texto_chat = ""
         st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Herramientas</p>", unsafe_allow_html=True)
     
-    # ELIMINAMOS LA PESTAÑA DE SUBIR ARCHIVOS DE LA NAVEGACIÓN
     opciones_nav = {
         "💬": "Chat Asistente Operativo", 
         "🪨": "Cálculos Geomecánicos", 
@@ -257,7 +262,7 @@ with st.sidebar:
 
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO
+    # PESTAÑA 1: CHATBOT UNIFICADO (CON MEMORIA DINÁMICA DE ADJUNTOS)
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
         if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
@@ -270,28 +275,44 @@ if conexion_exitosa:
         with st.popover("➕", use_container_width=False):
             st.markdown("#### 🛠️ Herramientas de Chat")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
+            
             with tab1:
-                # SE RESTAURA EL CARGADOR DE ARCHIVOS AL CHAT
-                archivo_subido = st.file_uploader("Arrastra PDFs, TXT o CSV", type=["pdf", "txt", "csv", "png", "jpg", "jpeg"])
-                nombre_personalizado = st.text_input("Asignar Nombre (Opcional)", "")
+                archivo_subido = st.file_uploader("Arrastra PDFs, TXT o CSV", type=["pdf", "txt", "csv", "png", "jpg", "jpeg"], key="uploader_chat")
+                nombre_personalizado = st.text_input("Asignar Nombre (Opcional)", key="nombre_chat")
                 
-                if st.button("Guardar en Nube", type="primary", use_container_width=True) and archivo_subido:
-                    with st.spinner("Subiendo a Google Drive... ⏳"):
+                if st.button("Adjuntar al Chat y Guardar en Nube", type="primary", use_container_width=True) and archivo_subido:
+                    with st.spinner("Procesando y leyendo documento... ⏳"):
                         try:
                             nombre_final = nombre_personalizado if nombre_personalizado else archivo_subido.name
+                            
+                            # 1. Extraer texto para la memoria temporal del chat
+                            if nombre_final.endswith('.pdf'):
+                                lector_pdf = PyPDF2.PdfReader(archivo_subido)
+                                texto_extraido = "\n".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages if pagina.extract_text()])
+                                st.session_state.doc_chat = nombre_final
+                                st.session_state.texto_chat = texto_extraido
+                            elif nombre_final.endswith(('.txt', '.csv')):
+                                texto_extraido = archivo_subido.read().decode('utf-8')
+                                st.session_state.doc_chat = nombre_final
+                                st.session_state.texto_chat = texto_extraido
+                            
+                            # Resetear el puntero del archivo para poder subirlo a Drive a continuación
+                            archivo_subido.seek(0)
+                            
+                            # 2. Guardarlo permanentemente en Google Drive
                             mimetype = archivo_subido.type if archivo_subido.type else 'application/octet-stream'
                             metadata = {'name': nombre_final, 'parents': [ID_CARPETA_MEMORIA]}
                             media = MediaIoBaseUpload(archivo_subido, mimetype=mimetype, resumable=True)
-                            
                             drive_service.files().create(body=metadata, media_body=media, fields='id, name').execute()
                             
-                            # REFRESH AUTOMÁTICO DE BASE DE DATOS (Soluciona el problema de visibilidad)
+                            # Refrescar la base de datos interna de la app
                             query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
                             st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
                             
-                            st.success(f"✅ Archivo indexado correctamente.")
+                            st.success(f"✅ Documento '{nombre_final}' adjuntado al chat con éxito.")
                         except Exception as e:
-                            st.error(f"❌ Error al subir: {e}")
+                            st.error(f"❌ Error al procesar el archivo: {e}")
+                            
             with tab2:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
@@ -299,6 +320,18 @@ if conexion_exitosa:
         mensajes_actuales = st.session_state.conversaciones[st.session_state.chat_activo]
         for mensaje in mensajes_actuales:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
+
+        # NUEVO: Indicador visual de documento activo en el chat
+        if st.session_state.doc_chat:
+            st.markdown(f"""
+            <div style='background-color: rgba(66, 133, 244, 0.1); border-left: 3px solid #4285f4; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;'>
+                <span style='color: #a8c7fa; font-size: 14px;'>📎 <b>Documento en memoria del chat:</b> {st.session_state.doc_chat}</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("❌ Quitar Documento Adjunto", key="btn_quitar_doc", help="Limpia la memoria del archivo actual"):
+                st.session_state.doc_chat = None
+                st.session_state.texto_chat = ""
+                st.rerun()
 
         pregunta = st.chat_input("Escribe tu consulta operativa...")
         if pregunta:
@@ -311,6 +344,11 @@ if conexion_exitosa:
                     contexto_master = ""
                     archivos_usados = []
                     
+                    # Siempre inyectar el documento adjuntado directamente por el usuario en esta sesión
+                    if st.session_state.doc_chat:
+                        contexto_master += f"--- DOCUMENTO ADJUNTO DIRECTAMENTE POR EL USUARIO: {st.session_state.doc_chat} ---\n{st.session_state.texto_chat}\n\n"
+                        archivos_usados.append(st.session_state.doc_chat)
+                    
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
                         
@@ -322,6 +360,9 @@ if conexion_exitosa:
 
                         for f in archivos_nube:
                             nombre = f['name']
+                            # Evitar duplicar el documento si ya lo inyectamos arriba como adjunto manual
+                            if nombre == st.session_state.doc_chat: continue
+                            
                             if nombre.endswith('.pdf'):
                                 try:
                                     pdf_bytes = drive_service.files().get_media(fileId=f['id']).execute()
@@ -338,17 +379,21 @@ if conexion_exitosa:
                                 except: pass
                         
                         if not contexto_master:
-                             contexto_master = "No hay documentos disponibles en la carpeta de Drive vinculada."
+                             contexto_master = "No hay documentos disponibles en la carpeta de Drive vinculada ni en el chat."
 
                         instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
                     else:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
-                        instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
+                        if contexto_master:
+                            # Modo Internet, pero hay un archivo adjunto
+                            instruccion_final = f"Aquí tienes un documento adjunto por el usuario:\n{contexto_master}\n\nResponde la siguiente consulta utilizando este documento y tu base de conocimiento global de internet: {pregunta}"
+                        else:
+                            instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
                     texto_final = modelo.generate_content(instruccion_final).text
                     
-                    if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
-                        fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
+                    if archivos_usados:
+                        fuentes_html = "\n\n---\n🗄️ **Documentos indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
                         
                     caja_respuesta.markdown(texto_final)
@@ -386,14 +431,12 @@ if conexion_exitosa:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
-        
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
                 respuesta = requests.get(url_github, timeout=3)
                 if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
             except: pass
-
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
