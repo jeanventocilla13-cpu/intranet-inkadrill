@@ -192,7 +192,7 @@ with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:10px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
     # Fijamos el modo IA a Internet para que nunca intente conectar a Drive
-    st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
+    st.session_state.modo_ia = "🌐 InkaDrill IA (Internet)"
     
     st.markdown("<br>", unsafe_allow_html=True)
     
