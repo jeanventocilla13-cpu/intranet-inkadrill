@@ -24,11 +24,11 @@ import math
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
 
-# --- INICIALIZACIÓN DE VARIABLES DE ESTADO (NUEVO SISTEMA DE CHATS) ---
+# --- INICIALIZACIÓN DE VARIABLES DE ESTADO DE CHATS ---
 if "pestaña_activa" not in st.session_state:
     st.session_state.pestaña_activa = "Chat Asistente Operativo"
 if "modo_ia" not in st.session_state:
-    st.session_state.modo_ia = "🌐 General"
+    st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {"Conversación 1": []}
 if "chat_activo" not in st.session_state:
@@ -116,7 +116,7 @@ ID_CARPETA_MEMORIA = "1L-6rI-3lu4m0PoXk8Y1brudQC9PrkGCn"
 # --- 2. CONEXIÓN A LAS IA Y GOOGLE DRIVE ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    modelo = genai.GenerativeModel('gemini-2.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     
     SCOPES = ['https://www.googleapis.com/auth/drive']
     token_dict = json.loads(st.secrets["GOOGLE_TOKEN"])
@@ -138,9 +138,13 @@ if "archivos_nube" not in st.session_state and conexion_exitosa:
 with st.sidebar:
     st.markdown("<div style='display:flex; align-items:center; margin-bottom:10px;'><h2 style='color:#e3e3e3; font-weight:500; font-size:22px; margin:0;'>✨ InkaDrill IA</h2></div>", unsafe_allow_html=True)
     
-    # NUEVO: Selector de Modo de IA
-    nuevo_modo = st.selectbox("Origen de Datos IA:", ["🌐 Búsqueda General", "📂 Base de Datos Drive"], index=0 if st.session_state.modo_ia == "🌐 General" else 1)
-    st.session_state.modo_ia = "🌐 General" if "General" in nuevo_modo else "📂 Drive"
+    # MEJORA 2: Interruptor del Origen de la Base de Datos (Entre el logo y nuevo chat)
+    seleccion_origen = st.selectbox(
+        "Base de Datos Activa:", 
+        ["🌐 Gemini IA (Internet)", "🔱 InkaDrill IA (Carpeta Drive)"],
+        index=0 if st.session_state.modo_ia == "🌐 Gemini IA (Internet)" else 1
+    )
+    st.session_state.modo_ia = seleccion_origen
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -179,9 +183,9 @@ with st.sidebar:
     
     pestaña = st.session_state.pestaña_activa
     
-    # NUEVO: Historial de Chats en lugar de archivos
+    # MEJORA 1: Sección Exclusiva para el Historial de Conversaciones Anteriores
     st.markdown("<br>", unsafe_allow_html=True) 
-    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Historial de Chats</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-bottom:5px; padding-left:10px;'>Chats Recientes</p>", unsafe_allow_html=True)
     
     nombres_chats = list(st.session_state.conversaciones.keys())
     nombres_chats_fmt = [f"💬 {c}" for c in nombres_chats]
@@ -204,21 +208,15 @@ with st.sidebar:
 
 if conexion_exitosa:
     # ====================================================================
-    # PESTAÑA 1: CHATBOT UNIFICADO (NUEVA LÓGICA DE MODOS)
+    # PESTAÑA 1: CHATBOT UNIFICADO (SISTEMA RAG INTEGRAL AUTOMÁTICO)
     # ====================================================================
     if pestaña == "Chat Asistente Operativo":
-        st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #d96570, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 30px;'>Hola, Jean</h1>", unsafe_allow_html=True)
-        
-        doc_contexto = None
-        if st.session_state.modo_ia == "📂 Drive":
-            st.info("📂 **Modo Drive Activo:** La IA responderá basándose estrictamente en el documento que selecciones a continuación.")
-            archivos_texto = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.pdf', '.txt'))]
-            if archivos_texto:
-                doc_contexto = st.selectbox("Selecciona el documento guía para el asistente:", archivos_texto)
-            else:
-                st.warning("⚠️ No se detectaron documentos PDF o TXT en tu Google Drive.")
+        if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
+            st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #ffd54f, #ff9800); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>InkaDrill IA</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Carpeta Conectada de Google Drive (Escaneo Inteligente Automatizado)</p>", unsafe_allow_html=True)
         else:
-            st.info("🌐 **Modo General Activo:** La IA responderá usando su conocimiento global sobre minería e ingeniería.")
+            st.markdown("<h1 style='text-align: center; background: -webkit-linear-gradient(45deg, #4285f4, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 500; font-size: 46px; margin-top: 50px; margin-bottom: 5px;'>Gemini IA</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #aaa; font-size: 14px;'>Base de Datos: Red Global e Internet (Conocimiento Enciclopédico de Ingeniería)</p>", unsafe_allow_html=True)
             
         with st.popover("➕", use_container_width=False):
             st.markdown("#### 🛠️ Herramientas")
@@ -230,36 +228,60 @@ if conexion_exitosa:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
 
-        # Renderizar mensajes del chat activo
+        # Renderizar historial del chat activo
         mensajes_actuales = st.session_state.conversaciones[st.session_state.chat_activo]
         for mensaje in mensajes_actuales:
             with st.chat_message(mensaje["rol"]): st.markdown(mensaje["contenido"])
 
-        pregunta = st.chat_input("Escribe tu consulta geológica o de ingeniería...")
+        pregunta = st.chat_input("Escribe tu consulta operativa...")
         if pregunta:
             with st.chat_message("user"): st.markdown(pregunta)
             mensajes_actuales.append({"rol": "user", "contenido": pregunta})
             
             with st.chat_message("assistant"):
                 caja_respuesta = st.empty()
-                caja_respuesta.markdown("Procesando consulta... ⏳")
                 try:
-                    contexto_documento = ""
-                    if st.session_state.modo_ia == "📂 Drive" and doc_contexto:
-                        try:
-                            file_id = next(f['id'] for f in st.session_state.archivos_nube if f['name'] == doc_contexto)
-                            if doc_contexto.endswith('.pdf'):
-                                pdf_bytes = drive_service.files().get_media(fileId=file_id).execute()
-                                lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                texto_extraido = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
-                                contexto_documento = f"BASA TU RESPUESTA ESTRICTAMENTE EN EL SIGUIENTE DOCUMENTO OFICIAL ({doc_contexto}):\n\n{texto_extraido}\n\n"
-                        except Exception as e: pass
+                    contexto_master = ""
+                    archivos_usados = []
+                    
+                    # SI ES MODO DRIVE, EXTAE EL TEXTO DE ABSOLUTAMENTE TODOS LOS ARCHIVOS DISPONIBLES EN TIEMPO REAL
+                    if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
+                        caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
                         
-                    instruccion_final = f"{contexto_documento}PREGUNTA DEL INGENIERO: {pregunta}"
+                        for f in st.session_state.get("archivos_nube", []):
+                            nombre = f['name']
+                            if nombre.endswith('.pdf'):
+                                try:
+                                    pdf_bytes = drive_service.files().get_media(fileId=f['id']).execute()
+                                    lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
+                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
+                                    contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{texto_pdf}\n\n"
+                                    archivos_usados.append(nombre)
+                                except: pass
+                            elif nombre.endswith(('.txt', '.csv')):
+                                try:
+                                    txt_content = drive_service.files().get_media(fileId=f['id']).execute().decode('utf-8')
+                                    contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{txt_content}\n\n"
+                                    archivos_usados.append(nombre)
+                                except: pass
+                        
+                        instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
+                    else:
+                        caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
+                        instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
+                    
+                    # Generar respuesta con Gemini
                     texto_final = modelo.generate_content(instruccion_final).text
+                    
+                    # AGREGAR LOS TÍTULOS DE LOS DOCUMENTOS UTILIZADOS AL FINAL (MEJORA SOLICITADA)
+                    if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
+                        fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
+                        texto_final += fuentes_html
+                        
                     caja_respuesta.markdown(texto_final)
                     mensajes_actuales.append({"rol": "assistant", "contenido": texto_final})
-                except Exception as e: caja_respuesta.error(f"Hubo un error de conexión con el motor IA: {e}")
+                except Exception as e: 
+                    caja_respuesta.error(f"Error de conexión con las redes neuronales: {e}")
 
     # ====================================================================
     # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
@@ -310,11 +332,11 @@ if conexion_exitosa:
         with col_resultados:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>Informes y Resultados</div>", unsafe_allow_html=True)
-            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m).<br><br><b>Soporte:</b> No requiere sostenimiento sistemático."
-            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m).<br><br><b>Soporte:</b> Instalar pernos sistemáticos espaciados entre 1.5 y 2.0 m."
-            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m).<br><br><b>Soporte:</b> Pernos sistemáticos. <b>Obligatorio:</b> Aplicación de shotcrete estructural."
-            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. Sostenimiento concurrente.<br><br><b>Soporte:</b> Perneado denso, malla electrosoldada y shotcrete grueso (10-15 cm)."
-            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Múltiple y controlado (0.5 a 1.0 m).<br><br><b>Soporte:</b> Uso de cerchas pesadas, marchavantes y blindaje con shotcrete (>15 cm)."
+            if rmr_final >= 81: texto_rmr, rec_eng = "Muy Bueno", "<b>Avance permitido:</b> Excavación a sección completa (hasta 3.0 m)."
+            elif rmr_final >= 61: texto_rmr, rec_eng = "Bueno", "<b>Avance permitido:</b> Sección completa (1.5 a 3.0 m)."
+            elif rmr_final >= 41: texto_rmr, rec_eng = "Regular", "<b>Avance permitido:</b> Por galerías y banqueo (1.5 a 3.0 m)."
+            elif rmr_final >= 21: texto_rmr, rec_eng = "Malo", "<b>Avance permitido:</b> 1.0 a 1.5 m. Sostenimiento concurrente."
+            else: texto_rmr, rec_eng = "Muy Malo", "<b>Avance permitido:</b> Controlled advance (0.5 a 1.0 m)."
 
             st.markdown(f"""
             <div class='metric-box' style='border-color: {color_hex}66 !important;'><p class='metric-label'>Código GSI</p><p class='metric-value' style='color: {color_hex}; font-size: 38px;'>{codigo_gsi}</p></div>
@@ -324,84 +346,73 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (ACTUALIZADO SIN SIDEBAR)
+    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO (ENTRADA MANUAL AUTÓNOMA)
     # ====================================================================
     elif pestaña == "Visor Topográfico":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>CONTROL TOPOGRÁFICO Y MAPAS GEOESPACIALES 🗺️</h2>", unsafe_allow_html=True)
-        col_inputs, col_visor = st.columns([1.2, 2])
-        total_puntos_mapeados, sistema_coords_detectado, centroide_elevacion_str, df_mapa_global = 0, "Ninguno", "0.0 m", None
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>VISOR TOPOGRÁFICO 3D AUTÓNOMO 🗺️</h2>", unsafe_allow_html=True)
+        col_inputs_topo, col_render_topo = st.columns([1.2, 2])
         
-        with col_inputs:
+        with col_inputs_topo:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            st.markdown("<div class='titulo-seccion'>Control Documental de Obra</div>", unsafe_allow_html=True)
-            
-            archivos_topo = [f['name'] for f in st.session_state.get("archivos_nube", []) if f['name'].endswith(('.csv', '.txt'))]
-            archivos_topo.insert(0, "Modo de Simulación (Ate, Lima)")
-            sel_topo = st.selectbox("Cargar Base de Datos Topográfica (Drive):", archivos_topo)
-            
-            capa_base = st.selectbox("Seleccionar Capa Base de Terreno", ["CartoDB dark_matter", "OpenStreetMap", "CartoDB positron"])
+            st.markdown("<div class='titulo-seccion'>⚙️ Entrada de Coordenadas y Filtros</div>", unsafe_allow_html=True)
+            paleta_topo = st.selectbox("🎨 Escala Cromática de Elevación (Cotas)", ["Tierra (Marrón-Verde-Amarillo)", "Rojo-Verde-Azul Dinámico", "Viridis Geo", "Plasma de Altas Cotas"])
+            mapa_paletas = {
+                "Tierra (Marrón-Verde-Amarillo)": [[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']],
+                "Rojo-Verde-Azul Dinámico": [[0, 'blue'], [0.5, 'green'], [1, 'red']],
+                "Viridis Geo": "Viridis", "Plasma de Altas Cotas": "Plasma"
+            }
+            st.markdown("<p style='font-size: 13px; color: #aaa; margin-bottom: 5px;'>Copia y pega las estaciones del levantamiento en formato CSV:</p>", unsafe_allow_html=True)
+            default_topo_data = "ESTACION,ESTE_X,NORTE_Y,COTA_Z\nE-01,500000,8800000,4320\nE-02,500050,8800020,4315\nE-03,500100,8800010,4290\nE-04,500020,8800080,4340\nE-05,500080,8800090,4310\nE-06,500120,8800060,4285\nE-07,500160,8800120,4260\nE-08,500220,8800100,4245"
+            txt_topo = st.text_area("📋 Datos Planimétricos (Formato: ID, X, Y, Z)", default_topo_data, height=250)
             st.markdown("</div>", unsafe_allow_html=True)
-
-        with col_visor:
+            
+        with col_render_topo:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
-            if sel_topo == "Modo de Simulación (Ate, Lima)":
-                sistema_coords_detectado = "Geográficas (WGS84)"
-                total_puntos_mapeados = 1
-                centroide_elevacion_str = "-12.025, -76.908"
-                mapa_mina = folium.Map(location=[-12.025, -76.908], zoom_start=14, tiles=capa_base)
-                st_folium(mapa_mina, width="100%", height=450)
-            else:
-                with st.spinner("Decodificando planimetría UTM/Geográfica..."):
+            if txt_topo:
+                with st.spinner("Interpolando malla topográfica tridimensional..."):
                     try:
-                        archivo_encontrado = next((f for f in st.session_state.archivos_nube if f['name'] == sel_topo), None)
-                        if not archivo_encontrado: st.error("⚠️ Archivo no encontrado.")
-                        else:
-                            csv_content = drive_service.files().get_media(fileId=archivo_encontrado['id']).execute().decode('utf-8')
-                            df_mapa_global = pd.read_csv(StringIO(csv_content))
-                            df_mapa_global.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_mapa_global.columns]
+                        df_topo = pd.read_csv(StringIO(txt_topo), sep=None, engine='python')
+                        df_topo.columns = [re.sub(r'[^a-zA-Z0-9_]', '', str(c).strip().upper()) for c in df_topo.columns]
+                        c_x = next((c for c in df_topo.columns if str(c) in ['X', 'ESTE', 'EAST', 'EASTING', 'ESTE_X']), df_topo.columns[1])
+                        c_y = next((c for c in df_topo.columns if str(c) in ['Y', 'NORTE', 'NORTH', 'NORTHING', 'NORTE_Y']), df_topo.columns[2])
+                        c_z = next((c for c in df_topo.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL', 'COTA_Z']), df_topo.columns[3])
+                        
+                        def force_num(val):
+                            try: return float(re.sub(r'[^0-9.-]', '', str(val).replace(',', '.')))
+                            except: return 0.0
+                        df_topo[c_x] = df_topo[c_x].apply(force_num)
+                        df_topo[c_y] = df_topo[c_y].apply(force_num)
+                        df_topo[c_z] = df_topo[c_z].apply(force_num)
+                        
+                        x_arr, y_arr, z_arr = df_topo[c_x].values, df_topo[c_y].values, df_topo[c_z].values
+                        fig_topo_3d = go.Figure()
+                        
+                        if len(x_arr) > 2:
+                            x_min, x_max = x_arr.min(), x_arr.max()
+                            y_min, y_max = y_arr.min(), y_arr.max()
+                            m_x, m_y = (x_max - x_min) * 1.0, (y_max - y_min) * 1.0
+                            g_x = np.linspace(x_min - m_x, x_max + m_x, 60)
+                            g_y = np.linspace(y_min - m_y, y_max + m_y, 60)
+                            XM, YM = np.meshgrid(g_x, g_y)
+                            XF, YF = XM.flatten(), YM.flatten()
+                            distancias = np.sqrt((x_arr[:, np.newaxis] - XF)**2 + (y_arr[:, np.newaxis] - YF)**2)
+                            distancias = np.where(distancias == 0, 1e-10, distancias)
+                            pesos = 1.0 / (distancias ** 2)
+                            ZF = np.sum(pesos * z_arr[:, np.newaxis], axis=0) / np.sum(pesos, axis=0)
+                            ZM = ZF.reshape(XM.shape)
                             
-                            col_lat = next((c for c in df_mapa_global.columns if 'LAT' in str(c)), None)
-                            col_lon = next((c for c in df_mapa_global.columns if 'LON' in str(c) or 'LNG' in str(c)), None)
-                            col_norte = next((c for c in df_mapa_global.columns if str(c) in ['NORTE', 'NORTH', 'Y', 'Y_UTM']), None)
-                            col_este = next((c for c in df_mapa_global.columns if str(c) in ['ESTE', 'EAST', 'X', 'X_UTM']), None)
-                            col_z = next((c for c in df_mapa_global.columns if str(c) in ['Z', 'ELEV', 'COTA', 'RL']), None)
-                            
-                            if df_mapa_global.empty: st.warning("⚠️ Archivo vacío.")
-                            elif col_norte is not None and col_este is not None:
-                                sistema_coords_detectado = "UTM WGS84 Z-18S"
-                                df_clean = df_mapa_global.dropna(subset=[col_norte, col_este])
-                                total_puntos_mapeados = len(df_clean)
-                                transformer = Transformer.from_crs("epsg:32718", "epsg:4326", always_xy=True)
-                                lon_centro, lat_centro = transformer.transform(float(df_clean[col_este].mean()), float(df_clean[col_norte].mean()))
-                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_centro:,.4f}°"
-                                mapa_dinamico = folium.Map(location=[lat_centro, lon_centro], zoom_start=16, tiles=capa_base)
-                                for idx, row in df_clean.iterrows():
-                                    try:
-                                        l_v, la_v = transformer.transform(float(str(row[col_este]).replace(',','.')), float(str(row[col_norte]).replace(',','.')))
-                                        folium.Marker([la_v, l_v], popup=f"Punto: {str(row.iloc[0])}", icon=folium.Icon(color="red", icon="flag")).add_to(mapa_dinamico)
-                                    except: pass
-                                st_folium(mapa_dinamico, width="100%", height=450)
-                            elif col_lat is not None and col_lon is not None:
-                                sistema_coords_detectado = "Geográficas WGS84"
-                                df_clean = df_mapa_global.dropna(subset=[col_lat, col_lon])
-                                total_puntos_mapeados = len(df_clean)
-                                lat_m, lon_m = df_clean[col_lat].apply(lambda x: float(str(x).replace(',','.'))).mean(), df_clean[col_lon].apply(lambda x: float(str(x).replace(',','.'))).mean()
-                                centroide_elevacion_str = f"{df_clean[col_z].apply(lambda x: float(re.sub(r'[^0-9.-]', '', str(x).replace(',','.'))) if pd.notnull(x) else 0.0).mean():,.1f} m" if col_z else f"{lat_m:,.4f}°"
-                                mapa_dinamico = folium.Map(location=[lat_m, lon_m], zoom_start=14, tiles=capa_base)
-                                for idx, row in df_clean.iterrows():
-                                    try: folium.Marker([float(str(row[col_lat]).replace(',','.')), float(str(row[col_lon]).replace(',','.'))], popup=str(row.iloc[0]), icon=folium.Icon(color="green", icon="info-sign")).add_to(mapa_dinamico)
-                                    except: pass
-                                st_folium(mapa_dinamico, width="100%", height=450)
-                    except: st.error("Error crítico en el renderizado.")
-            st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor</div>", unsafe_allow_html=True)
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Puntos Totales</p><p class='metric-value' style='color: #4af4ff; font-size:32px;'>{total_puntos_mapeados}</p><p style='color:#aaa; font-size:12px; margin:0;'>Estaciones Levantadas</p></div>", unsafe_allow_html=True)
-            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Sistema de Referencia</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{sistema_coords_detectado}</p><p style='color:#aaa; font-size:12px; margin:0;'>Detección Digital</p></div>", unsafe_allow_html=True)
-            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota / Centroide</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{centroide_elevacion_str}</p><p style='color:#aaa; font-size:12px; margin:0;'>Datum del Plano</p></div>", unsafe_allow_html=True)
+                            fig_topo_3d.add_trace(go.Surface(x=XM, y=YM, z=ZM, opacity=0.75, colorscale=mapa_paletas[paleta_topo], colorbar=dict(title=dict(text="Cota (m)", font=dict(color='white')), tickfont=dict(color='white')), name='Terreno'))
+                        fig_topo_3d.add_trace(go.Scatter3d(x=x_arr, y=y_arr, z=z_arr, mode='markers+text', text=df_topo.iloc[:, 0].astype(str), textposition="top center", marker=dict(size=6, color='white', symbol='diamond'), name='Vértices', textfont=dict(color='white', size=10)))
+                        fig_topo_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=480, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Cota (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
+                        st.plotly_chart(fig_topo_3d, use_container_width=True)
+                        
+                        st.markdown("<div class='titulo-seccion'>Reporte Fisiográfico de la Labor Mapeada</div>", unsafe_allow_html=True)
+                        col_tb1, col_md2, col_md3 = st.columns(3)
+                        col_tb1.markdown(f"<div class='metric-box'><p class='metric-label'>Estaciones</p><p class='metric-value' style='color:#4af4ff; font-size:32px;'>{len(df_topo)}</p></div>", unsafe_allow_html=True)
+                        col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Máxima</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{z_arr.max():,.1f} m</p></div>", unsafe_allow_html=True)
+                        col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Cota Mínima</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{z_arr.min():,.1f} m</p></div>", unsafe_allow_html=True)
+                    except Exception as e: st.error(f"⚠️ Error: {e}")
             st.markdown("</div>", unsafe_allow_html=True)
-        with col_inputs:
-            if df_mapa_global is not None:
-                with st.expander("🔎 Ver Base de Datos Estructural", expanded=False): st.dataframe(df_mapa_global, use_container_width=True)
 
     # ====================================================================
     # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
@@ -420,9 +431,9 @@ if conexion_exitosa:
             default_survey = "BHID,AT,AZ,DIP\nDDH-001,0,150,-60\nDDH-001,60,152,-58\nDDH-002,0,220,-55\nDDH-002,70,218,-54\nDDH-003,0,45,-70"
             default_assay = "BHID,FROM,TO,AU_GPT\nDDH-001,0,40,0.35\nDDH-001,40,80,2.15\nDDH-001,80,120,4.80\nDDH-002,0,50,0.10\nDDH-002,50,100,1.85\nDDH-002,100,130,3.90\nDDH-003,0,60,0.90\nDDH-003,60,110,5.20"
             
-            txt_collar = st.text_area("📋 Tabla 1: COLLAR (Boca de pozo: BHID, X, Y, Z, DEPTH)", default_collar, height=120)
-            txt_survey = st.text_area("📋 Tabla 2: SURVEY (Trayectoria: BHID, AT, AZ, DIP)", default_survey, height=120)
-            txt_assay = st.text_area("📋 Tabla 3: ASSAY (Intervalos y Leyes: BHID, FROM, TO, LEY)", default_assay, height=120)
+            txt_collar = st.text_area("📋 Tabla 1: COLLAR", default_collar, height=120)
+            txt_survey = st.text_area("📋 Tabla 2: SURVEY", default_survey, height=120)
+            txt_assay = st.text_area("📋 Tabla 3: ASSAY", default_assay, height=120)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_3d_render:
@@ -440,9 +451,6 @@ if conexion_exitosa:
                         def buscar_col_exacta(df, palabras_clave):
                             for col in df.columns:
                                 if col in [p.upper() for p in palabras_clave]: return col
-                            for col in df.columns:
-                                for p in palabras_clave:
-                                    if p.upper() in col: return col
                             return df.columns[0]
                             
                         id_c = buscar_col_exacta(df_collar, ['HOLEID', 'BHID', 'HOLE_ID', 'HOLE', 'ID', 'TALADRO'])
@@ -488,33 +496,26 @@ if conexion_exitosa:
                                 mid_depth = (row[a_from] + row[a_to]) / 2
                                 s_valido = s_data[s_data[s_at] <= mid_depth]
                                 s_row = s_data.iloc[0] if s_valido.empty else s_valido.iloc[-1]
-                                    
-                                dip_rad = np.radians(s_row[s_dip])
-                                az_rad = np.radians(s_row[s_az])
+                                dip_rad, az_rad = np.radians(s_row[s_dip]), np.radians(s_row[s_az])
                                 dx = mid_depth * np.cos(dip_rad) * np.sin(az_rad)
                                 dy = mid_depth * np.cos(dip_rad) * np.cos(az_rad)
                                 dz = mid_depth * np.sin(dip_rad)
                                 resultados.append({'BHID': bhid, 'X': x0 + dx, 'Y': y0 + dy, 'Z': z0 + dz, 'LEY': row[col_ley]})
                                 
                         df_3d = pd.DataFrame(resultados)
-                        if df_3d.empty: st.error("❌ Los códigos de taladros no coinciden.")
+                        if df_3d.empty: st.error("❌ Desfase de IDs.")
                         else:
                             fig_3d = go.Figure()
                             cmax_val = max(0.1, df_3d['LEY'].quantile(0.98))
                             for hole in df_3d["BHID"].unique():
                                 df_hole = df_3d[df_3d["BHID"] == hole]
-                                fig_3d.add_trace(go.Scatter3d(
-                                    x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', 
-                                    marker=dict(size=4, color=df_hole["LEY"], colorscale=escala_map[escala_color], colorbar=dict(title=dict(text=f"Ley ({col_ley})", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), 
-                                    line=dict(width=3, color='rgba(255,255,255,0.4)'), name=str(hole)
-                                ))
+                                fig_3d.add_trace(go.Scatter3d(x=df_hole["X"], y=df_hole["Y"], z=df_hole["Z"], mode='lines+markers', marker=dict(size=4, color=df_hole["LEY"], colorscale=escala_map[escala_color], colorbar=dict(title=dict(text=f"Ley ({col_ley})", font=dict(color='white')), tickfont=dict(color='white')), cmin=0, cmax=cmax_val), line=dict(width=3, color='rgba(255,255,255,0.4)'), name=str(hole)))
                             x_col, y_col, z_col = df_collar[c_x].values, df_collar[c_y].values, df_collar[c_z].values
                             if len(x_col) > 2:
                                 x_min, x_max = x_col.min(), x_col.max()
                                 y_min, y_max = y_col.min(), y_col.max()
                                 m_x, m_y = (x_max - x_min) * 1.0, (y_max - y_min) * 1.0
-                                grid_x = np.linspace(x_min - m_x, x_max + m_x, 60)
-                                grid_y = np.linspace(y_min - m_y, y_max + m_y, 60)
+                                grid_x, grid_y = np.linspace(x_min - m_x, x_max + m_x, 60), np.linspace(y_min - m_y, y_max + m_y, 60)
                                 XM, YM = np.meshgrid(grid_x, grid_y)
                                 XF, YF = XM.flatten(), YM.flatten()
                                 dist = np.sqrt((x_col[:, np.newaxis] - XF)**2 + (y_col[:, np.newaxis] - YF)**2)
@@ -525,13 +526,7 @@ if conexion_exitosa:
                                 fig_3d.add_trace(go.Surface(x=XM, y=YM, z=ZM, opacity=0.6, colorscale=[[0, '#3e2723'], [0.5, '#5d4037'], [1, '#2e7d32']], showscale=False, name='Topografía'))
                             fig_3d.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=500, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Este (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Norte (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Elevación (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), legend=dict(font=dict(color="white")))
                             st.plotly_chart(fig_3d, use_container_width=True)
-                            
-                            st.markdown("<div class='titulo-seccion'>Análisis de Consistencia de Datos Levantados</div>", unsafe_allow_html=True)
-                            col_md1, col_md2, col_md3 = st.columns(3)
-                            col_md1.markdown(f"<div class='metric-box'><p class='metric-label'>Taladros Leídos</p><p class='metric-value' style='color:#a8c7fa; font-size:32px;'>{len(df_3d['BHID'].unique())}</p></div>", unsafe_allow_html=True)
-                            col_md2.markdown(f"<div class='metric-box'><p class='metric-label'>Intervalos de Muestreo</p><p class='metric-value' style='color:#ffeb3b; font-size:32px;'>{len(df_assay)}</p></div>", unsafe_allow_html=True)
-                            col_md3.markdown(f"<div class='metric-box'><p class='metric-label'>Ley Máxima Encontrada</p><p class='metric-value' style='color:#8bc34a; font-size:32px;'>{df_assay[col_ley].max():,.2f}</p></div>", unsafe_allow_html=True)
-                    except Exception as e: st.error(f"⚠️ Error al decodificar las tablas de texto: {e}")
+                    except: st.error("Error al procesar tablas.")
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -554,13 +549,13 @@ if conexion_exitosa:
                 filas = st.slider("Número de Filas", 2, 10, 4)
                 columnas = st.slider("Taladros por Fila", 2, 20, 8)
             else:
-                st.info("ℹ️ Parámetros estandarizados para una sección de galería de 3x3 metros.")
+                st.info("ℹ️ Parámetros de túnel estandarizados.")
                 profundidad = st.number_input("Longitud de Avance (m)", min_value=1.0, max_value=5.0, value=3.0, step=0.5)
-                diametro_mm = st.number_input("Diámetro de Taladro (mm)", min_value=32.0, max_value=64.0, value=45.0, step=1.0)
+                diametro_mm = st.number_input("Diámetro (mm)", min_value=32.0, max_value=64.0, value=45.0, step=1.0)
                 burden, espaciamiento, filas, columnas = 1, 1, 1, 1
             st.markdown("<br><div class='titulo-seccion'>Parámetros de Voladura</div>", unsafe_allow_html=True)
             densidad_roca = st.number_input("Densidad de la Roca (ton/m³)", min_value=1.0, max_value=5.0, value=2.7, step=0.1)
-            factor_potencia = st.number_input("Factor de Potencia Deseado (kg/ton)", min_value=0.1, max_value=2.0, value=0.45, step=0.05)
+            factor_potencia = st.number_input("Factor de Potencia (kg/ton)", min_value=0.1, max_value=2.0, value=0.45, step=0.05)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_visor:
@@ -575,10 +570,6 @@ if conexion_exitosa:
                     for c in range(columnas): taladros.append({"ID": f"T-{f}-{c}", "X": (c * espaciamiento) + offset, "Y": f * burden, "Z_start": 0, "Z_end": -profundidad, "Tipo": "Producción"})
             elif tipo_malla == "Frente de Túnel (Galería 3x3m)":
                 taladros.append({"ID": "A1", "X": 1.5, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A2", "X": 1.3, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A3", "X": 1.7, "Y": 1.5, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A4", "X": 1.5, "Y": 1.3, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
-                taladros.append({"ID": "A5", "X": 1.5, "Y": 1.7, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arranque"})
                 for x in [1.0, 2.0]:
                     for y in [1.0, 2.0]: taladros.append({"ID": f"Ay-{x}-{y}", "X": x, "Y": y, "Z_start": 0, "Z_end": profundidad, "Tipo": "Ayudas"})
                 for x in [0.2, 0.8, 1.5, 2.2, 2.8]: taladros.append({"ID": f"Ar-{x}", "X": x, "Y": 0.2, "Z_start": 0, "Z_end": profundidad, "Tipo": "Arrastre"})
@@ -595,19 +586,19 @@ if conexion_exitosa:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Y"], row["Y"]], z=[row["Z_start"], row["Z_end"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
                 else:
                     fig_malla.add_trace(go.Scatter3d(x=[row["X"], row["X"]], y=[row["Z_start"], row["Z_end"]], z=[row["Y"], row["Y"]], mode='lines', line=dict(width=6, color=colores.get(row["Tipo"], "#fff")), showlegend=False))
-            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Ancho (X)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Avance (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Alto (Z)", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
+            fig_malla.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="X", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Y", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.1)', title="Z", color="white"), bgcolor="rgba(0,0,0,0)", aspectmode='data'), showlegend=False)
             st.plotly_chart(fig_malla, use_container_width=True)
             
-            st.markdown("<div class='titulo-seccion'>Reporte de Carga y Factor de Potencia</div>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>Reporte de Carga Mecánica</div>", unsafe_allow_html=True)
             num_taladros = len(df_malla)
             volumen_total = (burden * espaciamiento * profundidad) * num_taladros if "Tajo" in tipo_malla else 9 * profundidad
             tonelaje_total = volumen_total * densidad_roca
             anfo_total = tonelaje_total * factor_potencia
             anfo_por_taladro = anfo_total / num_taladros
             col_r1, col_r2, col_r3 = st.columns(3)
-            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas a Romper</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p></div>", unsafe_allow_html=True)
-            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Total Requerido</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p></div>", unsafe_allow_html=True)
-            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO por Taladro</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p></div>", unsafe_allow_html=True)
+            col_r1.markdown(f"<div class='metric-box'><p class='metric-label'>Toneladas</p><p class='metric-value' style='color: #8bc34a; font-size:32px;'>{tonelaje_total:,.1f}</p></div>", unsafe_allow_html=True)
+            col_r2.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO Malla</p><p class='metric-value' style='color: #f44336; font-size:32px;'>{anfo_total:,.1f} kg</p></div>", unsafe_allow_html=True)
+            col_r3.markdown(f"<div class='metric-box'><p class='metric-label'>ANFO / Taladro</p><p class='metric-value' style='color: #ffeb3b; font-size:32px;'>{anfo_por_taladro:,.1f} kg</p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -621,25 +612,24 @@ if conexion_exitosa:
             st.markdown("<div class='titulo-seccion'>1. Parámetros de Caudal Requerido (Q)</div>", unsafe_allow_html=True)
             col_p1, col_p2 = st.columns(2)
             n_personal = col_p1.number_input("Número de Personal (Turno Crítico)", min_value=1, value=45)
-            q_personal = col_p2.slider("Norma de Aire por Persona (m³/min)", 3.0, 6.0, 4.0, step=0.5)
+            q_personal = col_p2.slider("Norma por Persona (m³/min)", 3.0, 6.0, 4.0, step=0.5)
             col_d1, col_d2 = st.columns(2)
-            hp_diesel = col_d1.number_input("Potencia Diésel Efectiva Total (HP)", min_value=0, value=280)
-            q_diesel = col_d2.slider("Factor por HP (m³/min per HP)", 2.8, 4.0, 3.0, step=0.1)
-            dispo_diesel = st.slider("Factor de Disponibilidad Mecánica", 0.1, 1.0, 0.85, step=0.05)
-            st.markdown("<p style='font-size:13px; color:#aaa; font-weight:600; margin-bottom:2px;'>Dilución de Gases de Voladura / Desmonte</p>", unsafe_allow_html=True)
+            hp_diesel = col_d1.number_input("Potencia Diésel (HP)", min_value=0, value=280)
+            q_diesel = col_d2.slider("Factor por HP", 2.8, 4.0, 3.0, step=0.1)
+            dispo_diesel = st.slider("Factor de Disponibilidad", 0.1, 1.0, 0.85, step=0.05)
             col_g1, col_g2, col_g3 = st.columns(3)
-            v_gas = col_g1.number_input("Volumen Gas (m³/min)", min_value=0.0, value=0.12, step=0.01)
-            c_lim = col_g2.number_input("Límite L.M.P (ppm)", min_value=1, value=25) / 1000000
-            c_o = col_g3.number_input("Gas en Ingreso (ppm)", min_value=0, value=0) / 1000000
-            st.markdown("<br><div class='titulo-seccion'>2. Geometría del Circuito y Fricción (Atkinson)</div>", unsafe_allow_html=True)
+            v_gas = col_g1.number_input("Volumen Gas", min_value=0.0, value=0.12, step=0.01)
+            c_lim = col_g2.number_input("L.M.P (ppm)", min_value=1, value=25) / 1000000
+            c_o = col_g3.number_input("Gas Ingreso (ppm)", min_value=0, value=0) / 1000000
+            st.markdown("<br><div class='titulo-seccion'>2. Geometría (Atkinson)</div>", unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2)
-            longitud_ducto = col_g1.number_input("Longitud de Labor / Galería (m)", min_value=1, value=350)
-            k_atkinson = col_g2.number_input("Factor de Fricción k (kg/m³)", min_value=0.0001, max_value=0.05, value=0.0120, format="%.4f")
+            longitud_ducto = col_g1.number_input("Longitud de Ducto (m)", min_value=1, value=350)
+            k_atkinson = col_g2.number_input("Fricción k", min_value=0.0001, max_value=0.05, value=0.0120, format="%.4f")
             col_dim1, col_dim2 = st.columns(2)
-            ancho_gal = col_dim1.number_input("Ancho Galería (m)", min_value=1.0, value=3.0, step=0.5)
-            alto_gal = col_dim2.number_input("Alto Galería (m)", min_value=1.0, value=3.0, step=0.5)
+            ancho_gal = col_dim1.number_input("Ancho (m)", min_value=1.0, value=3.0, step=0.5)
+            alto_gal = col_dim2.number_input("Alto (m)", min_value=1.0, value=3.0, step=0.5)
             st.markdown("<br><div class='titulo-seccion'>3. Parámetro Mecánico</div>", unsafe_allow_html=True)
-            eficiencia_vent = st.slider("Eficiencia del Ventilador (η)", 0.50, 0.95, 0.75, step=0.05)
+            eficiencia_vent = st.slider("Eficiencia (η)", 0.50, 0.95, 0.75, step=0.05)
             st.markdown("</div>", unsafe_allow_html=True)
             
         with col_3d_visor:
@@ -662,18 +652,18 @@ if conexion_exitosa:
             y_cones = np.linspace(20, longitud_ducto - 20, 12)
             x_cones, z_cones = np.zeros_like(y_cones), np.full_like(y_cones, alto_gal / 2.0)
             u, v, w = np.zeros_like(y_cones), np.ones_like(y_cones) * velocidad_aire, np.zeros_like(y_cones)
-            fig_vent.add_trace(go.Cone(x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w, colorscale='Cividis', sizemode='scaled', sizeref=1.5, colorbar=dict(title=dict(text="Velocidad (m/s)", font=dict(color='white')), tickfont=dict(color='white')), name='Flujo de Aire'))
+            fig_vent.add_trace(go.Cone(x=x_cones, y=y_cones, z=z_cones, u=u, v=v, w=w, colorscale='Cividis', sizemode='scaled', sizeref=1.5, colorbar=dict(title=dict(text="m/s", font=dict(color='white')), tickfont=dict(color='white'))))
             box_x, box_z = [-ancho_gal/2, ancho_gal/2, ancho_gal/2, -ancho_gal/2, -ancho_gal/2], [0, 0, alto_gal, alto_gal, 0]
             for y_wall in [0, longitud_ducto / 2, longitud_ducto]:
-                fig_vent.add_trace(go.Scatter3d(x=box_x, y=[y_wall]*5, z=box_z, mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False, hoverinfo='skip'))
-            fig_vent.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje X (m)", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Línea Ducto (Y)", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Eje Z (m)", color="white"), bgcolor="rgba(0,0,0,0)"))
+                fig_vent.add_trace(go.Scatter3d(x=box_x, y=[y_wall]*5, z=box_z, mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=3), showlegend=False))
+            fig_vent.update_layout(margin=dict(r=10, l=10, b=10, t=10), height=450, paper_bgcolor="rgba(0,0,0,0)", scene=dict(xaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="X", color="white"), yaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Y", color="white"), zaxis=dict(showbackground=False, gridcolor='rgba(255,255,255,0.05)', title="Z", color="white"), bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig_vent, use_container_width=True)
             
-            st.markdown("<div class='titulo-seccion'>Resultados del Balance de Ventilación Dinámica</div>", unsafe_allow_html=True)
+            st.markdown("<div class='titulo-seccion'>Resultados del Balance Operativo</div>", unsafe_allow_html=True)
             col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal Crítico (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p></div>", unsafe_allow_html=True)
-            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Caída de Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p></div>", unsafe_allow_html=True)
-            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Potencia Mecánica</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p></div>", unsafe_allow_html=True)
+            col_m1.markdown(f"<div class='metric-box'><p class='metric-label'>Caudal (Q_t)</p><p class='metric-value' style='color: #4af4ff; font-size:30px;'>{Q_total_min:,.1f} <span style='font-size:14px;'>m³/min</span></p></div>", unsafe_allow_html=True)
+            col_m2.markdown(f"<div class='metric-box'><p class='metric-label'>Presión (ΔP)</p><p class='metric-value' style='color: #ffeb3b; font-size:30px;'>{delta_P:,.2f} <span style='font-size:14px;'>Pa</span></p></div>", unsafe_allow_html=True)
+            col_m3.markdown(f"<div class='metric-box'><p class='metric-label'>Motor Vent</p><p class='metric-value' style='color: #f44336; font-size:30px;'>{potencia_kW:,.2f} <span style='font-size:14px;'>kW</span></p></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
@@ -699,5 +689,5 @@ if conexion_exitosa:
             columnas = st.columns(3)
             for i, arch in enumerate(archivos_mostrar):
                 icono, nombre, id_corto = obtener_icono(arch['name']), arch['name'], arch['id'][:10]
-                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID DRIVE: {id_corto}...</p></div></div>"
+                tarjeta_html = f"<div class='file-card'><div class='file-icon'>{icono}</div><div class='file-details'><p class='file-name' title='{nombre}'>{nombre}</p><p class='file-id'>ID: {id_corto}...</p></div></div>"
                 columnas[i % 3].markdown(tarjeta_html, unsafe_allow_html=True)
