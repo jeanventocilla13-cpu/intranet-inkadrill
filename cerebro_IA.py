@@ -22,7 +22,7 @@ import re
 import math
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout="wide")
+st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="https://github.com/jeanventocilla13-cpu/intranet-inkadrill/blob/main/Imagen1%20logo%20tipo%201.png?raw=true", layout="wide")
 
 # --- INICIALIZACIÓN DE VARIABLES DE ESTADO ---
 if "pestaña_activa" not in st.session_state:
@@ -196,7 +196,7 @@ with st.sidebar:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("📝 Nueva conversación", type="primary", use_container_width=True):
+    if st.button("Nueva conversación", type="primary", use_container_width=True):
         nuevo_id = f"Conversación {len(st.session_state.conversaciones) + 1}"
         st.session_state.conversaciones[nuevo_id] = []
         st.session_state.chat_activo = nuevo_id
