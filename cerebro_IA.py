@@ -26,13 +26,14 @@ st.set_page_config(page_title="InkaDrill - Cerebro IA", page_icon="✨", layout=
 
 # --- INICIALIZACIÓN DE VARIABLES DE ESTADO ---
 if "pestaña_activa" not in st.session_state:
-    st.session_state.pestaña_activa = "Base de Datos" 
+    st.session_state.pestaña_activa = "Base de Datos" # Pestaña activa por defecto para que pruebes
 if "modo_ia" not in st.session_state:
     st.session_state.modo_ia = "🌐 Gemini IA (Internet)"
 if "conversaciones" not in st.session_state:
     st.session_state.conversaciones = {"Conversación 1": []}
 if "chat_activo" not in st.session_state:
     st.session_state.chat_activo = "Conversación 1"
+# Nueva variable para controlar la previsualización de documentos
 if "preview_file" not in st.session_state:
     st.session_state.preview_file = None
 
@@ -201,7 +202,7 @@ with st.sidebar:
         st.session_state.conversaciones[nuevo_id] = []
         st.session_state.chat_activo = nuevo_id
         st.session_state.pestaña_activa = "Chat Asistente Operativo"
-        st.session_state.preview_file = None
+        st.session_state.preview_file = None # Reinicia la vista si estamos en BD
         st.rerun()
         
     st.markdown("<p style='color:#888; font-size:13px; font-weight:500; margin-top:20px; margin-bottom:5px; padding-left:10px;'>Herramientas</p>", unsafe_allow_html=True)
@@ -213,7 +214,8 @@ with st.sidebar:
         "🛢️": "Visualizador 3D Sondajes", 
         "🧨": "Diseño de Voladura", 
         "⛑️": "Ventilación Minera", 
-        "🗄️": "Base de Datos"
+        "🗄️": "Base de Datos",
+        "📎": "Subir Archivos" # NUEVA PESTAÑA PARA SUBIR
     }
     nombres_nav_formateados = [f"{icono} {nombre}" for icono, nombre in opciones_nav.items()]
     
@@ -227,7 +229,7 @@ with st.sidebar:
     nav_real = seleccion_nav.split(" ", 1)[1] 
     if nav_real != st.session_state.pestaña_activa:
         st.session_state.pestaña_activa = nav_real
-        st.session_state.preview_file = None
+        st.session_state.preview_file = None # Reinicia el visor si cambias de pestaña
         st.rerun()
     
     pestaña = st.session_state.pestaña_activa
@@ -270,8 +272,7 @@ if conexion_exitosa:
             st.markdown("#### 🛠️ Herramientas de Chat")
             tab1, tab2 = st.tabs(["📎 Subir Archivos", "📊 Extraer Tablas"])
             with tab1:
-                archivo_subido = st.file_uploader("Arrastra PDFs o TXT", type=["pdf", "txt", "png", "jpg", "jpeg"])
-                if st.button("Guardar en Nube", type="primary", use_container_width=True) and archivo_subido: st.success("Guardado correctamente.")
+                st.info("ℹ️ Para subir archivos, por favor ve a la pestaña '📎 Subir Archivos' en la barra lateral.")
             with tab2:
                 archivo_tabla = st.file_uploader("Sube un PDF topográfico", type=["pdf"])
                 if st.button("Procesar Tabla", type="primary", use_container_width=True) and archivo_tabla: st.success("¡Datos extraídos limpiamente!")
@@ -293,13 +294,21 @@ if conexion_exitosa:
                     
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)":
                         caja_respuesta.markdown("Escanenando de forma integral la base documental de Drive... ⏳")
-                        for f in st.session_state.get("archivos_nube", []):
+                        
+                        archivos_nube = st.session_state.get("archivos_nube", [])
+                        if not archivos_nube:
+                             # Forzar un refresh si no hay archivos
+                             query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                             archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                             st.session_state.archivos_nube = archivos_nube
+
+                        for f in archivos_nube:
                             nombre = f['name']
                             if nombre.endswith('.pdf'):
                                 try:
                                     pdf_bytes = drive_service.files().get_media(fileId=f['id']).execute()
                                     lector_pdf = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages if pagina.extract_text()])
+                                    texto_pdf = "".join([pagina.extract_text() + "\n" for pagina in lector_pdf.pages])
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{texto_pdf}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
@@ -309,12 +318,17 @@ if conexion_exitosa:
                                     contexto_master += f"--- FUENTE DOCUMENTAL: {nombre} ---\n{txt_content}\n\n"
                                     archivos_usados.append(nombre)
                                 except: pass
+                        
+                        if not contexto_master:
+                             contexto_master = "No hay documentos disponibles en la carpeta de Drive vinculada."
+
                         instruccion_final = f"RESPONDE LA PREGUNTA DEL INGENIERO UTILIZANDO EXCLUSIVAMENTE LA SIGUIENTE RECOPILACIÓN DE INFORMACIÓN INTERNA:\n\n{contexto_master}\n\nPREGUNTA: {pregunta}"
                     else:
                         caja_respuesta.markdown("Consultando redes y conocimiento global... ⏳")
                         instruccion_final = f"Responde la siguiente consulta técnica utilizando tu base de conocimiento global de internet: {pregunta}"
                     
                     texto_final = modelo.generate_content(instruccion_final).text
+                    
                     if st.session_state.modo_ia == "🔱 InkaDrill IA (Carpeta Drive)" and archivos_usados:
                         fuentes_html = "\n\n---\n🗄️ **Documentos oficiales indexados para esta respuesta:**\n" + "\n".join([f"* `{name}`" for name in archivos_usados])
                         texto_final += fuentes_html
@@ -325,7 +339,52 @@ if conexion_exitosa:
                     caja_respuesta.error(f"Error de conexión con las redes neuronales: {e}")
 
     # ====================================================================
-    # PESTAÑA 2: CÁLCULOS GEOMECÁNICOS
+    # NUEVA PESTAÑA 2: SUBIR ARCHIVOS (REPARADA CON REFRESH DE BD)
+    # ====================================================================
+    elif pestaña == "Subir Archivos":
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUBIR DOCUMENTOS OPERATIVOS A DRIVE 📎</h2>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
+        st.markdown("<div class='titulo-seccion'>Cargar Nuevo Archivo</div>", unsafe_allow_html=True)
+        
+        archivo_subido = st.file_uploader("Arrastra PDFs o TXT", type=["pdf", "txt", "csv", "png", "jpg", "jpeg"], key="uploader_principal")
+        nombre_personalizado = st.text_input("Asignar Nombre (Opcional, dejar vacío para usar el original)", "")
+        
+        btn_subir = st.button("🚀 SUBIR ARCHIVO A DRIVE", type="primary", use_container_width=True)
+        
+        if btn_subir and archivo_subido:
+            with st.spinner(f"Subiendo '{archivo_subido.name}' a Google Drive... ⏳"):
+                try:
+                    nombre_final = nombre_personalizado if nombre_personalizado else archivo_subido.name
+                    
+                    # CORRECCIÓN DE SUBIDA: Definir tipo de archivo correctamente
+                    mimetype = archivo_subido.type if archivo_subido.type else 'application/octet-stream'
+                    
+                    metadata = {'name': nombre_final, 'parents': [ID_CARPETA_MEMORIA]}
+                    media = MediaIoBaseUpload(archivo_subido, mimetype=mimetype, resumable=True)
+                    
+                    archivo_drive = drive_service.files().create(body=metadata, media_body=media, fields='id, name').execute()
+                    
+                    # --- EL TRUCO DEL INGENIERO: REFRESH DE BASE DE DATOS ---
+                    query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                    st.session_state.archivos_nube = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                    # -------------------------------------------------------
+                    
+                    st.success(f"✅ Archivo '{archivo_drive.get('name')}' subido con éxito e indexado en la Base de Datos.")
+                    st.info("Ahora puedes verlo en la pestaña 'Base de Datos' o consultarlo en el 'Chat'.")
+                    
+                    # Pequeño rerun para limpiar el uploader
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ Error al subir archivo a Drive: {e}")
+        elif btn_subir and not archivo_subido:
+            st.warning("⚠️ Por favor, selecciona un archivo antes de intentar subirlo.")
+            
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ====================================================================
+    # PESTAÑA 3: CÁLCULOS GEOMECÁNICOS
     # ====================================================================
     elif pestaña == "Cálculos Geomecánicos":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SUITE DE ANÁLISIS GEOMECÁNICO 🪨</h2>", unsafe_allow_html=True)
@@ -354,12 +413,14 @@ if conexion_exitosa:
             if os.path.exists(ruta):
                 with open(ruta, "rb") as f: img_b64 = base64.b64encode(f.read()).decode()
                 break
+        
         if not img_b64:
             try:
                 url_github = f"https://raw.githubusercontent.com/jeanventocilla13-cpu/intranet-inkadrill/main/{nombre_imagen}"
                 respuesta = requests.get(url_github, timeout=3)
                 if respuesta.status_code == 200: img_b64 = base64.b64encode(respuesta.content).decode()
             except: pass
+
         src_imagen = f"data:image/png;base64,{img_b64}" if img_b64 else "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
         with col_visor:
@@ -385,7 +446,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 3: VISOR TOPOGRÁFICO INTERACTIVO
+    # PESTAÑA 4: VISOR TOPOGRÁFICO INTERACTIVO
     # ====================================================================
     elif pestaña == "Visor Topográfico":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>VISOR TOPOGRÁFICO 3D AUTÓNOMO 🗺️</h2>", unsafe_allow_html=True)
@@ -458,11 +519,12 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 4: VISUALIZADOR 3D SONDAJES
+    # PESTAÑA 5: VISUALIZADOR 3D SONDAJES
     # ====================================================================
     elif pestaña == "Visualizador 3D Sondajes":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>MODELAMIENTO GEOLÓGICO 3D AUTÓNOMO 🛢️</h2>", unsafe_allow_html=True)
         col_manual_inputs, col_3d_render = st.columns([1.3, 2])
+        
         with col_manual_inputs:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             st.markdown("<div class='titulo-seccion'>⚙️ Configuración Visual e Inputs Manuales</div>", unsafe_allow_html=True)
@@ -595,7 +657,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 5: DISEÑO DE VOLADURA
+    # PESTAÑA 6: DISEÑO DE VOLADURA
     # ====================================================================
     elif pestaña == "Diseño de Voladura":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>DISEÑO DE MALLA DE PERFORACIÓN Y VOLADURA 🧨</h2>", unsafe_allow_html=True)
@@ -667,7 +729,7 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 6: VENTILACIÓN MINERA
+    # PESTAÑA 7: VENTILACIÓN MINERA
     # ====================================================================
     elif pestaña == "Ventilación Minera":
         st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>SISTEMA OPERATIVO DE VENTILACIÓN MINERA ⛑️</h2>", unsafe_allow_html=True)
@@ -732,19 +794,26 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ====================================================================
-    # PESTAÑA 7: GESTOR DE BASE DE DATOS (VISOR NATIVO CONTINGENCIA)
+    # PESTAÑA 8: GESTOR DE BASE DE DATOS
     # ====================================================================
     elif pestaña == "Base de Datos":
-        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS Y VISOR DOCUMENTAL 🗄️</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white; text-align: center; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);'>GESTOR DE ARCHIVOS OPERATIVOS (DRIVE) 🗄️</h2>", unsafe_allow_html=True)
 
         if st.session_state.preview_file is None:
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             col_busqueda, col_filtro = st.columns([3, 1])
-            with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento en Drive...", "")
+            with col_busqueda: texto_busqueda = st.text_input("🔍 Buscar documento...", "")
             with col_filtro: tipo_filtro = st.selectbox("Filtro Rápido", ["Todos", "CSV / Excel", "PDF", "Imágenes", "Texto"])
             st.markdown("<br>", unsafe_allow_html=True)
             
             archivos_mostrar = st.session_state.get("archivos_nube", [])
+            
+            # Forzar refresh si está vacío
+            if not archivos_mostrar:
+                 query = f"'{ID_CARPETA_MEMORIA}' in parents and trashed = false"
+                 archivos_mostrar = drive_service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+                 st.session_state.archivos_nube = archivos_mostrar
+
             if texto_busqueda: archivos_mostrar = [f for f in archivos_mostrar if texto_busqueda.lower() in f['name'].lower()]
             if tipo_filtro == "CSV / Excel": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith(('.csv', '.xlsx', '.xls'))]
             elif tipo_filtro == "PDF": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.pdf')]
@@ -752,9 +821,9 @@ if conexion_exitosa:
             elif tipo_filtro == "Texto": archivos_mostrar = [f for f in archivos_mostrar if f['name'].endswith('.txt')]
                 
             if len(archivos_mostrar) == 0: 
-                st.warning("⚠️ No se encontraron documentos en la carpeta vinculada de Google Drive.")
+                st.warning("⚠️ No se encontraron documentos en la nube vinculada de Drive.")
             else:
-                st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos enlazados:</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color: #a8c7fa; font-weight: 600; margin-bottom: 15px;'>Mostrando {len(archivos_mostrar)} documentos operativos:</p>", unsafe_allow_html=True)
                 cols = st.columns(4)
                 for i, f in enumerate(archivos_mostrar):
                     with cols[i % 4]:
@@ -771,12 +840,13 @@ if conexion_exitosa:
             st.markdown("</div>", unsafe_allow_html=True)
             
         else:
+            # VISTA DE PREVISUALIZACIÓN NATIVA
             f = st.session_state.preview_file
             st.markdown("<div class='panel-geo'>", unsafe_allow_html=True)
             
             col_back, col_title, col_down = st.columns([1, 3, 1])
             with col_back:
-                if st.button("⬅️ Volver a la Carpeta", use_container_width=True):
+                if st.button("⬅️ Volver al Gestor", use_container_width=True):
                     st.session_state.preview_file = None
                     st.rerun()
             with col_title:
@@ -784,7 +854,7 @@ if conexion_exitosa:
             
             st.markdown("---")
             
-            with st.spinner("Conectando con el visor seguro de la nube..."):
+            with st.spinner("Cargando visor nativo desde la nube... ⏳"):
                 try:
                     file_bytes = drive_service.files().get_media(fileId=f['id']).execute()
                     
@@ -792,18 +862,8 @@ if conexion_exitosa:
                         st.download_button("⬇️ Descargar Archivo", data=file_bytes, file_name=f['name'], mime="application/octet-stream", use_container_width=True, type="primary")
                     
                     if f['name'].endswith('.pdf'):
-                        # Solución Definitiva: Enlace de previsualización nativo de Google Drive (evade bloqueos de navegador)
                         url_preview = f"https://drive.google.com/file/d/{f['id']}/preview"
                         st.markdown(f'<iframe src="{url_preview}" width="100%" height="750px" style="border: none; border-radius: 10px; background-color: #f0f0f0;"></iframe>', unsafe_allow_html=True)
-                        
-                        # Plan de contingencia absoluto: Texto extraído si Google Drive rechaza la conexión
-                        with st.expander("📄 Ver contenido en texto plano (Si el visor superior está bloqueado por el navegador)"):
-                            try:
-                                lector_pdf = PyPDF2.PdfReader(BytesIO(file_bytes))
-                                texto_extraido = "\n\n".join([pagina.extract_text() for pagina in lector_pdf.pages if pagina.extract_text()])
-                                st.text_area("Texto extraído del documento:", texto_extraido, height=350)
-                            except Exception as e:
-                                st.warning("No se pudo extraer el texto plano del PDF.")
                                 
                     elif f['name'].endswith(('.csv', '.txt')):
                         text_data = file_bytes.decode('utf-8')
@@ -815,8 +875,8 @@ if conexion_exitosa:
                     elif f['name'].endswith(('.png', '.jpg', '.jpeg')):
                         st.image(file_bytes, caption=f['name'], use_container_width=True)
                     else:
-                        st.info("ℹ️ Previsualización no disponible para este formato. Utiliza el botón de descarga para verlo en tu computadora.")
+                        st.info("ℹ️ Previsualización nativa no disponible para este formato. Utiliza el botón de descarga para verlo en tu computadora.")
                 except Exception as e:
-                    st.error(f"Error al abrir el documento: {e}")
+                    st.error(f"❌ Error al abrir el documento nativo: {e}")
                     
             st.markdown("</div>", unsafe_allow_html=True)
